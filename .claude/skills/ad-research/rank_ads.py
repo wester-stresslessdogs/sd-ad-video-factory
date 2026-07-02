@@ -47,24 +47,34 @@ def gather(terms, countries, max_ads):
     return out
 
 
-def winners(ads, min_longevity, top):
-    # dedup op ad_id
-    seen, deduped = set(), []
-    for a in ads:
-        k = a.get("ad_id")
-        if k and k in seen:
-            continue
-        if k:
-            seen.add(k)
-        deduped.append(a)
+def _norm_text(a):
+    return "".join((a.get("ad_text") or a.get("title") or "").lower().split())[:120]
+
+
+def winners(ads, min_longevity, top, max_per_page=2):
     # filter op winner-drempel
-    deduped = [a for a in deduped if (a.get("longevity_days") or 0) >= min_longevity]
-    # variatie-proxy: hoeveel ads draait dezelfde page
-    page_counts = Counter(a.get("page_name") for a in deduped)
-    for a in deduped:
+    ads = [a for a in ads if (a.get("longevity_days") or 0) >= min_longevity]
+    # collapse near-duplicates (zelfde page + vrijwel zelfde tekst) → hoogste looptijd
+    collapsed = {}
+    for a in ads:
+        key = (a.get("page_name"), _norm_text(a))
+        if key not in collapsed or (a.get("longevity_days") or 0) > (collapsed[key].get("longevity_days") or 0):
+            collapsed[key] = a
+    uniq = list(collapsed.values())
+    # variatie-proxy = aantal ONDERSCHEIDEN creatives per page (niet ruwe duplicaten)
+    page_counts = Counter(a.get("page_name") for a in uniq)
+    for a in uniq:
         a["page_ad_count"] = page_counts[a.get("page_name")]
-    deduped.sort(key=lambda a: ((a.get("longevity_days") or 0), a["page_ad_count"]), reverse=True)
-    return deduped[:top]
+    uniq.sort(key=lambda a: ((a.get("longevity_days") or 0), a["page_ad_count"]), reverse=True)
+    # cap per adverteerder zodat één merk het rapport niet domineert
+    per_page, result = Counter(), []
+    for a in uniq:
+        p = a.get("page_name")
+        if per_page[p] >= max_per_page:
+            continue
+        per_page[p] += 1
+        result.append(a)
+    return result[:top]
 
 
 def main():
