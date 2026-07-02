@@ -1,0 +1,66 @@
+{
+  "_comment": "Gegenereerd uit ad-library vision.analysis van Barkside Stories (ad_id 2761549420912366). Stijl overgenomen: 9:16 talking-head UGC, witte bold captions met zwarte stroke (per zin, geen karaoke), rauwe cut-per-zin look. AANBOD VERTAALD (offer-translation.md): end-card = onze gratis masterclass → Liefdevol Communiceren, NIET het product van de inspiratie-ad. 'talking_head' + 'broll' source worden op render-tijd gezet; 'end_card' time/duration zet /ad-render op basis van de cliplengte.",
+  "output_format": "mp4",
+  "frame_rate": 30,
+  "width": 1080,
+  "height": 1920,
+  "elements": [
+    {
+      "id": "talking_head",
+      "type": "video",
+      "track": 1,
+      "source": "PLACEHOLDER_ONZE_OPNAME_OP_RENDER_TIJD",
+      "fit": "cover"
+    },
+    {
+      "id": "broll",
+      "type": "video",
+      "track": 2,
+      "source": "PLACEHOLDER_OPTIONELE_BROLL",
+      "fit": "cover",
+      "time": null,
+      "duration": null,
+      "_note": "Lichte cutaway (locatiewissel-gevoel). Weglaten indien geen match; /ad-render zet time/duration."
+    },
+    {
+      "id": "captions",
+      "type": "text",
+      "track": 3,
+      "transcript_source": "talking_head",
+      "transcript_split": "line",
+      "transcript_maximum_length": 40,
+      "y": "78%",
+      "x": "50%",
+      "width": "88%",
+      "x_alignment": "50%",
+      "y_alignment": "50%",
+      "font_family": "Montserrat",
+      "font_weight": "800",
+      "font_size": "6.5 vmin",
+      "fill_color": "#ffffff",
+      "stroke_color": "#000000",
+      "stroke_width": "0.7 vmin",
+      "background_color": "rgba(0,0,0,0.0)",
+      "_note": "Barkside-stijl: wit bold + zwarte stroke, hele zinsdelen (geen karaoke)."
+    },
+    {
+      "id": "end_card",
+      "type": "text",
+      "track": 4,
+      "time": null,
+      "duration": 4,
+      "text": "Gratis masterclass\nLiefdevol Communiceren\n\n👇 Meld je gratis aan",
+      "y": "50%",
+      "x": "50%",
+      "width": "80%",
+      "x_alignment": "50%",
+      "y_alignment": "50%",
+      "font_family": "Montserrat",
+      "font_weight": "800",
+      "font_size": "7 vmin",
+      "fill_color": "#ffffff",
+      "background_color": "rgba(20,20,20,0.85)",
+      "_note": "VERTAALDE end-card (ons aanbod, niet dat van de inspiratie-ad). /ad-render zet 'time' op ~einde van de clip."
+    }
+  ]
+}

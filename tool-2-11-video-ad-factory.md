@@ -540,4 +540,10 @@ def render_video(api_key, template_id, modifications):
 
 - **Metrics ↔ transcript matching via ad_id** — een sheet/dataset waarin de `ad_id` uit de Meta Ad Library gematcht wordt aan de originele Meta-metrics-export (Ads Manager). Probleem nu: metrics zijn er wél (export), maar de video-transcriptie hangt er niet aan, dus je weet niet wélke video bij welke regel hoort. Oplossing: ad_id als sleutel → transcript via Apify/library-scrape + Whisper → join met de metrics-export. Geeft "welke creative + welke hook presteert hoe", zonder volledige warehouse. **Voor later.**
 
+- **Analyse-kwaliteit verder verdiepen (later)** — de `video-analysis-rubric.md` is een
+  startpunt. Hier valt veel te winnen: hoe komt materiaal binnen, hoe wordt het gehanteerd,
+  en hoe rollen daar templates uit. Kan zo gedetailleerd als we willen op meerdere vlakken
+  (hook-frameworks, edit-psychologie, per-niche patronen). Voor nu goed genoeg; onthouden
+  als kwaliteits-hefboom.
+
 - **Research-gedreven template-varianten (voorstel, niet definitief)** — templates zijn dynamisch, geen statische set: op basis van de concurrentie-research (welke caption-stijlen, pacing, B-roll-intensiteit en hook-formats aantoonbaar werken) worden **meerdere template-varianten** als code geschreven. `/ad-render` rendert het materiaal door al die varianten → veel video's om te testen → wat werkt voedt de volgende research (feedback-loop). Mogelijk een stukje dat template-varianten *voorstelt/genereert* uit research-bevindingen, bovenop de handmatig geschreven code-templates. **Nog uitwerken — hier op terugkomen.**
