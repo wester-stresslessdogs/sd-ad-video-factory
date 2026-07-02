@@ -45,7 +45,13 @@ Maakt van een winnende ad-stijl een Creatomate-template als code, die we daarna 
    - `end_card`/CTA-element met **ons** aanbod (uit stap 3), niet dat van de inspiratie-ad
    - muziek-element indien de winnaar muziek-gedreven oogt
    Volg de structuur van bestaande templates (bv. `raw_ugc_1x1.json`).
-5. **Kort valideren** (optioneel) — render één keer via de spike/`/ad-render` met een
+5. **Terugkoppelen naar de ad-library** — zodat deze ad niet nog eens geanalyseerd wordt:
+   ```bash
+   python lib/ad_library.py link --ad-id <ad_id> \
+       --template knowledge/video-templates/<naam>.json \
+       --style "<korte stijl-samenvatting>" --status geanalyseerd
+   ```
+6. **Kort valideren** (optioneel) — render één keer via de spike/`/ad-render` met een
    praat-clip om te bevestigen dat captions correct verschijnen.
 
 ## Regels

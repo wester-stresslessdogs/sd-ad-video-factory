@@ -18,7 +18,7 @@ Kern-flow in het kort: [FLOW.md](FLOW.md) · Origineel klantidee (archief): [too
 
 > Databron is **Apify** (Meta Ad Library scraper), niet Foreplay. "Wat werkt" wordt
 > geproxyd op **looptijd** (geen publieke metrics). Gedeelde fetch-laag: `lib/fetch_ads.py`.
-> Data-assets: `knowledge/brand-registry.json` (wie we volgen) + `knowledge/research-config.json` (hoe we zoeken).
+> Data-assets: `knowledge/brand-registry.json` (wie we volgen) + `knowledge/research-config.json` (hoe we zoeken) + `knowledge/ad-library.json` (welke ads we al analyseerden + hun templates/scripts — voorkomt dubbel werk).
 > Winnende ads zijn inspiratie — script én template worden naar ons aanbod herschreven (zie [FLOW.md](FLOW.md)).
 
 ## Setup (nieuwe machine)

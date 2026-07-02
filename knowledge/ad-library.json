@@ -1,0 +1,19 @@
+{
+  "_comment": "Incrementele database van gevonden/geanalyseerde winnende ads. Gekeyed op ad_id. Voorkomt dubbel analyseren: /ad-research filtert nieuwe ads hiertegen, /ad-template en /ad-scripts linken hun output terug. Onderhouden via lib/ad_library.py. Durabele link = Ad Library-permalink (video-URL's verlopen). Status: nieuw → geanalyseerd.",
+  "ads": {
+    "1640247783679843": {
+      "ad_id": "1640247783679843",
+      "page_name": "Saskia van der Made - hondentraining",
+      "library_url": "https://www.facebook.com/ads/library/?id=1640247783679843",
+      "market": "NL",
+      "first_seen": "2026-07-02",
+      "last_seen": "2026-07-02",
+      "longevity_days": 119,
+      "hook": "(footage-only, geen post-tekst)",
+      "status": "nieuw",
+      "style_summary": "1:1, agility-demo footage, geen captions",
+      "derived": { "templates": [], "scripts": [] },
+      "notes": "Seed-voorbeeld uit de eerste test."
+    }
+  }
+}

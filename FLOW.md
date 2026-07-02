@@ -46,6 +46,13 @@ app zoals de inspiratie-ad → onze gratis masterclass → Liefdevol Communicere
 juiste funnel en **toont welk product/aanbod het koos**, zodat je kunt corrigeren.
 Geldt voor zowel het script als de template.
 
+## Geheugen: niks dubbel doen
+`knowledge/ad-library.json` onthoudt elke winnende ad die we al zagen/analyseerden
+(op `ad_id`), met een durabele Ad Library-link en verwijzingen naar de template(s)/
+script(s) die we ervan maakten. `/ad-research` filtert nieuwe ads hiertegen en negeert
+wat al behandeld is; `/ad-template` linkt zijn output terug. Zo analyseren we nooit
+twee keer dezelfde ad — dat maakt het een geoliede machine i.p.v. elke keer opnieuw beginnen.
+
 ## Onder de motorkap
 - Marktdata: **Apify** (Meta Ad Library) · Video: **Creatomate** (templates als code)
 - Transcriptie: **Whisper** · Opslag: **Google Drive**

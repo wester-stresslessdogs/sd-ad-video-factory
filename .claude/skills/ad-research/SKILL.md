@@ -26,7 +26,15 @@ terug) en **variatie-aantal** (merken schalen winnaars op). Drempel staat in
    Output: `home_winners` (NL/BE) en `international_winners` (EN), elk gerankt op
    looptijd + page-variatie. Elke ad bevat tekst, hook (`title`/`ad_text`), CTA,
    `longevity_days`, `page_ad_count` en `video_urls`.
-3. **Synthetiseer** (dit is jouw werk, niet het script):
+2b. **Filter tegen de ad-library** — negeer alles wat we al behandeld hebben:
+   ```bash
+   python lib/ad_library.py filter < winners.json   # gebruik alleen `new`
+   ```
+   Werk verder **alleen met de nieuwe** ads. Registreer ze:
+   ```bash
+   python lib/ad_library.py record --status nieuw < new_winners.json
+   ```
+3. **Synthetiseer** (alleen op de nieuwe ads):
    - **Trending angles** uit de home-winners: welke hooks/formats draaien lang?
    - **Adapteerbare internationale winners**: markeer EN-ads die je naar NL kunt
      vertalen (je leent de angle/hook-structuur, niet de letterlijke tekst).
