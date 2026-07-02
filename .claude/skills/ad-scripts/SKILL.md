@@ -13,6 +13,7 @@ Zet een ad-idee om in een opnameklaar script. Output volgt het formaat uit spec 
 - `knowledge/business-context/advertising-strategy.md` — awareness-levels, angles, funnel
 - `knowledge/business-context/customer-journey.md` — funnel-stappen + pijnpunten
 - `knowledge/business-context/tone-of-voice.md` — merkstem (force-free, empathisch)
+- `knowledge/business-context/offer-translation.md` — hoe je een inspiratie-aanbod omzet naar ons aanbod
 
 ## Input
 
@@ -24,6 +25,12 @@ benoem de keuze.
 
 ## Genereer per script
 
+0. **Business-case-vertaling** (als de input een winnende/inspiratie-ad is). Neem de
+   hook-structuur en angle over, maar zet het aanbod om naar óns aanbod volgens
+   `offer-translation.md`: hun product/CTA → onze funnel-entry (gratis masterclass →
+   cursus), hun mechanisme → force-free methode, onze productnaam/prijs uit de catalogus.
+   **Toon expliciet wat je koos** ("Vertaald naar: gratis masterclass → LVC €127"),
+   zodat het corrigeerbaar is. Kopieer nooit het product van een ander.
 1. **Bepaal awareness-level** (koud/oplossing/product-bewust) → kies passende hook-stijl
    uit `advertising-strategy.md`.
 2. **HOOK (0:00–0:08) — minimaal 3 variaties.** Verschillende invalshoeken op dezelfde

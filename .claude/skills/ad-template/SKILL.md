@@ -29,15 +29,23 @@ Maakt van een winnende ad-stijl een Creatomate-template als code, die we daarna 
    - **Format**: talking head, slideshow, split screen, POV
    - **Pacing**: rustige lange shots vs. snelle cuts (afleidbaar uit variatie tussen frames)
    - **Verhouding**: uit de metadata (1:1 / 9:16)
-3. **Template genereren** — schrijf een Creatomate `source`-JSON naar
+3. **Business-case-vertaling** — neem de *stijl* over, maar zet het *aanbod* om naar ons
+   aanbod volgens `knowledge/business-context/offer-translation.md`:
+   - **End-card / CTA-graphic**: niet hun product ("download app / TRY NOW"), maar **onze**
+     funnel-entry (gratis masterclass → LVC-cursus) met ons logo/onze CTA.
+   - **Product-specifieke scènes** (bv. app-UI, ander merk): vervang door ons equivalent
+     (cursus-/masterclass-mockup) of laat ze weg.
+   - **Toon expliciet** wat je vertaalde ("app-end-card → onze masterclass-CTA").
+4. **Template genereren** — schrijf een Creatomate `source`-JSON naar
    `knowledge/video-templates/<beschrijvende-naam>_<verhouding>.json` met:
    - `talking_head` video-element (onze opname, source op render-tijd)
    - `captions`-tekstelement met `transcript_source: "talking_head"` in de **waargenomen
      stijl** (kleur/positie/highlight-effect/font-gewicht)
    - `broll`-element(en) passend bij de waargenomen intensiteit (weglaten bij talking-head-only)
+   - `end_card`/CTA-element met **ons** aanbod (uit stap 3), niet dat van de inspiratie-ad
    - muziek-element indien de winnaar muziek-gedreven oogt
    Volg de structuur van bestaande templates (bv. `raw_ugc_1x1.json`).
-4. **Kort valideren** (optioneel) — render één keer via de spike/`/ad-render` met een
+5. **Kort valideren** (optioneel) — render één keer via de spike/`/ad-render` met een
    praat-clip om te bevestigen dat captions correct verschijnen.
 
 ## Regels
