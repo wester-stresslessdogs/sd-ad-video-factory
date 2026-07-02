@@ -109,10 +109,14 @@ def cmd_vision(args):
     if e is None:
         print(f"ad_id {aid} niet in library — draai eerst 'record'", file=sys.stderr)
         sys.exit(1)
-    e["vision"] = {"done": True, "analyzed_at": date.today().isoformat(), "analysis": args.analysis}
+    analysis = Path(args.analysis_file).read_text() if args.analysis_file else args.analysis
+    if not analysis:
+        print("geef --analysis of --analysis-file", file=sys.stderr)
+        sys.exit(1)
+    e["vision"] = {"done": True, "analyzed_at": date.today().isoformat(), "analysis": analysis}
     e["status"] = args.status or "geanalyseerd"
     save(db)
-    print(f"vision opgeslagen voor {aid} (nooit opnieuw nodig)", file=sys.stderr)
+    print(f"vision opgeslagen voor {aid} ({len(analysis)} tekens, nooit opnieuw nodig)", file=sys.stderr)
 
 
 def cmd_link(args):
@@ -141,7 +145,8 @@ def main():
     r.add_argument("--status", default="nieuw")
     v = sub.add_parser("vision")
     v.add_argument("--ad-id", required=True)
-    v.add_argument("--analysis", required=True)
+    v.add_argument("--analysis")
+    v.add_argument("--analysis-file")
     v.add_argument("--status")
     lk = sub.add_parser("link")
     lk.add_argument("--ad-id", required=True)

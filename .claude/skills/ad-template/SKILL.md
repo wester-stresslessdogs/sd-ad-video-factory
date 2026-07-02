@@ -22,24 +22,23 @@ Maakt van een winnende ad-stijl een Creatomate-template als code, die we daarna 
    - Is `vision.done: true` → **hergebruik de opgeslagen `vision.analysis`-tekst**, sla
      stap 1-2 (download + Vision) volledig over. Ga direct naar stap 3.
    - Zo niet → doe stap 1-2 en sla de analyse daarna op (stap 2b).
-1. **Video downloaden + keyframes extraheren**:
+1. **Grondstof genereren** (scene-cuts + transcript):
    ```bash
    python .claude/skills/ad-template/analyze_ad_video.py --url "<video_url>" \
-       --out output/ad-analysis/<beschrijvende-naam> --frames 10
+       --out output/ad-analysis/<beschrijvende-naam> --transcript
    ```
-   Output: frame-paden + metadata (breedte/hoogte/duur/verhouding).
-2. **Visuele stijl lezen** — open de keyframes (Read-tool) en bepaal:
-   - **Caption-stijl**: positie, kleur, highlight/karaoke, font-gewicht, achtergrond
-   - **B-roll-intensiteit**: talking-head-only vs. veel cutaways/overlays
-   - **Format**: talking head, slideshow, split screen, POV
-   - **Pacing**: rustige lange shots vs. snelle cuts (afleidbaar uit variatie tussen frames)
-   - **Verhouding**: uit de metadata (1:1 / 9:16)
-2b. **Vision-analyse opslaan** (de tekstbeschrijving) — zodat dit nooit opnieuw hoeft:
+   Output: hook-frame + één frame per **scène-cut** (vangt elke shot), metadata
+   (verhouding/duur/cut-count) en het **transcript** (verbale hook + script + audio-pacing).
+2. **Diepe analyse schrijven** — open de frames (Read-tool) + lees het transcript, en vul
+   **`knowledge/video-analysis-rubric.md`** volledig in. Geen vage samenvatting: shot-voor-shot
+   breakdown, hook-mechaniek, pacing/cut-ritme, camerawerk, editing, caption-stijl tot in detail,
+   audio, en vooral **sectie 13 (waarom het werkt)** + **sectie 14 (replicatie-blueprint)**.
+   Dit is de kennis waarop we later templates/scripts bouwen — dus grondig.
+2b. **Vision-analyse opslaan** (de volledige rubric-uitwerking) — zodat dit nooit opnieuw hoeft:
    ```bash
-   python lib/ad_library.py vision --ad-id <ad_id> \
-       --analysis "<beschrijving: verhouding, format, caption-stijl, B-roll, cuts, end-card>"
+   python lib/ad_library.py vision --ad-id <ad_id> --analysis "<volledige rubric-analyse>"
    ```
-   Deze tekst is voortaan de bron voor élke nieuwe template/script van deze ad.
+   Deze tekst is voortaan dé bron voor élke nieuwe template/script van deze ad.
 3. **Business-case-vertaling** — neem de *stijl* over, maar zet het *aanbod* om naar ons
    aanbod volgens `knowledge/business-context/offer-translation.md`:
    - **End-card / CTA-graphic**: niet hun product ("download app / TRY NOW"), maar **onze**
