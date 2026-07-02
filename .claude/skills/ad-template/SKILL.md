@@ -17,6 +17,11 @@ Maakt van een winnende ad-stijl een Creatomate-template als code, die we daarna 
 
 ## Stappen
 
+0. **Check de ad-library eerst — Vision maar één keer.** Kijk in
+   `knowledge/ad-library.json` bij deze `ad_id`:
+   - Is `vision.done: true` → **hergebruik de opgeslagen `vision.analysis`-tekst**, sla
+     stap 1-2 (download + Vision) volledig over. Ga direct naar stap 3.
+   - Zo niet → doe stap 1-2 en sla de analyse daarna op (stap 2b).
 1. **Video downloaden + keyframes extraheren**:
    ```bash
    python .claude/skills/ad-template/analyze_ad_video.py --url "<video_url>" \
@@ -29,6 +34,12 @@ Maakt van een winnende ad-stijl een Creatomate-template als code, die we daarna 
    - **Format**: talking head, slideshow, split screen, POV
    - **Pacing**: rustige lange shots vs. snelle cuts (afleidbaar uit variatie tussen frames)
    - **Verhouding**: uit de metadata (1:1 / 9:16)
+2b. **Vision-analyse opslaan** (de tekstbeschrijving) — zodat dit nooit opnieuw hoeft:
+   ```bash
+   python lib/ad_library.py vision --ad-id <ad_id> \
+       --analysis "<beschrijving: verhouding, format, caption-stijl, B-roll, cuts, end-card>"
+   ```
+   Deze tekst is voortaan de bron voor élke nieuwe template/script van deze ad.
 3. **Business-case-vertaling** — neem de *stijl* over, maar zet het *aanbod* om naar ons
    aanbod volgens `knowledge/business-context/offer-translation.md`:
    - **End-card / CTA-graphic**: niet hun product ("download app / TRY NOW"), maar **onze**

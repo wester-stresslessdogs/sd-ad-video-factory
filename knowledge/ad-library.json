@@ -1,5 +1,5 @@
 {
-  "_comment": "Incrementele database van gevonden/geanalyseerde winnende ads. Gekeyed op ad_id. Voorkomt dubbel analyseren: /ad-research filtert nieuwe ads hiertegen, /ad-template en /ad-scripts linken hun output terug. Onderhouden via lib/ad_library.py. Durabele link = Ad Library-permalink (video-URL's verlopen). Status: nieuw → geanalyseerd.",
+  "_comment": "Incrementele database van gevonden/geanalyseerde winnende ads. Gekeyed op ad_id. Voorkomt dubbel werk: /ad-research filtert nieuwe ads hiertegen; Vision-analyse gebeurt één keer per ad (vision.done) en de tekst wordt hergebruikt voor templates/scripts; /ad-template linkt output terug. Onderhouden via lib/ad_library.py. Durabele link = Ad Library-permalink (video-URL's verlopen).",
   "ads": {
     "1640247783679843": {
       "ad_id": "1640247783679843",
@@ -10,10 +10,206 @@
       "last_seen": "2026-07-02",
       "longevity_days": 119,
       "hook": "(footage-only, geen post-tekst)",
-      "status": "nieuw",
-      "style_summary": "1:1, agility-demo footage, geen captions",
-      "derived": { "templates": [], "scripts": [] },
+      "status": "geanalyseerd",
+      "vision": {
+        "done": true,
+        "analyzed_at": "2026-07-02",
+        "analysis": "1:1, agility-demo footage buiten (vrouw traint hond op veld met pylonen/hoepel). Geen talking head, geen on-screen captions, geen cuts (één doorlopende shot). Natuurlijk daglicht, UGC-stijl."
+      },
+      "derived": {
+        "templates": [],
+        "scripts": []
+      },
       "notes": "Seed-voorbeeld uit de eerste test."
+    },
+    "1238886857901115": {
+      "ad_id": "1238886857901115",
+      "page_name": "Petzy.nl",
+      "library_url": "https://www.facebook.com/ads/library/?id=1238886857901115",
+      "market": "NL",
+      "first_seen": "2026-07-02",
+      "last_seen": "2026-07-02",
+      "longevity_days": 392,
+      "hook": "Nu tijdelijk afgeprijsd",
+      "status": "nieuw",
+      "vision": {
+        "done": false,
+        "analyzed_at": null,
+        "analysis": null
+      },
+      "derived": {
+        "templates": [],
+        "scripts": []
+      },
+      "notes": ""
+    },
+    "2054586075309742": {
+      "ad_id": "2054586075309742",
+      "page_name": "Verhuisdieren",
+      "library_url": "https://www.facebook.com/ads/library/?id=2054586075309742",
+      "market": "NL",
+      "first_seen": "2026-07-02",
+      "last_seen": "2026-07-02",
+      "longevity_days": 261,
+      "hook": null,
+      "status": "nieuw",
+      "vision": {
+        "done": false,
+        "analyzed_at": null,
+        "analysis": null
+      },
+      "derived": {
+        "templates": [],
+        "scripts": []
+      },
+      "notes": ""
+    },
+    "2181348195687549": {
+      "ad_id": "2181348195687549",
+      "page_name": "Aniek Wendt - coach voor hond & mens",
+      "library_url": "https://www.facebook.com/ads/library/?id=2181348195687549",
+      "market": "NL",
+      "first_seen": "2026-07-02",
+      "last_seen": "2026-07-02",
+      "longevity_days": 218,
+      "hook": "🖤🐶BLACK FRIDAY DEAL",
+      "status": "nieuw",
+      "vision": {
+        "done": false,
+        "analyzed_at": null,
+        "analysis": null
+      },
+      "derived": {
+        "templates": [],
+        "scripts": []
+      },
+      "notes": ""
+    },
+    "1462346185274361": {
+      "ad_id": "1462346185274361",
+      "page_name": "Dog Optimal",
+      "library_url": "https://www.facebook.com/ads/library/?id=1462346185274361",
+      "market": "NL",
+      "first_seen": "2026-07-02",
+      "last_seen": "2026-07-02",
+      "longevity_days": 117,
+      "hook": "Voor 23:30 besteld, morgen in huis",
+      "status": "nieuw",
+      "vision": {
+        "done": false,
+        "analyzed_at": null,
+        "analysis": null
+      },
+      "derived": {
+        "templates": [],
+        "scripts": []
+      },
+      "notes": ""
+    },
+    "1932882180933021": {
+      "ad_id": "1932882180933021",
+      "page_name": "Pupr",
+      "library_url": "https://www.facebook.com/ads/library/?id=1932882180933021",
+      "market": "NL",
+      "first_seen": "2026-07-02",
+      "last_seen": "2026-07-02",
+      "longevity_days": 83,
+      "hook": "Hoe u uw hond snel kunt laten stoppen met overmatig blaffen",
+      "status": "nieuw",
+      "vision": {
+        "done": false,
+        "analyzed_at": null,
+        "analysis": null
+      },
+      "derived": {
+        "templates": [],
+        "scripts": []
+      },
+      "notes": ""
+    },
+    "1739384947432650": {
+      "ad_id": "1739384947432650",
+      "page_name": "Anneke Jansen",
+      "library_url": "https://www.facebook.com/ads/library/?id=1739384947432650",
+      "market": "NL",
+      "first_seen": "2026-07-02",
+      "last_seen": "2026-07-02",
+      "longevity_days": 74,
+      "hook": "Ik kreeg mijn hond terug… En mijn rust...",
+      "status": "nieuw",
+      "vision": {
+        "done": false,
+        "analyzed_at": null,
+        "analysis": null
+      },
+      "derived": {
+        "templates": [],
+        "scripts": []
+      },
+      "notes": ""
+    },
+    "2761549420912366": {
+      "ad_id": "2761549420912366",
+      "page_name": "Barkside Stories",
+      "library_url": "https://www.facebook.com/ads/library/?id=2761549420912366",
+      "market": "NL",
+      "first_seen": "2026-07-02",
+      "last_seen": "2026-07-02",
+      "longevity_days": 57,
+      "hook": "Dit lijkt ongehoorzaamheid… maar is stress. Lees meer 👉",
+      "status": "geanalyseerd",
+      "vision": {
+        "done": true,
+        "analyzed_at": "2026-07-02",
+        "analysis": "9:16 talking-head UGC (jonge vrouw + hond), wisselende locaties (binnen/tuin) met POV-B-roll (hond uitlaten) → cuts. Witte gecentreerde sentence-case captions met lichte outline. Af en toe icon-graphic overlay (alarm). Lang (101s), persoonlijk verhaal, natuurlijk daglicht, authentiek."
+      },
+      "derived": {
+        "templates": [],
+        "scripts": []
+      },
+      "notes": ""
+    },
+    "27035047326134575": {
+      "ad_id": "27035047326134575",
+      "page_name": "Riannehondengedragsdeskundige",
+      "library_url": "https://www.facebook.com/ads/library/?id=27035047326134575",
+      "market": "NL",
+      "first_seen": "2026-07-02",
+      "last_seen": "2026-07-02",
+      "longevity_days": 50,
+      "hook": "Het ligt niet aan je hond",
+      "status": "nieuw",
+      "vision": {
+        "done": false,
+        "analyzed_at": null,
+        "analysis": null
+      },
+      "derived": {
+        "templates": [],
+        "scripts": []
+      },
+      "notes": ""
+    },
+    "844025608756061": {
+      "ad_id": "844025608756061",
+      "page_name": "De dieren magazine",
+      "library_url": "https://www.facebook.com/ads/library/?id=844025608756061",
+      "market": "NL",
+      "first_seen": "2026-07-02",
+      "last_seen": "2026-07-02",
+      "longevity_days": 46,
+      "hook": "Hoe u uw hond snel kunt laten stoppen met overmatig blaffen",
+      "status": "nieuw",
+      "vision": {
+        "done": false,
+        "analyzed_at": null,
+        "analysis": null
+      },
+      "derived": {
+        "templates": [],
+        "scripts": []
+      },
+      "notes": ""
     }
   }
 }

@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
 """Beheer van ad-library.json — de incrementele database van winnende/geanalyseerde ads.
 
-Doel: nooit dezelfde ad twee keer analyseren. Gekeyed op ad_id.
+Doel: nooit dezelfde ad twee keer analyseren. Gekeyed op ad_id. De Vision-analyse
+(tekstbeschrijving van wat er in de video gebeurt) wordt één keer gedaan en opgeslagen,
+en daarna hergebruikt om templates/scripts van te schrijven.
 
 CLI (skills roepen deze aan):
-  # splits een lijst ads (JSON op stdin) in nieuw vs. al bekend
+  # splits ads (JSON op stdin) in nieuw vs. al bekend
   python lib/ad_library.py filter < winners.json
 
-  # zet ads in de library (JSON op stdin), met status
+  # welke ads hebben nog GEEN Vision-analyse? (JSON op stdin → JSON uit)
+  python lib/ad_library.py pending-vision < winners.json
+
+  # ads registreren (JSON op stdin)
   python lib/ad_library.py record --status nieuw < winners.json
 
-  # koppel afgeleide output aan een ad + markeer als geanalyseerd
-  python lib/ad_library.py link --ad-id 123 \
-      --template knowledge/video-templates/x_9x16.json \
-      --script output/scripts/x.md --style "9:16, karaoke-captions" --status geanalyseerd
+  # Vision-analyse (de tekstbeschrijving) opslaan + taggen → nooit opnieuw
+  python lib/ad_library.py vision --ad-id 123 --analysis "9:16, karaoke-captions, cut-heavy, end-card"
+
+  # afgeleide template/script koppelen
+  python lib/ad_library.py link --ad-id 123 --template knowledge/video-templates/x.json
 """
 import argparse
 import json
@@ -39,6 +45,10 @@ def library_url(ad_id):
     return f"https://www.facebook.com/ads/library/?id={ad_id}"
 
 
+def has_vision(entry):
+    return bool((entry or {}).get("vision", {}).get("done"))
+
+
 def upsert(db, ad, status=None):
     aid = str(ad.get("ad_id"))
     today = date.today().isoformat()
@@ -54,7 +64,7 @@ def upsert(db, ad, status=None):
             "longevity_days": ad.get("longevity_days"),
             "hook": ad.get("title") or (ad.get("ad_text") or "")[:80] or None,
             "status": status or "nieuw",
-            "style_summary": None,
+            "vision": {"done": False, "analyzed_at": None, "analysis": None},
             "derived": {"templates": [], "scripts": []},
             "notes": "",
         }
@@ -76,6 +86,13 @@ def cmd_filter(_args):
     json.dump({"new": new, "already_known": known_hits}, sys.stdout, ensure_ascii=False, indent=2)
 
 
+def cmd_pending_vision(_args):
+    db = load()
+    ads = json.load(sys.stdin)
+    pending = [a for a in ads if not has_vision(db["ads"].get(str(a.get("ad_id"))))]
+    json.dump(pending, sys.stdout, ensure_ascii=False, indent=2)
+
+
 def cmd_record(args):
     db = load()
     ads = json.load(sys.stdin)
@@ -83,6 +100,19 @@ def cmd_record(args):
         upsert(db, a, status=args.status)
     save(db)
     print(f"{len(ads)} ads ge-upsert (status={args.status})", file=sys.stderr)
+
+
+def cmd_vision(args):
+    db = load()
+    aid = str(args.ad_id)
+    e = db["ads"].get(aid)
+    if e is None:
+        print(f"ad_id {aid} niet in library — draai eerst 'record'", file=sys.stderr)
+        sys.exit(1)
+    e["vision"] = {"done": True, "analyzed_at": date.today().isoformat(), "analysis": args.analysis}
+    e["status"] = args.status or "geanalyseerd"
+    save(db)
+    print(f"vision opgeslagen voor {aid} (nooit opnieuw nodig)", file=sys.stderr)
 
 
 def cmd_link(args):
@@ -96,8 +126,6 @@ def cmd_link(args):
         e["derived"]["templates"].append(args.template)
     if args.script:
         e["derived"]["scripts"].append(args.script)
-    if args.style:
-        e["style_summary"] = args.style
     if args.status:
         e["status"] = args.status
     save(db)
@@ -108,16 +136,26 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("filter")
+    sub.add_parser("pending-vision")
     r = sub.add_parser("record")
     r.add_argument("--status", default="nieuw")
+    v = sub.add_parser("vision")
+    v.add_argument("--ad-id", required=True)
+    v.add_argument("--analysis", required=True)
+    v.add_argument("--status")
     lk = sub.add_parser("link")
     lk.add_argument("--ad-id", required=True)
     lk.add_argument("--template")
     lk.add_argument("--script")
-    lk.add_argument("--style")
     lk.add_argument("--status")
     args = ap.parse_args()
-    {"filter": cmd_filter, "record": cmd_record, "link": cmd_link}[args.cmd](args)
+    {
+        "filter": cmd_filter,
+        "pending-vision": cmd_pending_vision,
+        "record": cmd_record,
+        "vision": cmd_vision,
+        "link": cmd_link,
+    }[args.cmd](args)
 
 
 if __name__ == "__main__":
