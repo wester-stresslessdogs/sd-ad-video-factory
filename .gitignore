@@ -1,0 +1,28 @@
+# Secrets — NOOIT committen
+mcp/.env
+.env
+
+# Google service-account (bevat private key!) — NOOIT committen
+mcp/google-drive-service-account.json
+**/*service-account*.json
+
+# Lokale config met echte ID's (gebruik *.example.json als sjabloon)
+knowledge/video-templates/config.json
+
+# Gegenereerde cache (wordt opnieuw opgebouwd, hoort niet in git)
+knowledge/broll-index.json
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Tijdelijke render/transcriptie-output + gedownloade analyse-frames
+scratch/
+output/
+*.mp4
+*.wav
+*.tmp
+
+# OS
+.DS_Store

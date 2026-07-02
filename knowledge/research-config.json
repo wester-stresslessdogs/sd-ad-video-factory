@@ -1,0 +1,47 @@
+{
+  "_comment": "Hoe /ad-discover en /ad-research zoeken. De WIE (gevolgde merken) staat los in brand-registry.json. Geen secrets — mag in git. Per aanroep overschrijfbaar via flags.",
+
+  "brand": {
+    "name": "Stressless Dogs",
+    "domain": "stresslessdogs.nl",
+    "angle": "force-free / Liefdevol Communiceren — begrip i.p.v. correctie, zonder dwang/pijn/angst/straf",
+    "products": ["Liefdevol Communiceren (LVC)", "Stressless Communication Course", "Blafcursus", "Proefmaand / trial"]
+  },
+
+  "markets": {
+    "home": {
+      "NL": { "country": "NL", "language": "nl" },
+      "BE": { "country": "BE", "language": "nl" }
+    },
+    "international": {
+      "US": { "country": "US", "language": "en" },
+      "GB": { "country": "GB", "language": "en" },
+      "AU": { "country": "AU", "language": "en" },
+      "CA": { "country": "CA", "language": "en" }
+    }
+  },
+
+  "search_terms": {
+    "nl": {
+      "core": ["hondentraining", "online hondencursus", "hondengedrag", "gedragsproblemen hond", "hond opvoeden zonder straf", "positief hond trainen"],
+      "problem_specific": ["reactieve hond", "angstige hond", "bange hond", "hond blaft", "hond trekt aan de lijn", "hond springt op", "hond bijt", "agressieve hond", "hond luistert niet", "separatieangst hond", "hond alleen thuis", "puppy opvoeden"]
+    },
+    "en": {
+      "core": ["dog training", "online dog training course", "dog behavior", "force free dog training", "positive reinforcement dog training", "dog obedience"],
+      "problem_specific": ["reactive dog", "dog anxiety", "anxious dog", "dog barking", "leash pulling dog", "dog jumping up", "dog aggression", "dog won't listen", "separation anxiety dog", "puppy training", "dog scared", "calm reactive dog"]
+    }
+  },
+
+  "ranking": {
+    "_comment": "Geen publieke metrics → 'wat werkt' wordt geproxyd. Langlopende + veel-gevarieerde ads zijn de bewezen winners.",
+    "rank_by": ["longevity_days", "variation_count"],
+    "min_longevity_days_for_winner": 30,
+    "flag_international_as": "adaptable_angle"
+  },
+
+  "filters": {
+    "media_type": "video",
+    "status": "active",
+    "default_days": 60
+  }
+}

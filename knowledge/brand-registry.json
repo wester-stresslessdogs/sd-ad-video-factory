@@ -1,0 +1,13 @@
+{
+  "_comment": "Bron van waarheid: welke merken we volgen. Onderhouden door /ad-discover (voegt nieuwe toe, dedupt tegen wat hier al staat). Geen secrets — mag in git. Geseed juni 2026 met NL/BE-concurrenten uit handmatig marktonderzoek; meta_page_url nog te resolven door /ad-discover.",
+  "brands": [
+    { "name": "Hondentaak",              "domain": "hondentaak.nl",     "meta_page_url": null, "market": "NL", "language": "nl", "date_added": "2026-06-30", "source": "seed:marktonderzoek", "notes": "Judith Fick — gedragstherapie, angst-cursus" },
+    { "name": "Hondengeluk",             "domain": "hondengeluk.nl",    "meta_page_url": null, "market": "NL", "language": "nl", "date_added": "2026-06-30", "source": "seed:marktonderzoek", "notes": "reactieve hond" },
+    { "name": "De Huisdierenschool",     "domain": "huisdierenschool.nl","meta_page_url": null, "market": "NL", "language": "nl", "date_added": "2026-06-30", "source": "seed:marktonderzoek", "notes": "online cursussen <€50" },
+    { "name": "Van Maanen Loca",         "domain": "vanmaanenloca.nl",  "meta_page_url": null, "market": "NL", "language": "nl", "date_added": "2026-06-30", "source": "seed:marktonderzoek", "notes": "reactief gedrag" },
+    { "name": "Kemeling & Dogs Training","domain": "kemelingdogs.nl",   "meta_page_url": null, "market": "NL", "language": "nl", "date_added": "2026-06-30", "source": "seed:marktonderzoek", "notes": "reactieve hond" },
+    { "name": "Van Stal",                "domain": "vanstal.nl",        "meta_page_url": null, "market": "NL", "language": "nl", "date_added": "2026-06-30", "source": "seed:marktonderzoek", "notes": "reactieve hond" },
+    { "name": "DoggyDoe",                "domain": "doggydoe.nl",       "meta_page_url": null, "market": "NL", "language": "nl", "date_added": "2026-06-30", "source": "seed:marktonderzoek", "notes": "'mijn hond is bang'" },
+    { "name": "Arvid van Putten",        "domain": "arvidvanputten.nl", "meta_page_url": null, "market": "NL", "language": "nl", "date_added": "2026-06-30", "source": "seed:marktonderzoek", "notes": "reactieve honden" }
+  ]
+}

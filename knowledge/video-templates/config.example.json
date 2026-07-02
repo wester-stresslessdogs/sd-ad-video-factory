@@ -1,0 +1,22 @@
+{
+  "_comment": "Kopieer naar config.json en vul je eigen ID's in. config.json staat in .gitignore. LET OP: er staan hier GEEN Creatomate template-ID's — templates leven als code in de *.json-bestanden in deze map (source-JSON, geen editor). Hier alleen account-/machine-specifieke ID's.",
+
+  "drive_folders": {
+    "broll_nl": "DRIVE_FOLDER_ID_HIER",
+    "broll_en": "DRIVE_FOLDER_ID_HIER",
+    "output":   "DRIVE_FOLDER_ID_HIER"
+  },
+
+  "templates": {
+    "_comment": "Verwijst naar de template-als-code bestanden in deze map.",
+    "raw_ugc":     { "1x1": "raw_ugc_1x1.json", "9x16": "raw_ugc_9x16.json" },
+    "clean_edited": { "1x1": "clean_edited_1x1.json", "9x16": "clean_edited_9x16.json" }
+  },
+
+  "defaults": {
+    "market": "NL",
+    "render_order": ["1x1", "9x16"],
+    "template": "raw_ugc",
+    "music_pacing": "calm"
+  }
+}
