@@ -39,13 +39,21 @@ benoem de keuze.
    gedragsprobleem") → mechanisme (force-free methode). Persoonlijk en warm.
 4. **CTA (laatste 5–10s)** — naar de **gratis instap** die bij het product past
    (masterclass / e-book / training), niet direct de verkooppagina. Zie customer-journey.
-5. **Per script ook**: timing-indicatie per sectie, tone-aanwijzingen, B-roll-suggesties
-   per moment (@tijd — beschrijving), en **advertorial caption-copy** (primary text lang,
-   headline, description) voor de funnel.
+5. **Per script ook**: timing-indicatie per sectie, tone-aanwijzingen, **advertorial
+   caption-copy** (primary text lang, headline, description), en **gestructureerde
+   B-roll-cues**.
+6. **B-roll-cues** — gekoppeld aan de zin waar ze horen, formaat `[B-ROLL: <semantische
+   beschrijving>]`, bv. `[B-ROLL: hond blaft naar raam]`. **Géén harde tijdcode** — de
+   cue zegt *wat*, het transcript van de opname bepaalt later *wanneer* (zie
+   `docs/specs/2026-07-02-broll-talkinghead-placement-design.md`). `/ad-render` matcht
+   de cue semantisch tegen de broll-index.
 
 ## Regels (hard)
 
 - **Altijd ≥3 hook-variaties**; body en CTA identiek over de hooks.
+- **Leen de structuur, niet de woorden.** Neem het frame/ritme van de winnende ad over,
+  maar herschrijf de copy volledig in onze stem (`tone-of-voice.md`). Nooit de letterlijke
+  zinnen van de inspiratie-ad overnemen.
 - Blijf in de **force-free tone** — geen correctie/dominantie/quick-fix/schuld-taal.
 - **NL = Wester** (warm, rustig), **EN = Jess** (warm, iets directer, persoonlijk verhaal).
 - Gebruik de **echte productnaam + prijs + funnel** uit de catalogus; verzin niks.
