@@ -14,7 +14,7 @@ Kern-flow in het kort: [FLOW.md](FLOW.md) · Origineel klantidee (archief): [too
 | `/ad-scripts` | Ad-idee → opnameklaar script met 3+ hook-varianten | 🟡 v1 gebouwd (business-context ingevuld) |
 | `/ad-template` | Winnende ad-stijl (video-analyse) → Creatomate template als code | 🟡 v1 gebouwd (video-analyse getest) |
 | `/ad-briefing` | Script → teleprompter-briefing met emotie/camera-cues | 🟡 v1 gebouwd |
-| `/ad-render` | Ruwe opnames / bestaande B-roll → afgewerkte MP4-varianten via Creatomate → Drive | ⬜ nog te bouwen (wacht op Drive) |
+| `/ad-render` | Ruwe opnames / bestaande B-roll → afgewerkte MP4-varianten via Creatomate → lokaal | 🟡 v1 gebouwd (Drive-read + render end-to-end getest) |
 
 > Databron is **Apify** (Meta Ad Library scraper), niet Foreplay. "Wat werkt" wordt
 > geproxyd op **looptijd** (geen publieke metrics). Gedeelde fetch-laag: `lib/fetch_ads.py`.
@@ -55,16 +55,24 @@ cp knowledge/video-templates/config.example.json knowledge/video-templates/confi
 - **Apify** (Meta Ad Library scraping) — account op apify.com; API-token in `mcp/.env`.
   Gratis tier ($5 credits) volstaat om te starten; Starter ~$29/mo bij meer volume.
 - **Creatomate** ($54/mo Essential) — account + API-key (geen editor-werk).
-- **Pixabay** (gratis) — API-key voor royalty-free muziek.
-- **Google Drive** — service-account (van de klant). Deel de B-roll- en output-map
-  (of de gedeelde hoofdmap) met het service-account-e-mailadres; geen MCP/OAuth nodig.
+- **Pixabay** (gratis) — API-key. LET OP: Pixabay heeft **géén muziek-API** (alleen
+  beeld/video); de key werkt wel, maar achtergrondmuziek moet elders vandaan komen.
+  Muziek is daarom **optioneel/uit in v1** van `/ad-render`; latere bron = Jamendo API.
+- **Google Drive** — service-account (van de klant), **read-only** gebruikt. De footage-
+  mappen zijn 'anyone-with-link' gedeeld, dus Creatomate haalt clips rechtstreeks op via
+  de Drive-direct-download-URL. Een service-account heeft **geen upload-quota**, dus
+  renders worden **lokaal** opgeslagen in `output/renders/` (geen Drive-upload nodig).
 
 > Geen MCP-servers nodig voor v1: Apify loopt via API-token, Drive via service-account.
 > De warehouse (eigen ad-performance) is bewust **buiten scope voor v1**.
 
-### 5. B-roll indexeren (later, bij `/ad-render`)
-Bouwt `knowledge/broll-index.json` op via visuele analyse van de B-roll-map. Pas
-relevant zodra `/ad-render` gebouwd is en Drive-toegang rond is.
+### 5. B-roll indexeren (voor `/ad-render`)
+Bouwt `knowledge/broll-index.json` op via visuele analyse (Vision) van de Drive-B-roll-map,
+gekeyed op `file_id`. Draai eenmalig (en opnieuw bij nieuwe B-roll):
+```bash
+python scripts/index_broll.py
+```
+`/ad-render` matcht de script-B-roll-cues semantisch tegen deze index.
 
 ## Wat je zelf invult (niet in git)
 

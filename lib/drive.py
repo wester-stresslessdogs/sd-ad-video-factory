@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+"""Gedeelde Google Drive-helper voor de Video Ad Factory.
+
+Read-only gebruik: het service-account (GOOGLE_DRIVE_SA_FILE) leest B-roll en
+bestaande talking-heads uit de gedeelde mappen. Het account heeft GEEN storage-
+quota, dus uploaden kan niet — renders worden lokaal opgeslagen (zie README).
+
+Belangrijk voor /ad-render: de footage-mappen zijn door de klant gedeeld als
+'anyone-with-link'. Daardoor kan Creatomate de clips rechtstreeks ophalen via een
+publieke direct-download-URL (getest: levert video/mp4, ook bij ~80 MB). We hoeven
+dus zelf geen permissies te wijzigen — alleen file_id's opzoeken en (voor Whisper)
+lokaal downloaden.
+"""
+import io
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
+
+ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(ROOT / "mcp" / ".env")
+
+SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
+_SA_FILE = os.getenv("GOOGLE_DRIVE_SA_FILE", "mcp/google-drive-service-account.json")
+
+_service = None
+
+
+def service():
+    """Lazy singleton Drive-client (service-account, read-only)."""
+    global _service
+    if _service is None:
+        sa_path = ROOT / _SA_FILE if not os.path.isabs(_SA_FILE) else Path(_SA_FILE)
+        creds = service_account.Credentials.from_service_account_file(str(sa_path), scopes=SCOPES)
+        _service = build("drive", "v3", credentials=creds, cache_discovery=False)
+    return _service
+
+
+def list_folder(folder_id: str, videos_only: bool = False) -> list[dict]:
+    """Lijst files in een map. Geeft id, name, mimeType, size (per pagina samengevoegd)."""
+    svc = service()
+    out, page_token = [], None
+    q = f"'{folder_id}' in parents and trashed=false"
+    while True:
+        resp = svc.files().list(
+            q=q,
+            fields="nextPageToken, files(id,name,mimeType,size)",
+            pageSize=200,
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
+            pageToken=page_token,
+        ).execute()
+        for f in resp.get("files", []):
+            if videos_only and not f["mimeType"].startswith("video"):
+                continue
+            out.append(f)
+        page_token = resp.get("nextPageToken")
+        if not page_token:
+            break
+    return out
+
+
+def find_in_folder(folder_id: str, name: str) -> dict | None:
+    """Zoek een file op (deel van) naam binnen een map. Case-insensitive, eerste match."""
+    name_l = name.lower()
+    for f in list_folder(folder_id):
+        if name_l in f["name"].lower():
+            return f
+    return None
+
+
+def download(file_id: str, dest: Path) -> Path:
+    """Download een Drive-file naar een lokaal pad (voor Whisper/ffmpeg)."""
+    dest = Path(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    svc = service()
+    request = svc.files().get_media(fileId=file_id, supportsAllDrives=True)
+    with io.FileIO(dest, "wb") as fh:
+        downloader = MediaIoBaseDownload(fh, request, chunksize=8 * 1024 * 1024)
+        done = False
+        while not done:
+            _, done = downloader.next_chunk()
+    return dest
+
+
+def direct_url(file_id: str) -> str:
+    """Publieke direct-download-URL die Creatomate kan ophalen.
+
+    Werkt omdat de footage-mappen 'anyone-with-link' gedeeld zijn. Getest: levert
+    video/mp4 (HTTP 206), ook voor files > 75 MB (geen virus-scan-interstitial).
+    """
+    return f"https://drive.usercontent.google.com/download?id={file_id}&export=download"
+
+
+def meta(file_id: str) -> dict:
+    """Metadata van één file (naam, mimeType, size)."""
+    return service().files().get(
+        fileId=file_id, fields="id,name,mimeType,size", supportsAllDrives=True
+    ).execute()
