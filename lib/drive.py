@@ -13,8 +13,10 @@ lokaal downloaden.
 """
 import io
 import os
+import re
 from pathlib import Path
 
+import requests
 from dotenv import load_dotenv
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -87,12 +89,38 @@ def download(file_id: str, dest: Path) -> Path:
 
 
 def direct_url(file_id: str) -> str:
-    """Publieke direct-download-URL die Creatomate kan ophalen.
+    """Publieke direct-download-URL die Creatomate/ffmpeg kan ophalen.
 
-    Werkt omdat de footage-mappen 'anyone-with-link' gedeeld zijn. Getest: levert
-    video/mp4 (HTTP 206), ook voor files > 75 MB (geen virus-scan-interstitial).
+    Werkt omdat de footage-mappen 'anyone-with-link' gedeeld zijn. `confirm=t` is
+    cruciaal: files > ~100 MB geven anders Google's virus-scan-interstitial (HTML)
+    i.p.v. de video. Met confirm=t leveren ook de grote ruwe opnames (118-174 MB)
+    echte videobytes (HTTP 206). Onschadelijk voor kleine files.
     """
-    return f"https://drive.usercontent.google.com/download?id={file_id}&export=download"
+    return f"https://drive.usercontent.google.com/download?id={file_id}&export=download&confirm=t"
+
+
+def resolved_url(file_id: str) -> str:
+    """Een URL die een externe fetcher (Creatomate) betrouwbaar krijgt geserveerd.
+
+    Kleine files (< ~100 MB) serveren direct. Grote files geven eerst Google's
+    virus-scan-interstitial (HTML) — daar halen we de `uuid`+`confirm`-token uit en
+    bouwen de getokende URL, die de échte videobytes levert (206). De token zit in de
+    URL zelf (geen cookie nodig), dus Creatomate kan 'm ophalen.
+    """
+    base = f"https://drive.usercontent.google.com/download?id={file_id}&export=download"
+    r = requests.get(base, headers={"Range": "bytes=0-0"}, timeout=30, allow_redirects=True)
+    if not r.headers.get("Content-Type", "").startswith("text/html"):
+        # Serveert direct (< ~100 MB): geef de KALE URL — `confirm=t` toevoegen breekt
+        # juist deze (Creatomate krijgt dan een web-page).
+        return base
+    # Grote file: interstitial. De uuid/confirm-token is helaas sessie-/IP-gebonden,
+    # dus een externe fetcher (Creatomate) krijgt alsnog HTML. Signaleer dat expliciet
+    # zodat de caller kan uitwijken (download + trim + tijdelijke host).
+    raise RuntimeError(
+        f"Drive-file {file_id} is te groot voor directe publieke serving (>100 MB): "
+        f"Google's interstitial-token werkt niet cross-session. Nodig: download via SA "
+        f"+ trim/compress + tijdelijke host. Zie known-issue in de skill."
+    )
 
 
 def meta(file_id: str) -> dict:

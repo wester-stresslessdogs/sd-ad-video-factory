@@ -61,7 +61,7 @@ def resolve_to_url(source: str) -> str:
     if source.startswith(("http://", "https://")):
         return source
     if looks_like_drive_id(source):
-        return drive.direct_url(source)
+        return drive.resolved_url(source)
     fail(f"Kan source niet naar een URL herleiden: '{source}'. Geef een Drive file_id of URL "
          f"(lokale paden kan Creatomate niet ophalen — upload eerst naar Drive).")
 
@@ -114,14 +114,19 @@ def cmd_transcribe(args):
             model="whisper-1",
             file=fh,
             response_format="verbose_json",
-            timestamp_granularities=["segment"],
+            timestamp_granularities=["segment", "word"],
         )
     segments = [
         {"start": round(s.start, 2), "end": round(s.end, 2), "text": s.text.strip()}
         for s in (resp.segments or [])
     ]
+    words = [
+        {"word": w.word, "start": round(w.start, 2), "end": round(w.end, 2)}
+        for w in (getattr(resp, "words", None) or [])
+    ]
     duration = getattr(resp, "duration", None) or (segments[-1]["end"] if segments else None)
-    out = {"source": args.source, "duration": duration, "text": resp.text, "segments": segments}
+    out = {"source": args.source, "duration": duration, "text": resp.text,
+           "segments": segments, "words": words}
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     dest = Path(args.out) if args.out else OUT_DIR / f"{video.stem}.transcript.json"
@@ -144,8 +149,58 @@ def load_template(name: str) -> dict:
     return src
 
 
+def chunk_words(words: list[dict], max_chars: int = 24) -> list[dict]:
+    """Groepeer word-level timestamps tot korte, punchy caption-regels (~3-5 woorden),
+    afgebroken op zins-einde of lengte — leest veel beter dan hele Whisper-segmenten."""
+    lines, cur, text = [], [], ""
+    for w in words:
+        word = w["word"].strip()
+        # Breek af bij een stilte-gat (zins-pauze) vóór dit woord
+        if cur and w["start"] - cur[-1]["end"] > 0.6:
+            lines.append({"text": text.strip(" ,"), "start": cur[0]["start"], "end": cur[-1]["end"]})
+            cur, text = [], ""
+        candidate = (text + " " + word).strip()
+        cur.append(w)
+        text = candidate
+        if len(text) >= max_chars or word.endswith((".", "!", "?", ",")):
+            lines.append({"text": text.strip(" ,"), "start": cur[0]["start"], "end": cur[-1]["end"]})
+            cur, text = [], ""
+    if cur:
+        lines.append({"text": text.strip(" ,"), "start": cur[0]["start"], "end": cur[-1]["end"]})
+    return lines
+
+
+def build_captions(prototype: dict, transcript: dict, trim_start: float,
+                   trim_dur: float | None) -> list[dict]:
+    """Getimede caption-elementen uit ONS Whisper-transcript (niet Creatomate's auto-
+    transcriptie — die faalt op grote bronbestanden). Het 'captions'-element is het
+    stijl-prototype (font/pill/positie); we klonen het per korte regel, verschoven naar
+    het getrimde venster. Woord-timestamps → korte regels; anders val terug op segmenten."""
+    style = {k: v for k, v in prototype.items()
+             if not k.startswith("transcript_") and k not in ("id", "time", "duration")}
+    words = transcript.get("words")
+    lines = chunk_words(words) if words else [
+        {"text": s["text"], "start": s["start"], "end": s["end"]} for s in transcript.get("segments", [])
+    ]
+    end = trim_start + trim_dur if trim_dur else None
+    out = []
+    for i, ln in enumerate(lines):
+        start, stop = ln["start"], ln["end"]
+        if start < trim_start or (end is not None and start >= end):
+            continue
+        el = dict(style)
+        el["id"] = f"caption_{i}"
+        el["type"] = "text"
+        el["text"] = ln["text"]
+        el["time"] = round(start - trim_start, 2)
+        el["duration"] = round(max(0.4, stop - start), 2)
+        out.append(el)
+    return out
+
+
 def build_source(template: dict, talking_head_url: str, plan: dict | None,
-                 duration: float | None, music_url: str | None) -> dict:
+                 duration: float | None, music_url: str | None,
+                 captions: list[dict] | None = None) -> dict:
     src = template
     elements = src.get("elements", [])
     plan = plan or {}
@@ -155,6 +210,13 @@ def build_source(template: dict, talking_head_url: str, plan: dict | None,
     if th is None:
         fail("Template heeft geen element met id 'talking_head'.")
     th["source"] = talking_head_url
+    # Ruwe opnames bevatten retakes/asides — knip een schoon segment via het plan
+    # (trim_start/trim_duration in seconden). Captions volgen het getrimde deel.
+    th_trim = (plan or {}).get("talking_head", {})
+    if "trim_start" in th_trim:
+        th["trim_start"] = th_trim["trim_start"]
+    if "trim_duration" in th_trim:
+        th["trim_duration"] = th_trim["trim_duration"]
 
     # 2) B-roll-slot(s): het template heeft één generiek 'broll'-element als sjabloon.
     #    Plan met N plaatsingen → kloon het per cutaway; geen plaatsingen → weglaten.
@@ -168,17 +230,43 @@ def build_source(template: dict, talking_head_url: str, plan: dict | None,
             clip["source"] = resolve_to_url(p.get("url") or p["file_id"])
             clip["time"] = p["time"]
             clip["duration"] = p["duration"]
+            # B-roll is een cutaway OVER de talking-head: het eigen audiospoor van de
+            # clip moet stil (anders hoor je willekeurige geluid-'spikes' bij elke cut).
+            # De talking-head-audio blijft doorlopen. Tenzij het plan expliciet audio wil.
+            if not p.get("keep_audio"):
+                clip["volume"] = "0%"
+            # NB: B-roll audio is gedempt (fixt de geluids-'spikes'); de B-roll cut hard
+            # in/uit — prima voor UGC. (Een Creatomate 'fade'-animatie maakte het element
+            # onzichtbaar; een geverifieerde fade-spec kan later terug via p["fade"].)
             elements.append(clip)
+        src["elements"] = elements
+
+    # 2b) captions uit ons transcript (vervangt de auto-transcriptie-prototype)
+    cap_proto = next((e for e in elements if e.get("id") == "captions"), None)
+    if cap_proto is not None and captions is not None:
+        th_trim = plan.get("talking_head", {})
+        elements = [e for e in elements if e.get("id") != "captions"]
+        elements += build_captions(cap_proto, captions,
+                                    th_trim.get("trim_start", 0.0),
+                                    th_trim.get("trim_duration"))
         src["elements"] = elements
 
     # 3) end_card op ~einde van de clip zetten
     end = next((e for e in elements if e.get("id") == "end_card"), None)
     if end is not None:
+        if plan.get("end_card_duration"):
+            end["duration"] = plan["end_card_duration"]
         end_time = plan.get("end_card_time")
         if end_time is None and duration is not None:
             end_time = max(0, duration - (end.get("duration") or 4))
         if end_time is not None:
             end["time"] = round(end_time, 2)
+            # Captions die in het end-card-venster vallen weghalen — anders stapelen de
+            # caption-pill en de CTA-balk (rommelig). De end-card draagt daar de boodschap.
+            elements = [e for e in elements
+                        if not (str(e.get("id", "")).startswith("caption")
+                                and e.get("time", 0) >= end["time"])]
+            src["elements"] = elements
 
     # 4) optionele achtergrondmuziek (pluggable; standaard uit in v1 — Pixabay heeft
     #    geen muziek-API, Jamendo is de latere bron). Geef een URL door om te mixen.
@@ -186,6 +274,9 @@ def build_source(template: dict, talking_head_url: str, plan: dict | None,
         elements.append({
             "id": "music", "type": "audio", "track": 99,
             "source": music_url, "volume": plan.get("music_volume", "18%"),
+            # Nooit hard in/uit: altijd faden zodat muziek de kijker niet verrast.
+            "audio_fade_in": plan.get("music_fade", 1.5),
+            "audio_fade_out": plan.get("music_fade", 1.5),
         })
 
     return src
@@ -229,7 +320,8 @@ def cmd_render(args):
     template = load_template(args.template)
     talking_head_url = resolve_to_url(args.talking_head)
     plan = json.loads(Path(args.plan).read_text()) if args.plan else None
-    source = build_source(template, talking_head_url, plan, args.dur, args.music)
+    captions = json.loads(Path(args.captions).read_text()) if args.captions else None
+    source = build_source(template, talking_head_url, plan, args.dur, args.music, captions)
 
     render = start_render(source, api_key)
     result = poll_render(render, api_key)
@@ -263,7 +355,8 @@ def main():
     r = sub.add_parser("render", help="Template + talking-head (+plan) → MP4")
     r.add_argument("--template", required=True, help="Bestandsnaam in knowledge/video-templates/ of pad")
     r.add_argument("--talking-head", required=True, help="Drive file_id | URL van de opname")
-    r.add_argument("--plan", help="JSON met B-roll-plaatsingen + end_card_time")
+    r.add_argument("--plan", help="JSON met B-roll-plaatsingen + talking_head-trim + end_card_time")
+    r.add_argument("--captions", help="Transcript-JSON (van 'transcribe') → getimede captions i.p.v. Creatomate auto-transcriptie")
     r.add_argument("--dur", type=float, help="Clipduur in seconden (voor end_card-timing)")
     r.add_argument("--music", help="Optionele achtergrondmuziek-URL (default: geen)")
     r.add_argument("--out", help="Naam van de output-MP4 (zonder extensie)")

@@ -10,7 +10,7 @@ mcp/google-drive-service-account.json
 knowledge/video-templates/config.json
 
 # Gegenereerde cache (wordt opnieuw opgebouwd, hoort niet in git)
-knowledge/broll-index.json
+knowledge/footage-index.json
 
 # Python
 .venv/

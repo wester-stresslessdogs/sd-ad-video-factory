@@ -1,0 +1,72 @@
+{
+  "_comment": "Stressless Dogs UGC 9:16 template-als-code. Merkstijl afgeleid uit de klant-carousels (Drive: inspiration): donker navy #16233f, teal-accent #1f8a8a, geel-accent #f5c518 voor nadruk, wit, zware bold caps/heavy sans. Captions = navy 'pill' met witte bold tekst per zin (zoals carousel format 2), goed leesbaar over talking-head én B-roll. End-card = opaque navy CTA-balk onderaan (snijdt haar hoofd niet af). 'talking_head' source + trim en 'broll' time/duration worden op render-tijd gezet. AANBOD VERTAALD: end-card = onze gratis masterclass, niet die van een inspiratie-ad.",
+  "output_format": "mp4",
+  "frame_rate": 30,
+  "width": 1080,
+  "height": 1920,
+  "elements": [
+    {
+      "id": "talking_head",
+      "type": "video",
+      "track": 1,
+      "source": "PLACEHOLDER_OP_RENDER_TIJD",
+      "fit": "cover"
+    },
+    {
+      "id": "broll",
+      "type": "video",
+      "track": 2,
+      "source": "PLACEHOLDER_OPTIONELE_BROLL",
+      "fit": "cover",
+      "time": null,
+      "duration": null,
+      "_note": "Cutaway; engine dempt audio + fade. Weglaten indien geen semantische match."
+    },
+    {
+      "id": "captions",
+      "type": "text",
+      "track": 3,
+      "transcript_source": "talking_head",
+      "transcript_split": "line",
+      "transcript_maximum_length": 28,
+      "y": "72%",
+      "x": "50%",
+      "width": "86%",
+      "x_alignment": "50%",
+      "y_alignment": "50%",
+      "font_family": "Montserrat",
+      "font_weight": "800",
+      "font_size": "6 vmin",
+      "line_height": "128%",
+      "letter_spacing": "-1%",
+      "fill_color": "#ffffff",
+      "background_color": "#16233fdd",
+      "background_x_padding": "26%",
+      "background_y_padding": "18%",
+      "background_border_radius": "22%",
+      "_note": "Navy 'pill' per zin (carousel-stijl). Wit bold, ruime line-height, nette spacing."
+    },
+    {
+      "id": "end_card",
+      "type": "text",
+      "track": 4,
+      "time": null,
+      "duration": 5,
+      "text": "GRATIS MASTERCLASS\nLiefdevol Communiceren met je hond",
+      "y": "88%",
+      "x": "50%",
+      "width": "100%",
+      "x_alignment": "50%",
+      "y_alignment": "50%",
+      "font_family": "Montserrat",
+      "font_weight": "800",
+      "font_size": "5.2 vmin",
+      "line_height": "132%",
+      "fill_color": "#ffffff",
+      "background_color": "#16233f",
+      "background_x_padding": "50%",
+      "background_y_padding": "42%",
+      "_note": "Opaque navy CTA-balk onderaan (y88%), boven de caption-band uit zodat niks doorschijnt of overlapt. Laatste 5s; engine zet 'time'. VERTAALD aanbod (onze funnel)."
+    }
+  ]
+}

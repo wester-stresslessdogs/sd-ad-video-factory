@@ -66,13 +66,16 @@ cp knowledge/video-templates/config.example.json knowledge/video-templates/confi
 > Geen MCP-servers nodig voor v1: Apify loopt via API-token, Drive via service-account.
 > De warehouse (eigen ad-performance) is bewust **buiten scope voor v1**.
 
-### 5. B-roll indexeren (voor `/ad-render`)
-Bouwt `knowledge/broll-index.json` op via visuele analyse (Vision) van de Drive-B-roll-map,
-gekeyed op `file_id`. Draai eenmalig (en opnieuw bij nieuwe B-roll):
+### 5. Footage indexeren (voor `/ad-render`)
+Bouwt `knowledge/footage-index.json` op via visuele analyse (Vision) van **alle ruwe
+footage** in Drive (recursief; afgewerkte ads worden overgeslagen), gekeyed op `file_id`,
+met een rijke samenvatting + `kind` (talking_head/b_roll) + hondengedrag + setting. Keyframes
+worden rechtstreeks uit de Drive-URL gelezen (geen volledige downloads). Draai eenmalig
+(en opnieuw bij nieuwe footage):
 ```bash
-python scripts/index_broll.py
+python scripts/index_footage.py
 ```
-`/ad-render` matcht de script-B-roll-cues semantisch tegen deze index.
+`/ad-render` kiest de talking-head-bron én matcht de B-roll-cues semantisch tegen deze index.
 
 ## Wat je zelf invult (niet in git)
 
@@ -81,7 +84,7 @@ python scripts/index_broll.py
 | `mcp/.env` | secrets (API-keys) |
 | `mcp/google-drive-service-account.json` | private key |
 | `knowledge/video-templates/config.json` | machine-/account-specifieke ID's |
-| `knowledge/broll-index.json` | gegenereerde cache |
+| `knowledge/footage-index.json` | gegenereerde cache |
 
 `.example`-versies staan wél in git en zijn de overdracht-sjablonen.
 
