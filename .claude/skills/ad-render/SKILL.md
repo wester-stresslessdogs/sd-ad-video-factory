@@ -25,8 +25,13 @@ footage die de gebruiker aanwijst).
 - **Templates zijn code** (`knowledge/video-templates/*.json`, `source`-JSON) — nooit de
   editor in. Meerdere varianten = meerdere renders.
 - **Geen harde tijdcodes in het script.** De cue zegt *wat*, het transcript zegt *wanneer*.
-- **B-roll is een cutaway**: het eigen audiospoor wordt gedempt en de clip fade't zacht
-  in/out (de engine doet dit automatisch) — geen willekeurige geluids-spikes.
+- **B-roll is een cutaway**, audio gedempt. Twee stijlen (huisstijl staat in de template,
+  `broll_style`): **`pip`** = kleine zwevende afgeronde kaart (scaled, niet fullscreen) in
+  het midden/boven — zij blijft in beeld, het bewijs zweeft erin; **`fullscreen`** = vult
+  het frame. **Kies één stijl per video, meng niet.** Voor UGC talking-heads is `pip` de
+  huisstijl (haar gezicht = de conversie). Positie per plaatsing bij te stellen met
+  `"pip": {"y": "24%"}` — bv. hoger als ze in dat shot knielt, zodat de kaart nooit haar
+  gezicht bedekt.
 
 ## Input
 - **Talking-head**: een RUWE clip — een `file_id` met `kind: talking_head` uit
@@ -54,11 +59,16 @@ footage die de gebruiker aanwijst).
    ```
    Geeft `segments` (start/end/text) + `duration`.
 
-3. **Bouw of lijn het script uit op het transcript** (jouw denkwerk):
-   - Het transcript ís de gesproken tekst. Voor elke `[B-ROLL: ...]`-cue (uit `/ad-scripts`
-     of door jou afgeleid uit wat er gezegd wordt): zoek het segment met de bijbehorende
-     zin → dat geeft het **tijdvenster**.
-   - Match de cue **semantisch** tegen `knowledge/footage-index.json` (`kind: b_roll`):
+3. **Bouw of lijn het script uit op het transcript** (jouw denkwerk — de creatieve laag):
+   - **Loop de copy zin voor zin langs** en vraag bij élke zin: *smeekt dit moment om een
+     beeld?* Illustreer het **probleem** en het **inzicht**; laat het **aanbod** en de
+     **CTA** juist op haar gezicht staan (proof en de vraag landen beter op een mens dan op
+     B-roll). Mik op ~één insert per 10-15s — aanwezig, niet overladen.
+   - **Word-anchored, niet op gevoel:** geef de plaatsing `"phrase": "<exacte woorden>"`;
+     de engine vindt zelf het juiste tijdstip op de gemonteerde tijdlijn (via de
+     word-timestamps). Zo landt de B-roll precies op de woorden. Val je zin buiten de
+     behouden cuts, dan meldt de engine dat en slaat 'm over.
+   - Match de zin **semantisch** tegen `knowledge/footage-index.json` (`kind: b_roll`):
      kies op `summary` / `dog_behavior` / `setting` / `good_for` de best passende clip.
      Zegt de tekst "blaffende / trekkende / reactieve hond"? Kies een clip die dát toont —
      de betekenis moet kloppen, niet zomaar een willekeurige hond.
@@ -77,12 +87,18 @@ footage die de gebruiker aanwijst).
        {"trim_start": 89.5,  "trim_duration": 19.6},
        {"trim_start": 134.1, "trim_duration": 13.1}
      ],
-     "broll": [ {"file_id": "<b_roll-file_id>", "time": 6.0, "duration": 3.5} ],
-     "end_card_time": null, "end_card_duration": 4
+     "broll": [
+       {"phrase": "pull on the leash", "file_id": "<b_roll-id>", "duration": 3.5, "style": "pip"},
+       {"phrase": "body language", "file_id": "<b_roll-id>", "duration": 3.5, "style": "pip", "pip": {"y": "24%"}}
+     ],
+     "end_card_time": null, "end_card_duration": 5
    }
    ```
-   `trim_start`/`trim_duration` = **bron**-tijden (uit het transcript); `broll.time` =
-   **tijdlijn**-tijd van de gemonteerde clip. Eén doorlopend segment? Gebruik
+   `trim_start`/`trim_duration` = **bron**-tijden (uit het transcript). B-roll-timing bij
+   voorkeur via **`phrase`** (word-anchored); `time` (tijdlijn-seconde) mag ook expliciet.
+   `style`: `pip` of `fullscreen` (default = template-huisstijl). `pip: {y: …}` stelt de
+   kaartpositie per plaatsing bij. `broll_trim_start` kiest een mooi moment binnen een
+   lange B-roll-clip. Eén doorlopend segment? Gebruik
    `"talking_head": {"trim_start":…, "trim_duration":…}`, of laat alles weg voor de hele
    clip. `keep_audio: true` per B-roll als je uitzonderlijk de clip-audio wél wilt.
    **Toon het plan**: welke cuts (met de zin), B-roll waar, welke asides weggelaten.
@@ -93,9 +109,11 @@ footage die de gebruiker aanwijst).
      --template stressless-ugc_9x16.json --talking-head <file_id> \
      --plan plan.json --captions <transcript.json> --out <campagne>_<hook>_9x16
    ```
-   Grote bronnen (>~100 MB) kan Creatomate niet uit Drive halen; de engine downloadt ze
-   dan via de SA, **comprimeert < 95 MB en host tijdelijk** (catbox; vervang door eigen
-   R2/S3 voor productie) zodat Creatomate ze wél ophaalt. Kleine clips gaan direct.
+   Bronnen die Drive niet direct aan Creatomate serveert (virus-scan-interstitial; treedt
+   al op vanaf ~40-70 MB, geldt ook voor B-roll) downloadt de engine via de SA, **comprimeert
+   < 95 MB en host tijdelijk** (catbox; vervang door eigen R2/S3 voor productie) zodat
+   Creatomate ze wél ophaalt. De keuze valt op de échte Drive-respons, niet op een
+   grootte-drempel. Kleine clips gaan direct.
    Output: `output/renders/<naam>.mp4` + de Creatomate-URL.
 
 6. **Presenteer het resultaat.** Per variant: lokaal pad, template, aspect, het B-roll-

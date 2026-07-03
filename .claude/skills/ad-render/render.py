@@ -90,14 +90,18 @@ def upload_public(path: Path) -> str:
 
 
 def ensure_fetchable(file_id: str) -> str:
-    """Geef een URL die Creatomate betrouwbaar krijgt. Klein → kale Drive-URL. Groot
-    (>~100 MB) → download via SA, comprimeer < limiet, host tijdelijk (gecachet op file_id)."""
-    size = int(drive.meta(file_id).get("size", 0) or 0)
-    if size < SIZE_LIMIT:
-        return drive.resolved_url(file_id)
+    """Geef een URL die Creatomate betrouwbaar krijgt. Serveert Drive de file direct →
+    kale Drive-URL. Zo niet (virus-scan-interstitial, treedt op vanaf ~40-70 MB, niet
+    alleen bij >100 MB) → download via SA, comprimeer < limiet, host tijdelijk (gecachet
+    op file_id). De beslissing valt op de échte Drive-respons, niet op een grootte-drempel."""
     cache = json.loads(HOST_CACHE.read_text()) if HOST_CACHE.exists() else {}
     if file_id in cache:
         return cache[file_id]["url"]
+    try:
+        return drive.resolved_url(file_id)  # direct-servable → kale URL (klein, goedkoop)
+    except RuntimeError:
+        pass  # interstitial → host het bestand hieronder
+    size = int(drive.meta(file_id).get("size", 0) or 0)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     raw = CACHE_DIR / f"{file_id}.src"
     if not raw.exists():
@@ -282,6 +286,76 @@ def build_captions(prototype: dict, transcript: dict, cut_timeline: list) -> lis
     return out
 
 
+def _norm_tokens(s: str) -> list[str]:
+    """Lowercase woord-tokens zonder leestekens (voor phrase-matching op het transcript)."""
+    import re
+    return [t for t in re.sub(r"[^\w\s]", " ", s.lower()).split() if t]
+
+
+def resolve_phrase_time(phrase: str, transcript: dict, cut_timeline: list) -> float | None:
+    """Vind wáár in de gemonteerde tijdlijn een gesproken zin valt (word-anchored B-roll).
+
+    Zoekt de zin (contigu, genormaliseerd) in de word-timestamps → bron-tijd → mapt door
+    de cut-tijdlijn naar tijdlijn-tijd. Zo landt B-roll exact op de woorden. Valt de zin
+    buiten alle behouden cuts (weggeknipt), dan None → plaatsing wordt overgeslagen."""
+    words = transcript.get("words") or []
+    toks = _norm_tokens(phrase)
+    if not toks or not words:
+        return None
+    wtok = [_norm_tokens(w["word"]) for w in words]
+    flat = [(t, i) for i, ts in enumerate(wtok) for t in ts]  # (token, word_index)
+    seq = [t for t, _ in flat]
+    for start in range(len(seq) - len(toks) + 1):
+        if seq[start:start + len(toks)] == toks:
+            src_t = words[flat[start][1]]["start"]
+            for tl_start, s0, s1 in cut_timeline:
+                if s0 - 0.05 <= src_t < s1:
+                    return round(tl_start + (src_t - s0), 2)
+            return None  # zin valt in een weggeknipt stuk
+    return None
+
+
+def build_broll(broll_tpl: dict, plan: dict, cut_timeline: list,
+                transcript: dict | None, total: float | None) -> list[dict]:
+    """Bouw B-roll-cutaways. Elke plaatsing: fullscreen óf pip (zwevende inset). Timing
+    kan word-anchored ('phrase') of expliciet ('time'). Audio wordt gedempt (cutaway)."""
+    base = {k: v for k, v in broll_tpl.items() if k not in ("broll_style", "pip", "time", "duration")}
+    default_style = broll_tpl.get("broll_style", "fullscreen")
+    pip_cfg = broll_tpl.get("pip", {})
+    out = []
+    for i, p in enumerate(plan.get("broll", [])):
+        # Timing: expliciete time wint; anders word-anchored op de zin.
+        t = p.get("time")
+        if t is None and p.get("phrase") and transcript is not None:
+            t = resolve_phrase_time(p["phrase"], transcript, cut_timeline)
+            if t is None:
+                print(f"⚠️  B-roll overgeslagen — zin niet gevonden in behouden cuts: "
+                      f"\"{p['phrase']}\"", file=sys.stderr)
+                continue
+        if t is None:
+            print(f"⚠️  B-roll #{i+1} zonder time/phrase — overgeslagen.", file=sys.stderr)
+            continue
+        dur = p.get("duration", 3.5)
+        if total is not None:
+            dur = min(dur, max(0.5, total - t))
+        clip = dict(base)
+        clip["id"] = f"broll_{i+1}"
+        clip["source"] = resolve_to_url(p.get("url") or p["file_id"])
+        clip["time"] = round(t, 2)
+        clip["duration"] = round(dur, 2)
+        if p.get("broll_trim_start") is not None:
+            clip["trim_start"] = round(p["broll_trim_start"], 2)
+        if not p.get("keep_audio"):
+            clip["volume"] = "0%"  # cutaway: eigen audio dempen, talking-head loopt door
+        style = p.get("style", default_style)
+        if style == "pip":
+            clip.update(pip_cfg)              # inset-geometrie + shadow (template-default)
+            clip.update(p.get("pip", {}))     # per-plaatsing bijstellen (bv. y hoger als ze knielt)
+        # fullscreen = geen size-overrides (vult frame via cover)
+        out.append(clip)
+    return out
+
+
 def build_source(template: dict, talking_head_url: str, plan: dict | None,
                  duration: float | None, music_url: str | None,
                  captions: dict | None = None) -> dict:
@@ -299,20 +373,11 @@ def build_source(template: dict, talking_head_url: str, plan: dict | None,
     elements = th_els + elements  # talking-heads onderaan (track 1)
     total = total or duration
 
-    # 2) B-roll-cutaways (tijden in tijdlijn-ruimte van de gemonteerde clip)
+    # 2) B-roll-cutaways: word-anchored ('phrase') of expliciet ('time'), pip of fullscreen
     broll_tpl = next((e for e in elements if e.get("id") == "broll"), None)
     if broll_tpl is not None:
         elements = [e for e in elements if e.get("id") != "broll"]
-        for i, p in enumerate(plan.get("broll", [])):
-            clip = dict(broll_tpl)
-            clip["id"] = f"broll_{i+1}"
-            clip["source"] = resolve_to_url(p.get("url") or p["file_id"])
-            clip["time"] = p["time"]
-            clip["duration"] = p["duration"]
-            # B-roll audio dempen (fixt geluids-spikes); talking-head-audio loopt door.
-            if not p.get("keep_audio"):
-                clip["volume"] = "0%"
-            elements.append(clip)
+        elements += build_broll(broll_tpl, plan, cut_timeline, captions, total)
 
     # 3) captions uit ons transcript, gemapt op de gemonteerde tijdlijn
     cap_proto = next((e for e in elements if e.get("id") == "captions"), None)

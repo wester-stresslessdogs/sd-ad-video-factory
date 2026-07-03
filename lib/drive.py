@@ -108,18 +108,26 @@ def resolved_url(file_id: str) -> str:
     URL zelf (geen cookie nodig), dus Creatomate kan 'm ophalen.
     """
     base = f"https://drive.usercontent.google.com/download?id={file_id}&export=download"
-    r = requests.get(base, headers={"Range": "bytes=0-0"}, timeout=30, allow_redirects=True)
-    if not r.headers.get("Content-Type", "").startswith("text/html"):
-        # Serveert direct (< ~100 MB): geef de KALE URL — `confirm=t` toevoegen breekt
-        # juist deze (Creatomate krijgt dan een web-page).
+    # Probe zoals Creatomate het doet: een gewone GET (géén Range) en kijk naar de eerste
+    # bytes. Een Range-request kan videobytes teruggeven terwijl een volle GET juist
+    # Google's virus-scan-interstitial (HTML) levert — dát is wat Creatomate krijgt.
+    r = requests.get(base, stream=True, timeout=30, allow_redirects=True)
+    try:
+        ct = r.headers.get("Content-Type", "")
+        first = next(r.iter_content(512), b"")
+    finally:
+        r.close()
+    is_html = ct.startswith("text/html") or b"<html" in first.lower() or b"<!doctype" in first.lower()
+    if not is_html:
+        # Serveert direct: geef de KALE URL — `confirm=t` toevoegen breekt juist deze
+        # (Creatomate krijgt dan een web-page).
         return base
-    # Grote file: interstitial. De uuid/confirm-token is helaas sessie-/IP-gebonden,
-    # dus een externe fetcher (Creatomate) krijgt alsnog HTML. Signaleer dat expliciet
-    # zodat de caller kan uitwijken (download + trim + tijdelijke host).
+    # Interstitial: de uuid/confirm-token is sessie-/IP-gebonden, dus een externe fetcher
+    # (Creatomate) krijgt alsnog HTML. Signaleer expliciet zodat de caller kan uitwijken
+    # (download via SA + compress + tijdelijke host).
     raise RuntimeError(
-        f"Drive-file {file_id} is te groot voor directe publieke serving (>100 MB): "
-        f"Google's interstitial-token werkt niet cross-session. Nodig: download via SA "
-        f"+ trim/compress + tijdelijke host. Zie known-issue in de skill."
+        f"Drive-file {file_id} serveert niet direct aan externe fetchers (virus-scan-"
+        f"interstitial). Nodig: download via SA + compress + tijdelijke host."
     )
 
 

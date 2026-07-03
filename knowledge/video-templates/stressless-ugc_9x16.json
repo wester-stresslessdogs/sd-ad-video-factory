@@ -20,7 +20,21 @@
       "fit": "cover",
       "time": null,
       "duration": null,
-      "_note": "Cutaway; engine dempt audio + fade. Weglaten indien geen semantische match."
+      "broll_style": "pip",
+      "pip": {
+        "width": "58%",
+        "height": "26%",
+        "x": "50%",
+        "y": "46%",
+        "x_alignment": "50%",
+        "y_alignment": "50%",
+        "border_radius": "4 vmin",
+        "shadow_color": "rgba(10,16,30,0.5)",
+        "shadow_blur": "3 vmin",
+        "shadow_x": "0 vmin",
+        "shadow_y": "1.2 vmin"
+      },
+      "_note": "Cutaway; engine dempt audio. HUISSTIJL = pip: zwevende afgeronde inset in de bovenste helft (zij blijft in beeld, bewijs zweeft erin), boven de caption-band (y72%). Per plaatsing overschrijfbaar met 'style':'fullscreen'. Eén stijl per video (niet mixen)."
     },
     {
       "id": "captions",
