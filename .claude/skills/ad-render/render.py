@@ -56,12 +56,70 @@ def looks_like_drive_id(s: str) -> bool:
     return not s.startswith(("http://", "https://")) and "/" not in s and "." not in s and len(s) > 20
 
 
+HOST_CACHE = CACHE_DIR / "hosted.json"
+SIZE_LIMIT = 95 * 1024 * 1024  # Google serveert files > ~100 MB niet aan externe fetchers
+
+
+def compress_under_limit(src: Path, dst: Path, limit: int = SIZE_LIMIT) -> Path:
+    """Her-encodeer tot onder de limiet (H.264, 1080p-cap). Verhoog CRF tot het past."""
+    for crf in (26, 30, 34):
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(src), "-vf", "scale='min(1080,iw)':-2",
+             "-c:v", "libx264", "-crf", str(crf), "-preset", "veryfast",
+             "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", str(dst)],
+            check=True, capture_output=True,
+        )
+        if dst.stat().st_size <= limit:
+            return dst
+    return dst  # laatste poging; best effort
+
+
+def upload_public(path: Path) -> str:
+    """Upload naar een publieke host → URL die Creatomate kan ophalen. Standaard catbox.moe
+    (permanent, ondersteunt range-requests). Voor productie: vervang door een eigen R2/S3-
+    upload (stabiel, eigen beheer) — één functie omwisselen."""
+    with open(path, "rb") as fh:
+        r = requests.post("https://catbox.moe/user/api.php",
+                          data={"reqtype": "fileupload"},
+                          files={"fileToUpload": (path.name, fh, "video/mp4")},
+                          timeout=600)
+    url = r.text.strip()
+    if r.status_code != 200 or not url.startswith("http"):
+        fail(f"Upload naar host mislukt ({r.status_code}): {url[:200]}")
+    return url
+
+
+def ensure_fetchable(file_id: str) -> str:
+    """Geef een URL die Creatomate betrouwbaar krijgt. Klein → kale Drive-URL. Groot
+    (>~100 MB) → download via SA, comprimeer < limiet, host tijdelijk (gecachet op file_id)."""
+    size = int(drive.meta(file_id).get("size", 0) or 0)
+    if size < SIZE_LIMIT:
+        return drive.resolved_url(file_id)
+    cache = json.loads(HOST_CACHE.read_text()) if HOST_CACHE.exists() else {}
+    if file_id in cache:
+        return cache[file_id]["url"]
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    raw = CACHE_DIR / f"{file_id}.src"
+    if not raw.exists():
+        print(f"→ Grote bron ({size/1e6:.0f} MB) — download via SA...", file=sys.stderr)
+        drive.download(file_id, raw)
+    small = CACHE_DIR / f"{file_id}.small.mp4"
+    if not small.exists():
+        print("→ Comprimeer tot < 95 MB...", file=sys.stderr)
+        compress_under_limit(raw, small)
+    print(f"→ Upload {small.stat().st_size/1e6:.0f} MB naar tijdelijke host...", file=sys.stderr)
+    url = upload_public(small)
+    cache[file_id] = {"url": url, "size": small.stat().st_size}
+    HOST_CACHE.write_text(json.dumps(cache, indent=2))
+    return url
+
+
 def resolve_to_url(source: str) -> str:
     """Talking-head/broll source → een URL die Creatomate kan ophalen."""
     if source.startswith(("http://", "https://")):
         return source
     if looks_like_drive_id(source):
-        return drive.resolved_url(source)
+        return ensure_fetchable(source)
     fail(f"Kan source niet naar een URL herleiden: '{source}'. Geef een Drive file_id of URL "
          f"(lokale paden kan Creatomate niet ophalen — upload eerst naar Drive).")
 
@@ -170,103 +228,114 @@ def chunk_words(words: list[dict], max_chars: int = 24) -> list[dict]:
     return lines
 
 
-def build_captions(prototype: dict, transcript: dict, trim_start: float,
-                   trim_dur: float | None) -> list[dict]:
-    """Getimede caption-elementen uit ONS Whisper-transcript (niet Creatomate's auto-
-    transcriptie — die faalt op grote bronbestanden). Het 'captions'-element is het
-    stijl-prototype (font/pill/positie); we klonen het per korte regel, verschoven naar
-    het getrimde venster. Woord-timestamps → korte regels; anders val terug op segmenten."""
+def cuts_from_plan(plan: dict, transcript: dict | None) -> list[dict]:
+    """Normaliseer het plan naar een lijst cuts {trim_start, trim_duration}. Ondersteunt:
+    - `cuts`: meerdere segmenten uit dezelfde opname (Line 2 story-editor), in volgorde;
+    - `talking_head`: één enkel getrimd segment (legacy);
+    - niets: de hele clip als één segment."""
+    if plan.get("cuts"):
+        return [{"trim_start": c["trim_start"], "trim_duration": c["trim_duration"]}
+                for c in plan["cuts"]]
+    th = plan.get("talking_head", {})
+    dur = th.get("trim_duration")
+    if dur is None and transcript:
+        dur = (transcript.get("duration") or 0) - th.get("trim_start", 0.0)
+    return [{"trim_start": th.get("trim_start", 0.0), "trim_duration": dur}]
+
+
+def build_talking_head(proto: dict, url: str, cuts: list[dict]):
+    """Zet N cuts van dezelfde opname sequentieel op track 1 (jump-cut-montage). Geeft de
+    elementen + een cut-tijdlijn [(tijdlijn_start, bron_start, bron_eind)] + totale duur."""
+    style = {k: v for k, v in proto.items()
+             if k not in ("id", "source", "time", "duration", "trim_start", "trim_duration")}
+    els, timeline, t = [], [], 0.0
+    for i, c in enumerate(cuts):
+        dur = c["trim_duration"]
+        el = dict(style)
+        el.update(id=f"th_{i}", type="video", source=url,
+                  trim_start=round(c["trim_start"], 2), trim_duration=round(dur, 2),
+                  time=round(t, 2), duration=round(dur, 2))
+        els.append(el)
+        timeline.append((t, c["trim_start"], c["trim_start"] + dur))
+        t += dur
+    return els, timeline, round(t, 2)
+
+
+def build_captions(prototype: dict, transcript: dict, cut_timeline: list) -> list[dict]:
+    """Getimede caption-regels uit ONS Whisper-transcript (niet Creatomate's auto-
+    transcriptie — die faalt op grote bronbestanden). Per cut nemen we de woorden binnen
+    dat bron-venster, chunken tot korte pill-regels, en mappen ze naar de nieuwe tijdlijn.
+    Zo lopen de captions mee met de geknipte montage."""
     style = {k: v for k, v in prototype.items()
              if not k.startswith("transcript_") and k not in ("id", "time", "duration")}
-    words = transcript.get("words")
-    lines = chunk_words(words) if words else [
-        {"text": s["text"], "start": s["start"], "end": s["end"]} for s in transcript.get("segments", [])
-    ]
-    end = trim_start + trim_dur if trim_dur else None
-    out = []
-    for i, ln in enumerate(lines):
-        start, stop = ln["start"], ln["end"]
-        if start < trim_start or (end is not None and start >= end):
-            continue
-        el = dict(style)
-        el["id"] = f"caption_{i}"
-        el["type"] = "text"
-        el["text"] = ln["text"]
-        el["time"] = round(start - trim_start, 2)
-        el["duration"] = round(max(0.4, stop - start), 2)
-        out.append(el)
+    words = transcript.get("words") or []
+    out, idx = [], 0
+    for tl_start, s0, s1 in cut_timeline:
+        win = [w for w in words if w["start"] >= s0 - 0.05 and w["start"] < s1]
+        for ln in chunk_words(win):
+            el = dict(style)
+            el.update(id=f"caption_{idx}", type="text", text=ln["text"],
+                      time=round(tl_start + (ln["start"] - s0), 2),
+                      duration=round(max(0.4, ln["end"] - ln["start"]), 2))
+            out.append(el)
+            idx += 1
     return out
 
 
 def build_source(template: dict, talking_head_url: str, plan: dict | None,
                  duration: float | None, music_url: str | None,
-                 captions: list[dict] | None = None) -> dict:
+                 captions: dict | None = None) -> dict:
     src = template
-    elements = src.get("elements", [])
+    elements = list(src.get("elements", []))
     plan = plan or {}
 
-    # 1) talking-head-source injecteren
-    th = next((e for e in elements if e.get("id") == "talking_head"), None)
-    if th is None:
+    # 1) talking-head: één of meerdere cuts uit dezelfde opname, sequentieel gemonteerd
+    th_proto = next((e for e in elements if e.get("id") == "talking_head"), None)
+    if th_proto is None:
         fail("Template heeft geen element met id 'talking_head'.")
-    th["source"] = talking_head_url
-    # Ruwe opnames bevatten retakes/asides — knip een schoon segment via het plan
-    # (trim_start/trim_duration in seconden). Captions volgen het getrimde deel.
-    th_trim = (plan or {}).get("talking_head", {})
-    if "trim_start" in th_trim:
-        th["trim_start"] = th_trim["trim_start"]
-    if "trim_duration" in th_trim:
-        th["trim_duration"] = th_trim["trim_duration"]
+    elements = [e for e in elements if e.get("id") != "talking_head"]
+    cuts = cuts_from_plan(plan, captions)
+    th_els, cut_timeline, total = build_talking_head(th_proto, talking_head_url, cuts)
+    elements = th_els + elements  # talking-heads onderaan (track 1)
+    total = total or duration
 
-    # 2) B-roll-slot(s): het template heeft één generiek 'broll'-element als sjabloon.
-    #    Plan met N plaatsingen → kloon het per cutaway; geen plaatsingen → weglaten.
+    # 2) B-roll-cutaways (tijden in tijdlijn-ruimte van de gemonteerde clip)
     broll_tpl = next((e for e in elements if e.get("id") == "broll"), None)
     if broll_tpl is not None:
         elements = [e for e in elements if e.get("id") != "broll"]
-        placements = plan.get("broll", [])
-        for i, p in enumerate(placements):
+        for i, p in enumerate(plan.get("broll", [])):
             clip = dict(broll_tpl)
             clip["id"] = f"broll_{i+1}"
             clip["source"] = resolve_to_url(p.get("url") or p["file_id"])
             clip["time"] = p["time"]
             clip["duration"] = p["duration"]
-            # B-roll is een cutaway OVER de talking-head: het eigen audiospoor van de
-            # clip moet stil (anders hoor je willekeurige geluid-'spikes' bij elke cut).
-            # De talking-head-audio blijft doorlopen. Tenzij het plan expliciet audio wil.
+            # B-roll audio dempen (fixt geluids-spikes); talking-head-audio loopt door.
             if not p.get("keep_audio"):
                 clip["volume"] = "0%"
-            # NB: B-roll audio is gedempt (fixt de geluids-'spikes'); de B-roll cut hard
-            # in/uit — prima voor UGC. (Een Creatomate 'fade'-animatie maakte het element
-            # onzichtbaar; een geverifieerde fade-spec kan later terug via p["fade"].)
             elements.append(clip)
-        src["elements"] = elements
 
-    # 2b) captions uit ons transcript (vervangt de auto-transcriptie-prototype)
+    # 3) captions uit ons transcript, gemapt op de gemonteerde tijdlijn
     cap_proto = next((e for e in elements if e.get("id") == "captions"), None)
     if cap_proto is not None and captions is not None:
-        th_trim = plan.get("talking_head", {})
         elements = [e for e in elements if e.get("id") != "captions"]
-        elements += build_captions(cap_proto, captions,
-                                    th_trim.get("trim_start", 0.0),
-                                    th_trim.get("trim_duration"))
-        src["elements"] = elements
+        elements += build_captions(cap_proto, captions, cut_timeline)
 
-    # 3) end_card op ~einde van de clip zetten
+    # 4) end_card op ~einde van de gemonteerde clip
     end = next((e for e in elements if e.get("id") == "end_card"), None)
     if end is not None:
         if plan.get("end_card_duration"):
             end["duration"] = plan["end_card_duration"]
         end_time = plan.get("end_card_time")
-        if end_time is None and duration is not None:
-            end_time = max(0, duration - (end.get("duration") or 4))
+        if end_time is None and total is not None:
+            end_time = max(0, total - (end.get("duration") or 4))
         if end_time is not None:
             end["time"] = round(end_time, 2)
-            # Captions die in het end-card-venster vallen weghalen — anders stapelen de
-            # caption-pill en de CTA-balk (rommelig). De end-card draagt daar de boodschap.
+            # Captions in het end-card-venster weghalen — anders stapelen pill en CTA-balk.
             elements = [e for e in elements
                         if not (str(e.get("id", "")).startswith("caption")
                                 and e.get("time", 0) >= end["time"])]
-            src["elements"] = elements
+
+    src["elements"] = elements
 
     # 4) optionele achtergrondmuziek (pluggable; standaard uit in v1 — Pixabay heeft
     #    geen muziek-API, Jamendo is de latere bron). Geef een URL door om te mixen.

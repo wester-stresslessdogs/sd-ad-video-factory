@@ -65,25 +65,37 @@ footage die de gebruiker aanwijst).
    - Geen goede match? **Sla de cue over** (talking-head blijft in beeld) en meld het.
      Liever géén B-roll dan misleidende B-roll.
 
-4. **Bouw het plaatsingsplan** `plan.json` en **toon het** (welke clip, welk moment, welke
-   cues overgeslagen):
+4. **Bouw het plaatsingsplan** `plan.json` en **toon het**. Voor **Line 2** (lange ruwe
+   opname → nieuwe ad) is dit de story-editor: kies uit het transcript de segmenten die
+   samen **hook → body → CTA** vormen, in de juiste volgorde, en **laat asides/retakes weg**
+   ("Kenny, middle", dubbele takes). De engine plakt de `cuts` sequentieel (jump-cut-
+   montage) en **hermapt de captions** naar de nieuwe tijdlijn.
    ```json
    {
-     "broll": [
-       {"file_id": "<b_roll-file_id>", "time": 8.0, "duration": 3.0},
-       {"file_id": "<b_roll-file_id>", "time": 20.0, "duration": 2.5}
+     "cuts": [
+       {"trim_start": 0.0,   "trim_duration": 27.7},
+       {"trim_start": 89.5,  "trim_duration": 19.6},
+       {"trim_start": 134.1, "trim_duration": 13.1}
      ],
-     "end_card_time": null
+     "broll": [ {"file_id": "<b_roll-file_id>", "time": 6.0, "duration": 3.5} ],
+     "end_card_time": null, "end_card_duration": 4
    }
    ```
-   (`keep_audio: true` per placement als je uitzonderlijk de clip-audio wél wilt.)
+   `trim_start`/`trim_duration` = **bron**-tijden (uit het transcript); `broll.time` =
+   **tijdlijn**-tijd van de gemonteerde clip. Eén doorlopend segment? Gebruik
+   `"talking_head": {"trim_start":…, "trim_duration":…}`, of laat alles weg voor de hele
+   clip. `keep_audio: true` per B-roll als je uitzonderlijk de clip-audio wél wilt.
+   **Toon het plan**: welke cuts (met de zin), B-roll waar, welke asides weggelaten.
 
 5. **Render** (per template-variant één keer):
    ```bash
    python .claude/skills/ad-render/render.py render \
-     --template barkside-ugc_9x16.json --talking-head <file_id> \
-     --plan plan.json --dur <transcript.duration> --out <campagne>_<hook>_9x16
+     --template stressless-ugc_9x16.json --talking-head <file_id> \
+     --plan plan.json --captions <transcript.json> --out <campagne>_<hook>_9x16
    ```
+   Grote bronnen (>~100 MB) kan Creatomate niet uit Drive halen; de engine downloadt ze
+   dan via de SA, **comprimeert < 95 MB en host tijdelijk** (catbox; vervang door eigen
+   R2/S3 voor productie) zodat Creatomate ze wél ophaalt. Kleine clips gaan direct.
    Output: `output/renders/<naam>.mp4` + de Creatomate-URL.
 
 6. **Presenteer het resultaat.** Per variant: lokaal pad, template, aspect, het B-roll-
