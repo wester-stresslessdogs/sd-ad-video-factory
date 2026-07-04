@@ -64,8 +64,10 @@ def compress_under_limit(src: Path, dst: Path, limit: int = SIZE_LIMIT) -> Path:
     """Her-encodeer tot onder de limiet. GEEN resolutie-cap: het bron-raster is ook het
     punch-in/scherpte-budget — de oude `scale=min(1080,iw)` maakte van landscape 1080p
     een 1080x607-bron die Creatomate ~3x moest upscalen in het 9:16-frame (pap).
-    CRF-ladder alleen; ruim voldoende om 1080p-bronnen onder 95 MB te krijgen."""
-    for crf in (24, 28, 32, 36):
+    CRF-ladder alleen; ruim voldoende om 1080p-bronnen onder 95 MB te krijgen.
+    Start op 26: ~70 MB voor een 1080p-opname — catbox serveert >90 MB te traag aan
+    Creatomate ("didn't reply in time", getest 2026-07-04); echte fix = eigen R2/S3."""
+    for crf in (26, 30, 34):
         subprocess.run(
             ["ffmpeg", "-y", "-i", str(src),
              "-c:v", "libx264", "-crf", str(crf), "-preset", "veryfast",
@@ -77,48 +79,120 @@ def compress_under_limit(src: Path, dst: Path, limit: int = SIZE_LIMIT) -> Path:
     return dst  # laatste poging; best effort
 
 
-def upload_public(path: Path) -> str:
-    """Upload naar een publieke host → URL die Creatomate kan ophalen. Standaard catbox.moe
-    (permanent, ondersteunt range-requests). Voor productie: vervang door een eigen R2/S3-
-    upload (stabiel, eigen beheer) — één functie omwisselen."""
+def _serves_fast(url: str, mb: float = 3.0, min_bps: int = 400_000) -> bool:
+    """Kan Creatomate dit tempo aan? Download de eerste MB's en meet. Catbox bleek
+    2026-07-04 gedegradeerd (~50 KB/s → render-fail 'didn't reply in time'); deze
+    probe voorkomt dat we een trage URL doorgeven en een render verbranden."""
+    want = int(mb * 1024 * 1024)
+    try:
+        t0 = time.time()
+        got = 0
+        with requests.get(url, headers={"Range": f"bytes=0-{want}"}, stream=True, timeout=25) as r:
+            r.raise_for_status()
+            for chunk in r.iter_content(1 << 18):
+                got += len(chunk)
+                if got >= want:
+                    break
+        dt = max(time.time() - t0, 0.01)
+        return got >= want * 0.9 and got / dt >= min_bps
+    except requests.RequestException:
+        return False
+
+
+def _up_0x0(path: Path) -> tuple[str, float | None]:
+    with open(path, "rb") as fh:
+        r = requests.post("https://0x0.st", files={"file": (path.name, fh, "video/mp4")},
+                          headers={"User-Agent": "sd-ad-video-factory/1.0"}, timeout=900)
+    url = r.text.strip()
+    if r.status_code != 200 or not url.startswith("http"):
+        raise RuntimeError(f"0x0.st {r.status_code}: {url[:120]}")
+    return url, time.time() + 7 * 86400  # retentie ruim; wij verversen na 7 dagen
+
+
+def _up_tmpfiles(path: Path) -> tuple[str, float | None]:
+    with open(path, "rb") as fh:
+        r = requests.post("https://tmpfiles.org/api/v1/upload",
+                          files={"file": (path.name, fh, "video/mp4")}, timeout=900)
+    url = (r.json().get("data") or {}).get("url", "")
+    if not url:
+        raise RuntimeError(f"tmpfiles {r.status_code}: {r.text[:120]}")
+    # page-URL → directe download-URL (…/dl/<id>/<naam>); retentie 60 min
+    url = url.replace("tmpfiles.org/", "tmpfiles.org/dl/", 1)
+    return url, time.time() + 50 * 60
+
+
+def _up_catbox(path: Path) -> tuple[str, float | None]:
     with open(path, "rb") as fh:
         r = requests.post("https://catbox.moe/user/api.php",
                           data={"reqtype": "fileupload"},
                           files={"fileToUpload": (path.name, fh, "video/mp4")},
-                          timeout=600)
+                          timeout=900)
     url = r.text.strip()
     if r.status_code != 200 or not url.startswith("http"):
-        fail(f"Upload naar host mislukt ({r.status_code}): {url[:200]}")
+        raise RuntimeError(f"catbox {r.status_code}: {url[:120]}")
+    return url, None  # permanent
+
+
+def upload_public(path: Path) -> tuple[str, float | None]:
+    """Upload naar een publieke host en geef (url, expires_epoch|None). Probeert hosts
+    in volgorde en accepteert alleen een URL die de snelheids-probe haalt. Voor
+    productie: vervang door eigen R2/S3 (stabiel, eigen beheer) — één functie."""
+    errors = []
+    for name, up in (("0x0.st", _up_0x0), ("tmpfiles.org", _up_tmpfiles), ("catbox", _up_catbox)):
+        try:
+            print(f"→ Upload naar {name}...", file=sys.stderr)
+            url, expires = up(path)
+            if _serves_fast(url):
+                return url, expires
+            errors.append(f"{name}: te traag")
+            print(f"  {name} serveert te traag — volgende host.", file=sys.stderr)
+        except Exception as e:
+            errors.append(f"{name}: {e}")
+            print(f"  {name} faalde: {e}", file=sys.stderr)
+    fail("Geen host haalbaar: " + " · ".join(errors))
+
+
+def host_file(file_id: str) -> str:
+    """Forceer hosten: download via SA (gecachet), comprimeer < limiet, upload naar de
+    host-keten, cache op file_id."""
+    cache = json.loads(HOST_CACHE.read_text()) if HOST_CACHE.exists() else {}
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    raw = CACHE_DIR / f"{file_id}.src"
+    if not raw.exists():
+        size = int(drive.meta(file_id).get("size", 0) or 0)
+        print(f"→ Bron ({size/1e6:.0f} MB) — download via SA...", file=sys.stderr)
+        drive.download(file_id, raw)
+    small = CACHE_DIR / f"{file_id}.small.mp4"
+    if not small.exists():
+        print("→ Comprimeer tot < 95 MB...", file=sys.stderr)
+        compress_under_limit(raw, small)
+    print(f"→ Upload {small.stat().st_size/1e6:.0f} MB naar publieke host...", file=sys.stderr)
+    url, expires = upload_public(small)
+    cache[file_id] = {"url": url, "size": small.stat().st_size, "expires": expires}
+    HOST_CACHE.write_text(json.dumps(cache, indent=2))
     return url
 
 
 def ensure_fetchable(file_id: str) -> str:
     """Geef een URL die Creatomate betrouwbaar krijgt. Serveert Drive de file direct →
     kale Drive-URL. Zo niet (virus-scan-interstitial, treedt op vanaf ~40-70 MB, niet
-    alleen bij >100 MB) → download via SA, comprimeer < limiet, host tijdelijk (gecachet
-    op file_id). De beslissing valt op de échte Drive-respons, niet op een grootte-drempel."""
+    alleen bij >100 MB) → host_file(). LET OP: de lokale probe kan slagen waar
+    Creatomate's fetch alsnog HTML krijgt (regio-afhankelijk) — cmd_render vangt die
+    render-fail op en force-host het bestand alsnog (zie retry-lus)."""
     cache = json.loads(HOST_CACHE.read_text()) if HOST_CACHE.exists() else {}
-    if file_id in cache:
-        return cache[file_id]["url"]
-    try:
-        return drive.resolved_url(file_id)  # direct-servable → kale URL (klein, goedkoop)
-    except RuntimeError:
-        pass  # interstitial → host het bestand hieronder
-    size = int(drive.meta(file_id).get("size", 0) or 0)
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    raw = CACHE_DIR / f"{file_id}.src"
-    if not raw.exists():
-        print(f"→ Grote bron ({size/1e6:.0f} MB) — download via SA...", file=sys.stderr)
-        drive.download(file_id, raw)
-    small = CACHE_DIR / f"{file_id}.small.mp4"
-    if not small.exists():
-        print("→ Comprimeer tot < 95 MB...", file=sys.stderr)
-        compress_under_limit(raw, small)
-    print(f"→ Upload {small.stat().st_size/1e6:.0f} MB naar tijdelijke host...", file=sys.stderr)
-    url = upload_public(small)
-    cache[file_id] = {"url": url, "size": small.stat().st_size}
-    HOST_CACHE.write_text(json.dumps(cache, indent=2))
-    return url
+    entry = cache.get(file_id)
+    if entry:
+        expired = entry.get("expires") and time.time() > entry["expires"] - 300
+        # Ook gecachte URLs her-checken op tempo: een host kan gedegradeerd zijn (catbox).
+        if not expired and _serves_fast(entry["url"], mb=1.5):
+            return entry["url"]
+        print("→ Gecachte host-URL verlopen/te traag — opnieuw hosten...", file=sys.stderr)
+    else:
+        try:
+            return drive.resolved_url(file_id)  # direct-servable → kale URL (klein, goedkoop)
+        except RuntimeError:
+            pass  # interstitial → host het bestand
+    return host_file(file_id)
 
 
 def resolve_to_url(source: str) -> str:
@@ -273,8 +347,13 @@ def build_talking_head(proto: dict, url: str, cuts: list[dict]):
             s = max(1.0, float(pi.get("scale", 1.15)))
             fx, fy = float(pi.get("focus_x", 0.5)), float(pi.get("focus_y", 0.5))
             # Element groter dan het canvas; positioneer zó dat bronpunt (fx,fy) centreert.
+            # KLEM zodat het element het canvas altijd volledig dekt — een te extreme
+            # focus gaf anders een zwarte rand (top 2% bij scale 1.5 / focus_y 0.32).
+            half = s * 50.0
+            xp = min(max((0.5 + s * (0.5 - fx)) * 100, 100 - half), half)
+            yp = min(max((0.5 + s * (0.5 - fy)) * 100, 100 - half), half)
             el.update(width=f"{s*100:.1f}%", height=f"{s*100:.1f}%",
-                      x=f"{(0.5 + s*(0.5-fx))*100:.2f}%", y=f"{(0.5 + s*(0.5-fy))*100:.2f}%",
+                      x=f"{xp:.2f}%", y=f"{yp:.2f}%",
                       x_alignment="50%", y_alignment="50%")
         els.append(el)
         timeline.append((t, c["trim_start"], c["trim_start"] + dur))
@@ -347,8 +426,21 @@ def build_broll(broll_tpl: dict, plan: dict, cut_timeline: list,
     pip_cfg = broll_tpl.get("pip", {})
     out = []
     for i, p in enumerate(plan.get("broll", [])):
-        # Timing: expliciete time wint; anders word-anchored op de zin.
+        # Timing: expliciete time wint; dan bridge_cut (over de las heen); dan phrase.
         t = p.get("time")
+        if t is None and p.get("bridge_cut") is not None:
+            # bridge_cut: N (1-based) = overbrug de las tussen cut N en N+1. De B-roll
+            # start `lead` vóór de las en loopt eroverheen → de kijker ziet de jump-cut
+            # nooit. Default fullscreen (een pip laat de las erachter gewoon zien).
+            n = int(p["bridge_cut"])
+            if 1 <= n < len(cut_timeline):
+                boundary = cut_timeline[n][0]
+                lead = float(p.get("lead", p.get("duration", 3.5) / 2))
+                t = round(max(0.0, boundary - lead), 2)
+            else:
+                print(f"⚠️  B-roll #{i+1}: bridge_cut {n} bestaat niet "
+                      f"({len(cut_timeline)} cuts) — overgeslagen.", file=sys.stderr)
+                continue
         if t is None and p.get("phrase") and transcript is not None:
             t = resolve_phrase_time(p["phrase"], transcript, cut_timeline)
             if t is None:
@@ -370,7 +462,8 @@ def build_broll(broll_tpl: dict, plan: dict, cut_timeline: list,
             clip["trim_start"] = round(p["broll_trim_start"], 2)
         if not p.get("keep_audio"):
             clip["volume"] = "0%"  # cutaway: eigen audio dempen, talking-head loopt door
-        style = p.get("style", default_style)
+        # Bridges default fullscreen: alleen dan is de las écht onzichtbaar.
+        style = p.get("style") or ("fullscreen" if p.get("bridge_cut") is not None else default_style)
         if style == "pip":
             clip.update(pip_cfg)              # inset-geometrie + shadow (template-default)
             clip.update(p.get("pip", {}))     # per-plaatsing bijstellen (bv. y hoger als ze knielt)
@@ -462,10 +555,8 @@ def poll_render(rid: str, api_key: str) -> dict:
         render = resp.json()
         status = render.get("status")
         print(f"  status: {status}", file=sys.stderr)
-        if status == "succeeded":
-            return render
-        if status in ("failed", "cancelled"):
-            fail(f"Render {status}: {render.get('error_message', render)}")
+        if status in ("succeeded", "failed", "cancelled"):
+            return render  # caller beoordeelt (failed kan een force-host-retry triggeren)
         time.sleep(POLL_INTERVAL_S)
     fail(f"Timeout na {POLL_TIMEOUT_S}s.")
 
@@ -474,14 +565,31 @@ def cmd_render(args):
     import os
     api_key = os.getenv("CREATOMATE_API_KEY") or fail("CREATOMATE_API_KEY ontbreekt in mcp/.env")
 
-    template = load_template(args.template)
-    talking_head_url = resolve_to_url(args.talking_head)
     plan = json.loads(Path(args.plan).read_text()) if args.plan else None
     captions = json.loads(Path(args.captions).read_text()) if args.captions else None
-    source = build_source(template, talking_head_url, plan, args.dur, args.music, captions)
 
-    render = start_render(source, api_key)
-    result = poll_render(render, api_key)
+    # Retry-lus: Creatomate kan op een kale Drive-URL alsnog de virus-scan-HTML krijgen
+    # waar onze lokale probe videobytes zag (regio-afhankelijk). Dan force-hosten we dát
+    # bestand en proberen opnieuw — max 3 pogingen (meerdere bronnen kunnen het raken).
+    import re as _re
+    result = None
+    for attempt in range(3):
+        template = load_template(args.template)  # vers (build_source muteert)
+        talking_head_url = resolve_to_url(args.talking_head)
+        source = build_source(template, talking_head_url, plan, args.dur, args.music, captions)
+        render = start_render(source, api_key)
+        result = poll_render(render, api_key)
+        if result.get("status") == "succeeded":
+            break
+        err = str(result.get("error_message", result))
+        m = _re.search(r"web page instead: \S*[?&]id=([\w-]+)", err)
+        if m and attempt < 2:
+            fid = m.group(1)
+            print(f"↻ Drive serveerde HTML aan Creatomate voor {fid} — force-host + retry...",
+                  file=sys.stderr)
+            host_file(fid)
+            continue
+        fail(f"Render {result.get('status')}: {err}")
     url = result.get("url")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)

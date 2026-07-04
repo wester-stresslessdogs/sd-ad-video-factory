@@ -98,10 +98,19 @@ footage die de gebruiker aanwijst).
      "end_card_time": null, "end_card_duration": 5
    }
    ```
-   `trim_start`/`trim_duration` = **bron**-tijden (uit het transcript). **`punch_in`** per
-   cut reframet het shot (wijd → dichterbij) én geeft jump-cuts een bewuste wissel:
-   `scale` binnen `framing.punchin_max` uit de index, `focus_x`/`focus_y` = welk bronpunt
-   (0..1) centreert (gezicht boven midden ≈ 0.35-0.42). B-roll-timing bij
+   `trim_start`/`trim_duration` = **bron**-tijden (uit het transcript).
+
+   **Elke las (cut-grens) wordt bewust afgewerkt — kies per grens één van twee:**
+   - **B-roll-bridge** (voorkeur als er een passende clip is): `{"bridge_cut": N, "lead": 1.2, …}`
+     legt de B-roll óver de las tussen cut N en N+1 — de kijker ziet de jump nooit.
+     Bridges zijn **fullscreen** (default; een pip laat de las erachter zien). Kies een
+     moment dat inhoudelijk past bij wat er rond de las gezegd wordt.
+   - **Punch-in-wissel**: `punch_in` per cut (`scale` binnen `framing.punchin_max` uit de
+     index, `focus_x`/`focus_y` = welk bronpunt (0..1) centreert). Let op: `focus_y` moet
+     passen bij waar zij op dát moment in beeld staat (staand ≈ 0.35-0.42; knielend ≈
+     0.5-0.6 — check het `moments`/`action`-veld). De engine klemt de geometrie zodat er
+     nooit zwarte randen ontstaan.
+   Een kale jump-cut op hetzelfde wijde shot is géén optie — dat leest als een glitch. B-roll-timing bij
    voorkeur via **`phrase`** (word-anchored); `time` (tijdlijn-seconde) mag ook expliciet.
    `style`: `pip` of `fullscreen` (default = template-huisstijl). `pip: {y: …}` stelt de
    kaartpositie per plaatsing bij. **`broll_trim_start`** = start van het gekozen
@@ -119,9 +128,10 @@ footage die de gebruiker aanwijst).
    ```
    Bronnen die Drive niet direct aan Creatomate serveert (virus-scan-interstitial; treedt
    al op vanaf ~40-70 MB, geldt ook voor B-roll) downloadt de engine via de SA, **comprimeert
-   < 95 MB en host tijdelijk** (catbox; vervang door eigen R2/S3 voor productie) zodat
-   Creatomate ze wél ophaalt. De keuze valt op de échte Drive-respons, niet op een
-   grootte-drempel. Kleine clips gaan direct.
+   < 95 MB (CRF-only, geen downscale) en host** via een keten met snelheids-probe
+   (0x0.st → tmpfiles → catbox; vervang door eigen R2/S3 voor productie). Meldt Creatomate
+   alsnog "web page instead" op een kale Drive-URL (regio-afhankelijk), dan force-host de
+   engine dat bestand automatisch en rendert opnieuw. Kleine clips gaan direct.
    Output: `output/renders/<naam>.mp4` + de Creatomate-URL.
 
 6. **Presenteer het resultaat.** Per variant: lokaal pad, template, aspect, het B-roll-
