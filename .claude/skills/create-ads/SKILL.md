@@ -16,18 +16,48 @@ leesbaar in het pakket.
    v2: momenten, takes, framing). Ontbreekt een van beide of is er geen enkele
    `edit_spec` → stop en zeg wat er eerst moet draaien (`/ad-research`+`/ad-template`
    voor specs; `scripts/index_footage.py` voor de index). Analyseer nooit "even snel" mee.
-2. **Nieuw script = hún zinnen, onze volgorde.** Voor bestaande footage bouw je het
-   script uit de gesproken zinnen (take-kaart + transcript), eventueel herschikt —
-   maar het moet logisch blijven lopen als je 't hardop leest. Nooit betekenis verdraaien
-   door herschikking. B-roll-plaatsingen, punch-ins, bridges en stijl horen bíj het script.
-3. **De winner is het frame, de footage is de waarheid.** Volg de `edit_spec` (beats,
-   pacing, caption-stijl, hook-mechaniek) zover de footage het toelaat; elke afwijking
-   staat expliciet in het pakket ("winner wil X, wij kunnen Y omdat Z").
-   `replication_requirements` met `hard: true` die niet gedekt zijn → die combinatie
-   valt af (meld het), tenzij een andere take het alsnog dekt.
-4. **Aanbod altijd vertaald** (`knowledge/business-context/offer-translation.md`):
+
+2. **DE FOOTAGE IS LEIDEND — de winner is alleen inspiratie.** Dit is de kernregel.
+   Onze ruwe opname bepaalt wat kán; de winner levert ideeën, geen mal. Forceer nooit een
+   winner-eigenschap die de opname niet waarmaakt:
+   - **Tempo/energie**: is de winner snel/punchy (cut-per-zin, whip-pans) maar onze
+     talking-head rustig en uitleggend? Dan neem je de *structuur en hook-mechaniek* over,
+     **niet** het tempo. Snelle cuts op een kalme delivery ogen nep. Bepaal het tempo van
+     de opname (spreeksnelheid, take-lengtes, delivery) en laat dát de montage sturen.
+   - **Framing/compositie**: haalt de winner ritme uit locatie-/compositiewissels die wij
+     niet hebben (statisch shot)? Dan is dat ritme niet beschikbaar — verzin geen
+     namaak-punchiness. B-roll of een enkele rustige punch-in kan variatie geven, maar
+     verkoop het niet als iets wat het niet is.
+   - **Als een winner slecht bij de opname past, kies een andere winner** (of pas de
+     aanpak fундamenteel aan). Liever een kalme winner-stijl op kalme footage dan een
+     punchy winner erop geplakt. Een mismatch die je toch forceert → dat is precies de
+     fout die we niet meer maken.
+   Vuistregel: als je in de brief moet schrijven "we simuleren de X van de winner",
+   twijfel dan of X wel bij deze footage hoort.
+
+3. **Nieuw script = hún zinnen, onze volgorde — en het moet een ECHT begin hebben.**
+   Bouw het script uit de gesproken zinnen (take-kaart + transcript), eventueel herschikt,
+   maar:
+   - **De hook is een zelfstandige, scroll-stoppende openingszin.** Nooit een fragment
+     dat midden in een gedachte begint of terugverwijst naar iets wat nog niet gezegd is
+     ("...missing almost all of them" — *waarvan?*). Loop het transcript langs en kies een
+     zin die op zichzelf staat en de juiste kijker meteen laat denken "dat ben ik".
+     Begint de beste hook verderop in de opname? Dan knip je het fragment ervóór weg.
+   - Het geheel moet logisch lopen als je 't hardop leest. Nooit betekenis verdraaien.
+   - B-roll-plaatsingen, punch-ins, bridges en stijl horen bíj het script.
+
+4. **Volg de winner-stijl waar je 'm claimt — anders claim 'm niet.** Gebruik de
+   `edit_spec` (beats, hook-mechaniek, caption-stijl, **`broll.style`**) als leidraad.
+   Zegt de spec `broll.style: fullscreen`, gebruik dan **geen** PiP-overlay (en andersom).
+   De huisstijl-default van een template (bv. PiP) mag de winner-stijl niet stilletjes
+   overschrijven — of je volgt de winner, of je legt in de brief uit waaróm je afwijkt.
+   `replication_requirements` met `hard: true` die niet gedekt zijn → die combinatie valt
+   af (meld het), tenzij een andere take het alsnog dekt.
+
+5. **Aanbod altijd vertaald** (`knowledge/business-context/offer-translation.md`):
    end-card/CTA = onze gratis masterclass → LVC-cursus. Nooit het aanbod van de winner.
-5. **Renderen is een aparte, handmatige stap.** Dit skill levert pakketten; pas na
+
+6. **Renderen is een aparte, handmatige stap.** Dit skill levert pakketten; pas na
    Ramons blik (of expliciete "render alles") draait de render. Kosten: ~14 credits/stuk.
 
 ## Stappenplan
@@ -41,17 +71,29 @@ leesbaar in het pakket.
   je op échte zinnen + word-timestamps, niet op de gists.
 
 ### 2. Combinaties kiezen (en verantwoorden)
+**Karakteriseer eerst de footage, dán match je een winner.** Per kandidaat-talking-head:
+bepaal het karakter uit transcript + takes — spreektempo (woorden/sec), take-lengtes,
+delivery (`good`/`flat`), energie (rustig-uitleggend vs snel-opsommend), framing (wijd/
+statisch vs dichtbij). Dít is de leidende eigenschap.
+
 Kandidaten = (talking-head × winner-spec). Scoor op:
-- **Hard-requirements gedekt?** (bv. bevat de opname een zelfselectie-hook-zin en een
-  herkader-zin? Check het transcript, niet alleen de take-gists.)
+- **Stijl-compatibiliteit (zwaarst):** past het tempo/de energie van de winner bij deze
+  opname? Kalme opname → kalme of structuur-gedreven winner; forceer geen punchy winner
+  op rustige footage (zie uitgangspunt 2). Een slechte match valt af, ook als de
+  requirements technisch gedekt zijn.
+- **Hard-requirements gedekt?** Bevat de opname een bruikbare **zelfstandige hook-zin**
+  en de andere hard-beats (bv. herkader-zin)? Check het transcript woordelijk, niet de
+  take-gists.
 - **Taal/markt** past (NL-spec × NL-opname, tenzij anders gevraagd).
 - **Materiaal-rijkdom**: genoeg goede takes voor de beat-structuur; B-roll-momenten
-  beschikbaar voor de cues die de stijl vraagt.
+  beschikbaar voor de cues die de stijl vraagt (in de stijl — pip/fullscreen — die de
+  spec voorschrijft).
 - **Variatie over de batch**: liever N verschillende stijlen/hoeks dan N klonen. Eén
   talking-head mag vaker voorkomen met écht verschillende edits (andere hook-zin,
   andere beat-invulling, andere caption-stijl).
-Toon de gekozen combinaties als lijstje mét één zin motivatie per stuk, en wat er
-afviel + waarom. Bij minder haalbare combinaties dan gevraagd: zeg dat eerlijk.
+Toon de gekozen combinaties als lijstje mét één zin motivatie per stuk (inclusief
+"waarom past deze winner-stijl bij deze opname"), en wat er afviel + waarom. Bij minder
+haalbare combinaties dan gevraagd: zeg dat eerlijk — liever 3 goede dan 20 geforceerde.
 
 ### 3. Per variant een ad-pakket bouwen
 Map: `output/ads/<YYYY-MM-DD>_<korte-slug>/` met daarin:

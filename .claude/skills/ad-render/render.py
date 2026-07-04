@@ -276,8 +276,10 @@ def cmd_transcribe(args):
 
 # ── Render ──────────────────────────────────────────────────────────────────────
 def load_template(name: str) -> dict:
+    # Accepteer: absoluut pad · bestaand pad relatief aan cwd (bv. een ad-pakket-
+    # template output/ads/…/template.json) · anders een basename in de templates-map.
     path = Path(name)
-    if not path.is_absolute():
+    if not path.is_absolute() and not path.exists():
         path = TEMPLATES_DIR / name
     if not path.exists():
         fail(f"Template niet gevonden: {path}")
