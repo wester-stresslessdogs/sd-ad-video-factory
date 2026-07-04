@@ -318,7 +318,8 @@ def cuts_from_plan(plan: dict, transcript: dict | None) -> list[dict]:
     - niets: de hele clip als één segment."""
     if plan.get("cuts"):
         return [{"trim_start": c["trim_start"], "trim_duration": c["trim_duration"],
-                 **({"punch_in": c["punch_in"]} if c.get("punch_in") else {})}
+                 **({"punch_in": c["punch_in"]} if c.get("punch_in") else {}),
+                 **({"caption_y": c["caption_y"]} if c.get("caption_y") else {})}
                 for c in plan["cuts"]]
     th = plan.get("talking_head", {})
     dur = th.get("trim_duration")
@@ -363,16 +364,22 @@ def build_talking_head(proto: dict, url: str, cuts: list[dict]):
     return els, timeline, round(t, 2)
 
 
-def build_captions(prototype: dict, transcript: dict, cut_timeline: list) -> list[dict]:
+def build_captions(prototype: dict, transcript: dict, cut_timeline: list,
+                   cuts: list[dict] | None = None) -> list[dict]:
     """Getimede caption-regels uit ONS Whisper-transcript (niet Creatomate's auto-
     transcriptie — die faalt op grote bronbestanden). Per cut nemen we de woorden binnen
     dat bron-venster, chunken tot korte pill-regels, en mappen ze naar de nieuwe tijdlijn.
-    Zo lopen de captions mee met de geknipte montage."""
-    style = {k: v for k, v in prototype.items()
-             if not k.startswith("transcript_") and k not in ("id", "time", "duration")}
+    Zo lopen de captions mee met de geknipte montage. Een cut kan `caption_y` dragen
+    (bv. "20%"): captions verhuizen daar naar die hoogte — voor shots waar de onderkant
+    van het frame bezet is (hond/persoon) en boven juist ruimte is."""
+    base_style = {k: v for k, v in prototype.items()
+                  if not k.startswith("transcript_") and k not in ("id", "time", "duration")}
     words = transcript.get("words") or []
     out, idx = [], 0
-    for tl_start, s0, s1 in cut_timeline:
+    for ci, (tl_start, s0, s1) in enumerate(cut_timeline):
+        style = dict(base_style)
+        if cuts and ci < len(cuts) and cuts[ci].get("caption_y"):
+            style["y"] = cuts[ci]["caption_y"]
         win = [w for w in words if w["start"] >= s0 - 0.05 and w["start"] < s1]
         lines = chunk_words(win)
         # Gaten dichten: een regel blijft staan tot de volgende begint (korte stiltes
@@ -438,7 +445,10 @@ def resolve_insert_time(p: dict, cut_timeline: list, transcript: dict | None,
         t = resolve_phrase_time(p["phrase"], transcript, cut_timeline)
         if t is None:
             return None, f"zin niet gevonden in behouden cuts: \"{p['phrase']}\""
-        return t, f"word-anchored op \"{p['phrase']}\""
+        # `offset`: verschuif t.o.v. de zin (bv. +2.0 = ademruimte ná de woorden,
+        # -1.0 = iets ervóór). De zin blijft het anker, de offset is de regie.
+        t = round(max(0.0, t + float(p.get("offset", 0))), 2)
+        return t, f"word-anchored op \"{p['phrase']}\" (offset {p.get('offset', 0):+.1f}s)"
     return None, "geen time/bridge_cut/phrase"
 
 
@@ -504,7 +514,7 @@ def build_source(template: dict, talking_head_url: str, plan: dict | None,
     cap_proto = next((e for e in elements if e.get("id") == "captions"), None)
     if cap_proto is not None and captions is not None:
         elements = [e for e in elements if e.get("id") != "captions"]
-        elements += build_captions(cap_proto, captions, cut_timeline)
+        elements += build_captions(cap_proto, captions, cut_timeline, cuts)
 
     # 4) end_card op ~einde van de gemonteerde clip
     end = next((e for e in elements if e.get("id") == "end_card"), None)
@@ -684,15 +694,27 @@ def cmd_plan_check(args):
 
     errors, warns = [], []
 
-    # 1. Cut-grenzen op zin-grenzen (defect: afgekapte/half-gestarte zinnen)
+    # 1. Cut-grenzen op zin-grenzen (defect: afgekapte/half-gestarte zinnen).
+    # Uitzondering: CONTIGUE cuts (eind == volgende start, zelfde bron) zijn een
+    # zoom-punch midden in doorlopende spraak — audio loopt door, geen content-knip,
+    # dus geen zin-grens nodig. De las-check (punch-delta) geldt daar wél.
+    def _contiguous(i: int, side: str) -> bool:
+        if side == "end" and i + 1 < len(cuts):
+            return abs(cuts[i]["trim_start"] + cuts[i]["trim_duration"] - cuts[i+1]["trim_start"]) < 0.05
+        if side == "start" and i > 0:
+            return abs(cuts[i-1]["trim_start"] + cuts[i-1]["trim_duration"] - cuts[i]["trim_start"]) < 0.05
+        return False
+
     for i, c in enumerate(cuts):
-        ok, why = _sentence_boundary_ok(c["trim_start"], words, "start")
-        if not ok:
-            errors.append(f"cut {i+1} START {c['trim_start']:.1f}s: {why}")
+        if not _contiguous(i, "start"):
+            ok, why = _sentence_boundary_ok(c["trim_start"], words, "start")
+            if not ok:
+                errors.append(f"cut {i+1} START {c['trim_start']:.1f}s: {why}")
         end = c["trim_start"] + c["trim_duration"]
-        ok, why = _sentence_boundary_ok(end, words, "end")
-        if not ok:
-            errors.append(f"cut {i+1} EIND {end:.1f}s: {why}")
+        if not _contiguous(i, "end"):
+            ok, why = _sentence_boundary_ok(end, words, "end")
+            if not ok:
+                errors.append(f"cut {i+1} EIND {end:.1f}s: {why}")
 
     # 2. Bloopers/valse starts binnen behouden vensters
     for i, c in enumerate(cuts):
@@ -726,15 +748,24 @@ def cmd_plan_check(args):
             errors.append(f"talking-head > 6s aaneengesloten uit beeld ({span_start:.1f}-{span_end:.1f})")
             break
 
-    # 4. Elke las: bridge óf zichtbare punch-wissel (delta ≥ 0.2)
+    # 3b. Ademruimte: de talking-head moet zich eerst vestigen vóór de eerste insert
+    if inserts and inserts[0][0] < 2.5:
+        warns.append(f"eerste B-roll al op {inserts[0][0]:.1f}s — geef de talking-head ≥ 2.5s "
+                     f"ademruimte (gebruik `offset` op de phrase)")
+
+    # 4. Elke las: bridge XOR zichtbare punch-wissel (delta ≥ 0.2) — precies één wissel
     for i in range(1, len(cuts)):
         boundary = cut_timeline[i][0]
         bridged = any(a0 <= boundary - 0.2 and a1 >= boundary + 0.2 for a0, a1, _, _ in inserts)
         s_prev = float((cuts[i-1].get("punch_in") or {}).get("scale", 1.0))
         s_cur = float((cuts[i].get("punch_in") or {}).get("scale", 1.0))
-        if not bridged and abs(s_cur - s_prev) < 0.2:
-            errors.append(f"las {i} @ {boundary:.1f}s: geen bridge én punch-delta {abs(s_cur-s_prev):.2f} "
+        delta = abs(s_cur - s_prev)
+        if not bridged and delta < 0.2:
+            errors.append(f"las {i} @ {boundary:.1f}s: geen bridge én punch-delta {delta:.2f} "
                           f"< 0.2 — leest als glitch ('zelfde beeld, niks verandert')")
+        elif bridged and delta >= 0.2:
+            warns.append(f"las {i} @ {boundary:.1f}s: bridge ÉN punch-wissel (delta {delta:.2f}) — "
+                         f"dubbele wissel; kies er één (houd de punch gelijk over een ge-bridgede las)")
 
     # Rapport
     print(f"Tijdlijn: {total:.1f}s · {len(cuts)} cuts · {len(inserts)} inserts")

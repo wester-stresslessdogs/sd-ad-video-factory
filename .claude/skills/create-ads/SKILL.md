@@ -129,23 +129,48 @@ narekenen):
      --out ../ads/<map>/ad
    ```
 
-**Plan-regels** (zie ook `/ad-render` SKILL):
+**Plan-regels** (zie ook `/ad-render` SKILL). Dit zijn logica-regels, geen recepten —
+ze gelden voor élke clip die binnenkomt:
 - **Cut-grenzen liggen op zin-grenzen.** Kies start/eind op de word-timestamps: een cut
   begint op een zin-start (of een herstart ná een valse start) en eindigt op een
   zin-einde of in een stilte. Nooit een lopende zin afkappen "omdat de tijd op is".
 - **Bloopers eruit.** Herhaalde frases vlak achter elkaar ("it's free it's online, it's
   free it's online") zijn valse starts — knip tot de twééde (goede) take.
-- **Elke las krijgt een bridge of een zichtbare punch-wissel** (delta ≥ 0.25). Een
-  micro-verschil (1.15 → 1.1) leest als glitch. `focus_y` past bij haar houding op dát
-  moment. Lange statische passages mag je óók op een zin-grens splitsen met een
-  punch-wissel — dat is Ramons "hard cut zoom".
+- **Nooit twee (bijna) dezelfde frames naast elkaar op een las — en precies ÉÉN wissel
+  per las.** Kies per las het mechanisme: een B-roll-bridge **óf** een punch-wissel
+  (delta ≥ 0.25, in of uit — wat het shot logisch maakt). Niet allebei (dubbele wissel
+  oogt rommelig; houd de punch gelijk over een ge-bridgede las) en nooit geen van
+  beide. Wanneer welke: is er B-roll die inhoudelijk bij de overgang past → bridge;
+  zo niet → punch-wissel. `focus_y` past bij de houding op dát moment. Lange statische
+  passages mag je óók op een zin-grens splitsen met een punch-wissel ("hard cut zoom").
+- **Ademruimte aan de start.** De talking-head vestigt zich eerst: eerste B-roll niet
+  vóór ~2,5-3s (gebruik `offset` op de phrase om een insert iets ná de woorden te
+  leggen). Uitzondering alleen als de winner-spec bewust met beeld opent.
+- **Hook-framing is een creatieve keuze.** Een close-up-opening (flinke punch-in op de
+  eerste zin, daarna wijder) is een sterke scroll-stopper — overweeg 'm expliciet per
+  variant, passend bij winner-spec en footage. Niet verplicht; wel elke keer bewust
+  kiezen en in de brief verantwoorden.
 - **Opgesomd gedrag → toon het.** Somt de spreker gedragingen op ("als je hem aait…
-  likt hij z'n lippen"), dan hoort daar B-roll van dát gedrag — dit is waar de kijker
-  z'n eigen hond herkent. De "op haar gezicht"-regel geldt voor aanbod/CTA/reveal,
-  niet voor gedrags-opsommingen.
+  likt hij z'n lippen"), dan hoort daar B-roll van dát gedrag. De "op haar gezicht"-
+  regel geldt voor aanbod/CTA/reveal, niet voor gedrags-opsommingen.
+- **Match op intentie, niet op tag-woord.** Een tag-hit is pas een match als gedrag,
+  context én lading kloppen met de zin. "Na een aai gaat hij ineens snuffelen"
+  (displacement-sniffing, stress, mens erbij) ≠ twee honden die elkaar begroeten
+  (sniffing-exploration, neutraal). Toets actor (hond-mens vs hond-hond), valence en
+  het `action`-proza — twijfel = geen insert.
+- **Geen match → talking-head blijft + shoot-list.** Geen zwarte placeholder-vlakken in
+  renders (besluit 2026-07-04: een render met gaten is onbruikbaar en placeholders
+  stapelen snel op bij een kleine bibliotheek). In plaats daarvan: elke cue zonder
+  goede match gaat als concrete regel naar **`knowledge/shoot-list.md`** (welke zin,
+  welke tags/valence, gewenste duur) én staat in de brief onder "Niet gekund". Zo
+  groeit de opnamelijst vanzelf uit echte behoeften en blijft elke render bruikbaar.
 - **B-roll gespreid**: ≥ 4s haar-in-beeld tussen inserts, nooit > 6s aaneengesloten uit
   beeld. B-roll altijd via **moment-vensters** (`broll_trim_start = moments[].t[0]`,
-  evt. minus `lead_in`); let op `valence_note`; zelfde hond prefereren.
+  evt. minus `lead_in`); let op `valence_note` en `dog_visible`; zelfde hond prefereren.
+- **Captions wijken voor het beeld.** Per cut checken: bedekt de caption-positie de
+  personen/hond in dát shot? Onderkant bezet en boven leeg (bv. lucht) → zet
+  `caption_y` op die cut (bv. "20%"). De caption mag nooit het onderwerp bedekken —
+  framing en caption-positie zijn samen één beslissing per shot.
 
 **Twee verplichte poorten vóór élke render (geen uitzonderingen):**
 1. **`plan-check`** — mechanische lint met exact de renderer-wiskunde:

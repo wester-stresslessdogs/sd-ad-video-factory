@@ -100,17 +100,28 @@ footage die de gebruiker aanwijst).
    ```
    `trim_start`/`trim_duration` = **bron**-tijden (uit het transcript).
 
-   **Elke las (cut-grens) wordt bewust afgewerkt — kies per grens één van twee:**
+   **Elke las (cut-grens) wordt bewust afgewerkt — kies per grens PRECIES ÉÉN van twee
+   (XOR — allebei = rommelige dubbele wissel, geen van beide = glitch):**
    - **B-roll-bridge** (voorkeur als er een passende clip is): `{"bridge_cut": N, "lead": 1.2, …}`
      legt de B-roll óver de las tussen cut N en N+1 — de kijker ziet de jump nooit.
      Bridges zijn **fullscreen** (default; een pip laat de las erachter zien). Kies een
-     moment dat inhoudelijk past bij wat er rond de las gezegd wordt.
+     moment dat inhoudelijk past bij wat er rond de las gezegd wordt. **Houd de punch
+     gelijk over een ge-bridgede las.**
    - **Punch-in-wissel**: `punch_in` per cut (`scale` binnen `framing.punchin_max` uit de
-     index, `focus_x`/`focus_y` = welk bronpunt (0..1) centreert). Let op: `focus_y` moet
-     passen bij waar zij op dát moment in beeld staat (staand ≈ 0.35-0.42; knielend ≈
-     0.5-0.6 — check het `moments`/`action`-veld). De engine klemt de geometrie zodat er
-     nooit zwarte randen ontstaan.
-   Een kale jump-cut op hetzelfde wijde shot is géén optie — dat leest als een glitch. B-roll-timing bij
+     index, delta ≥ 0.25 t.o.v. de vorige cut, `focus_x`/`focus_y` = welk bronpunt (0..1)
+     centreert). Let op: `focus_y` moet passen bij waar zij op dát moment in beeld staat
+     (staand ≈ 0.35-0.42; knielend ≈ 0.5-0.6 — check het `moments`/`action`-veld). De
+     engine klemt de geometrie zodat er nooit zwarte randen ontstaan.
+   Extra gereedschap:
+   - **Zoom-punch in doorlopende spraak**: maak twee cuts CONTIGU (eind cut N ==
+     start cut N+1, zelfde bron) met verschillende `punch_in` — audio loopt door, alleen
+     het kader springt. Voor emfase midden in een lange take; plan-check herkent dit en
+     eist daar geen zin-grens.
+   - **`offset` op een phrase-insert** (bv. `"offset": 2.2`): schuift de B-roll t.o.v.
+     de gesproken woorden — o.a. voor ademruimte aan de start (eerste insert ≥ ~2,5s).
+   - **`caption_y` per cut** (bv. `"caption_y": "20%"`): captions verhuizen voor dat
+     shot — gebruik als de onderkant van het frame bezet is (hond/persoon) en boven
+     ruimte is. De caption mag nooit het onderwerp bedekken. B-roll-timing bij
    voorkeur via **`phrase`** (word-anchored); `time` (tijdlijn-seconde) mag ook expliciet.
    `style`: `pip` of `fullscreen` (default = template-huisstijl). `pip: {y: …}` stelt de
    kaartpositie per plaatsing bij. **`broll_trim_start`** = start van het gekozen
