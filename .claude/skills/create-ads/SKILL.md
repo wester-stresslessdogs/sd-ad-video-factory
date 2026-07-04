@@ -134,22 +134,44 @@ ze gelden voor élke clip die binnenkomt:
 - **Cut-grenzen liggen op zin-grenzen.** Kies start/eind op de word-timestamps: een cut
   begint op een zin-start (of een herstart ná een valse start) en eindigt op een
   zin-einde of in een stilte. Nooit een lopende zin afkappen "omdat de tijd op is".
-- **Bloopers eruit.** Herhaalde frases vlak achter elkaar ("it's free it's online, it's
-  free it's online") zijn valse starts — knip tot de twééde (goede) take.
+- **Bloopers eruit — en luister óók.** Herhaalde frases vlak achter elkaar ("it's free
+  it's online, it's free it's online") zijn valse starts — knip tot de twééde (goede)
+  take. Tekst-checks missen niet-spraak (kuchen, lachen, keel schrapen): Whisper plakt
+  die in een gerekt woord-venster. `plan-check` flagt energie buiten betrouwbare spraak
+  — **elk geflagd venster verifieer je** (audio-analyse/her-transcriptie van dat stukje)
+  vóór de render; kuch/lach in een gehouden cut = knip de cut-grens eromheen.
+- **Tempo = spreektempo zonder de gaten.** Dode lucht ≥ ~1s tussen zinnen binnen een
+  take knip je weg (de las krijgt gewoon zijn wissel via de één-wissel-regel). Rustige
+  delivery mag rustig blijven — maar stiltes waarin niets gebeurt zijn geen "kalmte",
+  dat is wachten. `plan-check` waarschuwt per cut voor interne pauzes ≥ 1s.
 - **Nooit twee (bijna) dezelfde frames naast elkaar op een las — en precies ÉÉN wissel
   per las.** Kies per las het mechanisme: een B-roll-bridge **óf** een punch-wissel
   (delta ≥ 0.25, in of uit — wat het shot logisch maakt). Niet allebei (dubbele wissel
   oogt rommelig; houd de punch gelijk over een ge-bridgede las) en nooit geen van
   beide. Wanneer welke: is er B-roll die inhoudelijk bij de overgang past → bridge;
-  zo niet → punch-wissel. `focus_y` past bij de houding op dát moment. Lange statische
-  passages mag je óók op een zin-grens splitsen met een punch-wissel ("hard cut zoom").
-- **Ademruimte aan de start.** De talking-head vestigt zich eerst: eerste B-roll niet
-  vóór ~2,5-3s (gebruik `offset` op de phrase om een insert iets ná de woorden te
-  leggen). Uitzondering alleen als de winner-spec bewust met beeld opent.
+  zo niet → punch-wissel. `focus_y` past bij de houding op dát moment (frames checken:
+  knielt/staat ze?). Lange statische passages mag je óók op een zin-grens splitsen met
+  een punch-wissel ("hard cut zoom").
+- **Een zoom-punch valt op het audio-pivot.** Bij een contigue zoom-punch (audio loopt
+  door) komt de scale-wissel exact op het moment dat de kijker de omslag hóórt: het
+  einde van de vorige frase / de start van de opbouw. Nooit ná een gerekte filler of
+  pauze — dan ziet de kijker eerst "er verandert niets" en dan pas de zoom, en dat
+  leest als een fout ("the jump to the scale happens a second too late").
+- **B-roll van genoemd gedrag overlapt de zin.** Start de insert TERWIJL ze het gedrag
+  nog uitspreekt (audio loopt door: je hoort "…they lick their lips" en ziet de hond
+  het doen) en laat 'm over de zinsgrens heen doorlopen — flow, geen blokjes
+  (zin-klaar → B-roll → terug). De insert eindigt vóór de kern van de vólgende zin.
+- **Ademruimte aan de start.** De talking-head vestigt zich eerst (~2s) vóór de eerste
+  insert; dankzij de overlap-regel mag dat al tijdens de eerste zin zijn. Gebruik
+  `offset` op de phrase om de start precies te leggen.
 - **Hook-framing is een creatieve keuze.** Een close-up-opening (flinke punch-in op de
   eerste zin, daarna wijder) is een sterke scroll-stopper — overweeg 'm expliciet per
   variant, passend bij winner-spec en footage. Niet verplicht; wel elke keer bewust
   kiezen en in de brief verantwoorden.
+- **Punch-in als aandacht-tool.** Spreekt ze de kijker direct aan of verschuift de
+  register ("When a stranger reaches for them…", een vraag, een waarschuwing) → dat is
+  een natuurlijk moment om in te zoomen: dichterbij = "nu opletten". Kies de scale-
+  trap bewust per beat (bv. wijd → 1.3 → 1.6 → terug wijd bij de release).
 - **Opgesomd gedrag → toon het.** Somt de spreker gedragingen op ("als je hem aait…
   likt hij z'n lippen"), dan hoort daar B-roll van dát gedrag. De "op haar gezicht"-
   regel geldt voor aanbod/CTA/reveal, niet voor gedrags-opsommingen.
@@ -171,6 +193,12 @@ ze gelden voor élke clip die binnenkomt:
   personen/hond in dát shot? Onderkant bezet en boven leeg (bv. lucht) → zet
   `caption_y` op die cut (bv. "20%"). De caption mag nooit het onderwerp bedekken —
   framing en caption-positie zijn samen één beslissing per shot.
+- **End-card in de safe-area, CTA-instructie blijft staan.** End-card-elementen
+  (`end_card_*` in de template: eyebrow + titel + knop-pill) staan gecentreerd, ≤ 86%
+  breed, niets boven y≈12% of onder y≈84% — dan past het op elk frame en snijdt niets
+  af. De klik-instructie ("👇 klik op de link hieronder") blijft tot het láátste frame
+  staan, en de gesproken captions blijven zichtbaar tijdens de card (verplaats ze met
+  `caption_y` naar boven; de engine stript ze alleen als ze met de card zouden stapelen).
 
 **Twee verplichte poorten vóór élke render (geen uitzonderingen):**
 1. **`plan-check`** — mechanische lint met exact de renderer-wiskunde:
@@ -178,8 +206,11 @@ ze gelden voor élke clip die binnenkomt:
    .venv/bin/python .claude/skills/ad-render/render.py plan-check \
      --plan <pakket>/plan.json --captions output/transcripts/<file_id>.json
    ```
-   Vindt mid-zin-cuts, bloopers, B-roll-overlap/-muren en onzichtbare las-wissels.
-   Exit ≠ 0 → plan aanpassen, opnieuw. Nooit renderen met een rood plan.
+   Vindt mid-zin-cuts, bloopers, B-roll-overlap/-muren, onzichtbare las-wissels, dode
+   lucht binnen cuts én niet-spraak-geluid (kuch/lach via audio-energie). Exit ≠ 0 →
+   plan aanpassen, opnieuw. **Waarschuwingen zijn geen ruis**: elke ⚠ los je op of je
+   verantwoordt 'm expliciet in de qc/brief (bv. "geflagd venster = ademhaling,
+   geverifieerd met her-transcriptie"). Nooit renderen met een onverklaarde ⚠.
 2. **Frames kijken** — voor élk gekozen B-roll-venster minimaal één frame uit het échte
    venster trekken (uit `output/.cache/<file_id>.src`) en bekijken (Read):
    klopt de inhoud met de bedoeling? Is de hond/handeling écht in beeld? De index is

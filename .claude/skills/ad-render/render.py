@@ -516,20 +516,28 @@ def build_source(template: dict, talking_head_url: str, plan: dict | None,
         elements = [e for e in elements if e.get("id") != "captions"]
         elements += build_captions(cap_proto, captions, cut_timeline, cuts)
 
-    # 4) end_card op ~einde van de gemonteerde clip
-    end = next((e for e in elements if e.get("id") == "end_card"), None)
-    if end is not None:
-        if plan.get("end_card_duration"):
-            end["duration"] = plan["end_card_duration"]
+    # 4) end-card op ~einde van de gemonteerde clip. Meerdere elementen mogelijk
+    #    (eyebrow/titel/knop): alles waarvan het id met 'end_card' begint krijgt
+    #    dezelfde start-tijd en duur — zo blijft de card één compositie.
+    end_els = [e for e in elements if str(e.get("id", "")).startswith("end_card")]
+    if end_els:
+        dur = plan.get("end_card_duration") or end_els[0].get("duration") or 4
         end_time = plan.get("end_card_time")
         if end_time is None and total is not None:
-            end_time = max(0, total - (end.get("duration") or 4))
+            end_time = max(0, total - dur)
         if end_time is not None:
-            end["time"] = round(end_time, 2)
-            # Captions in het end-card-venster weghalen — anders stapelen pill en CTA-balk.
-            elements = [e for e in elements
-                        if not (str(e.get("id", "")).startswith("caption")
-                                and e.get("time", 0) >= end["time"])]
+            for e in end_els:
+                e["time"] = round(end_time, 2)
+                e["duration"] = dur
+            # Captions in het card-venster alleen strippen als ze op de standaard-
+            # positie staan (stapelen met de card). Heeft de laatste cut `caption_y`
+            # (captions bewust verplaatst, bv. bovenin), dan blijven ze staan —
+            # "Click the link below" moet leesbaar blijven tot het einde.
+            last_cut_moved = bool(cuts and cuts[-1].get("caption_y"))
+            if not last_cut_moved:
+                elements = [e for e in elements
+                            if not (str(e.get("id", "")).startswith("caption")
+                                    and e.get("time", 0) >= end_time)]
 
     src["elements"] = elements
 
@@ -682,6 +690,62 @@ def _find_bloopers(words: list[dict], s0: float, s1: float) -> list[str]:
     return hits
 
 
+def _audio_levels(mp3: Path) -> list[tuple[float, float]]:
+    """RMS-niveaus (dBFS) per 0.1s uit de gecachte audio — voor niet-spraak-detectie."""
+    cmd = ["ffprobe", "-v", "error", "-f", "lavfi",
+           "-i", f"amovie={mp3},astats=metadata=1:reset=1:length=0.1",
+           "-show_entries", "frame=pts_time:frame_tags=lavfi.astats.Overall.RMS_level",
+           "-of", "csv=p=0"]
+    out = subprocess.run(cmd, capture_output=True, text=True).stdout
+    levels = []
+    for line in out.splitlines():
+        parts = line.split(",")
+        try:
+            levels.append((float(parts[0]), float(parts[1])))
+        except (ValueError, IndexError):
+            continue
+    return levels
+
+
+def _plausible_dur(word: str) -> float:
+    """Ruwe max-spreekduur van een woord. Whisper rekt woord-vensters op over
+    niet-spraak (kuch/lach/aanloop) — een 4-letterwoord van 1.7s is verdacht."""
+    return 0.12 * max(1, len(word.strip())) + 0.30
+
+
+def _find_nonspeech(words: list[dict], levels: list[tuple[float, float]],
+                    s0: float, s1: float, thresh_db: float = -40.0) -> list[str]:
+    """Energie-eilanden binnen [s0,s1] die buiten betrouwbare spraak vallen: geluid
+    in woord-gaten of in het gerekte deel van een verdacht lang woord-venster.
+    Vangt wat tekst-detectie mist — kuchen/lachen die Whisper in een woord plakt."""
+    trusted = []
+    for w in words:
+        if w["end"] < s0 or w["start"] > s1:
+            continue
+        plaus = _plausible_dur(w["word"])
+        if (w["end"] - w["start"]) <= 2 * plaus:
+            trusted.append((w["start"], w["end"]))
+        else:  # gerekt venster: Whisper lijnt het woord-EINDE goed uit, de onset niet
+            trusted.append((max(w["start"], w["end"] - 1.5 * plaus), w["end"]))
+    hits, run = [], []
+    for t, db in levels:
+        if not (s0 <= t <= s1):
+            continue
+        loud = db >= thresh_db
+        covered = any(a - 0.05 <= t <= b + 0.05 for a, b in trusted)
+        if loud and not covered:
+            run.append(t)
+        else:
+            if len(run) >= 2:  # ≥ 0.2s aaneengesloten
+                hits.append(f"geluid buiten spraak @ bron {run[0]:.1f}-{run[-1]+0.1:.1f}s "
+                            f"(kuch/lach/aanloop?) — luister dit venster vóór de render")
+            run = []
+    if len(run) >= 2:
+        hits.append(f"geluid buiten spraak @ bron {run[0]:.1f}-{run[-1]+0.1:.1f}s "
+                    f"(kuch/lach/aanloop?) — luister dit venster vóór de render")
+    return hits
+
+
 def cmd_plan_check(args):
     """Lint een plan tegen het transcript vóór er credits aan een render opgaan.
     Vindt precies de fouten-families uit de review van 2026-07-04: mid-zin-cuts,
@@ -705,11 +769,28 @@ def cmd_plan_check(args):
             return abs(cuts[i-1]["trim_start"] + cuts[i-1]["trim_duration"] - cuts[i]["trim_start"]) < 0.05
         return False
 
+    def _in_stretched_word(t: float):
+        for w in words:
+            if w["start"] - 0.05 <= t <= w["end"] and \
+               (w["end"] - w["start"]) > 2 * _plausible_dur(w["word"]):
+                return w
+        return None
+
     for i, c in enumerate(cuts):
         if not _contiguous(i, "start"):
             ok, why = _sentence_boundary_ok(c["trim_start"], words, "start")
             if not ok:
-                errors.append(f"cut {i+1} START {c['trim_start']:.1f}s: {why}")
+                # Valt de grens in een verdacht gerekt woord-venster, dan is Whisper's
+                # onset onbetrouwbaar (kuch/aanloop in het woord geplakt) — geen harde
+                # fout, wél verplicht het audio-venster beluisteren.
+                sw = _in_stretched_word(c["trim_start"])
+                if sw:
+                    warns.append(f"cut {i+1} START {c['trim_start']:.1f}s valt in gerekt "
+                                 f"woord-venster '{sw['word'].strip()}' ({sw['start']:.1f}-"
+                                 f"{sw['end']:.1f}) — Whisper-onset onbetrouwbaar; "
+                                 f"verifieer met audio dat de start schoon is")
+                else:
+                    errors.append(f"cut {i+1} START {c['trim_start']:.1f}s: {why}")
         end = c["trim_start"] + c["trim_duration"]
         if not _contiguous(i, "end"):
             ok, why = _sentence_boundary_ok(end, words, "end")
@@ -720,6 +801,31 @@ def cmd_plan_check(args):
     for i, c in enumerate(cuts):
         for hit in _find_bloopers(words, c["trim_start"], c["trim_start"] + c["trim_duration"]):
             errors.append(f"cut {i+1}: {hit}")
+
+    # 2b. Dode lucht: pauzes ≥ 1.0s BINNEN een cut maken het tempo traag ('space
+    # between the sentences') — knip de pauze weg en geef de las zijn wissel (XOR).
+    for i, c in enumerate(cuts):
+        s0, s1 = c["trim_start"], c["trim_start"] + c["trim_duration"]
+        win = [w for w in words if s0 <= w["start"] < s1]
+        for a, b in zip(win, win[1:]):
+            gap = b["start"] - a["end"]
+            if gap >= 1.0:
+                warns.append(f"cut {i+1}: {gap:.1f}s dode lucht na '{a['word'].strip()}' "
+                             f"@ bron {a['end']:.1f}s — overweeg de pauze weg te knippen (tempo)")
+
+    # 2c. Niet-spraak-geluid (kuch/lach) dat tekst-checks missen: energie buiten
+    # betrouwbare woord-vensters. Vereist de gecachte audio van de bron.
+    src_id = transcript.get("source")
+    mp3 = CACHE_DIR / f"{src_id}.mp3" if src_id else None
+    if mp3 and mp3.exists():
+        levels = _audio_levels(mp3)
+        for i, c in enumerate(cuts):
+            for hit in _find_nonspeech(words, levels,
+                                       c["trim_start"], c["trim_start"] + c["trim_duration"]):
+                warns.append(f"cut {i+1}: {hit}")
+    else:
+        warns.append(f"audio-check overgeslagen: geen gecachte audio ({mp3}) — "
+                     f"kuch/lach-detectie niet gedraaid")
 
     # 3. B-roll op de tijdlijn: overlap, muren, dekking van lassen
     inserts = []
@@ -748,10 +854,12 @@ def cmd_plan_check(args):
             errors.append(f"talking-head > 6s aaneengesloten uit beeld ({span_start:.1f}-{span_end:.1f})")
             break
 
-    # 3b. Ademruimte: de talking-head moet zich eerst vestigen vóór de eerste insert
-    if inserts and inserts[0][0] < 2.5:
-        warns.append(f"eerste B-roll al op {inserts[0][0]:.1f}s — geef de talking-head ≥ 2.5s "
-                     f"ademruimte (gebruik `offset` op de phrase)")
+    # 3b. Ademruimte: de talking-head moet zich eerst vestigen vóór de eerste insert.
+    # NB: een insert op genoemd gedrag mag (moet) al TIJDENS de zin beginnen — de
+    # overlap-regel — dus de grens ligt lager dan vroeger (was 2.5s).
+    if inserts and inserts[0][0] < 1.8:
+        warns.append(f"eerste B-roll al op {inserts[0][0]:.1f}s — geef de talking-head ≥ ~2s "
+                     f"om zich te vestigen (overlap met de zin mag, maar niet vanaf frame 1)")
 
     # 4. Elke las: bridge XOR zichtbare punch-wissel (delta ≥ 0.2) — precies één wissel
     for i in range(1, len(cuts)):

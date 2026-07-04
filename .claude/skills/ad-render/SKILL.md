@@ -99,6 +99,10 @@ footage die de gebruiker aanwijst).
    }
    ```
    `trim_start`/`trim_duration` = **bron**-tijden (uit het transcript).
+   De end-card mag uit meerdere elementen bestaan (ids die met `end_card` beginnen,
+   bv. eyebrow + titel + knop-pill): de engine zet op állemaal dezelfde `time` +
+   `duration`. Captions in het card-venster blijven staan als de laatste cut ze met
+   `caption_y` heeft verplaatst (anders worden ze gestript tegen het stapelen).
 
    **Elke las (cut-grens) wordt bewust afgewerkt — kies per grens PRECIES ÉÉN van twee
    (XOR — allebei = rommelige dubbele wissel, geen van beide = glitch):**
@@ -116,9 +120,12 @@ footage die de gebruiker aanwijst).
    - **Zoom-punch in doorlopende spraak**: maak twee cuts CONTIGU (eind cut N ==
      start cut N+1, zelfde bron) met verschillende `punch_in` — audio loopt door, alleen
      het kader springt. Voor emfase midden in een lange take; plan-check herkent dit en
-     eist daar geen zin-grens.
+     eist daar geen zin-grens. **Leg de contigue grens op het audio-pivot** (einde van
+     de vorige frase / start van de opbouw), nooit ná een gerekte filler of pauze —
+     anders komt de zoom "te laat" voor het gevoel van de kijker.
    - **`offset` op een phrase-insert** (bv. `"offset": 2.2`): schuift de B-roll t.o.v.
-     de gesproken woorden — o.a. voor ademruimte aan de start (eerste insert ≥ ~2,5s).
+     de gesproken woorden — voor ademruimte aan de start (~2s vestigen) of om de insert
+     precies tijdens het genoemde gedrag te laten vallen (overlap: hoor het + zie het).
    - **`caption_y` per cut** (bv. `"caption_y": "20%"`): captions verhuizen voor dat
      shot — gebruik als de onderkant van het frame bezet is (hond/persoon) en boven
      ruimte is. De caption mag nooit het onderwerp bedekken. B-roll-timing bij
@@ -132,12 +139,19 @@ footage die de gebruiker aanwijst).
    **Toon het plan**: welke cuts (met de zin), B-roll waar, welke asides weggelaten.
 
 4b. **Plan-check (verplicht vóór elke render).** Lint het plan tegen het transcript —
-   vindt mid-zin-cuts, valse starts/bloopers, B-roll-overlap en -muren, en lassen
-   zonder zichtbare wissel. Nooit renderen zolang dit rood is:
+   vindt mid-zin-cuts, valse starts/bloopers, B-roll-overlap en -muren, lassen zonder
+   zichtbare wissel, **dode lucht binnen cuts** (pauzes ≥ 1s = tempo-verlies) en
+   **niet-spraak-geluid** (kuch/lach: audio-energie buiten betrouwbare woord-vensters,
+   uit de gecachte mp3). Nooit renderen zolang dit rood is — en elke ⚠ eerst oplossen
+   of expliciet verantwoorden (geflagde vensters beluisteren/her-transcriberen):
    ```bash
    python .claude/skills/ad-render/render.py plan-check --plan plan.json \
      --captions <transcript.json>
    ```
+   NB: valt een cut-START in een verdacht gerekt woord-venster, dan is Whisper's onset
+   onbetrouwbaar (kuch/aanloop in het woord geplakt) — plan-check maakt er een ⚠ van;
+   verifieer de echte spraak-onset met audio en corrigeer desnoods het transcript-woord
+   (met een notitie in `corrections`).
 
 5. **Render** (per template-variant één keer):
    ```bash
