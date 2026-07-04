@@ -61,12 +61,15 @@ SIZE_LIMIT = 95 * 1024 * 1024  # Google serveert files > ~100 MB niet aan extern
 
 
 def compress_under_limit(src: Path, dst: Path, limit: int = SIZE_LIMIT) -> Path:
-    """Her-encodeer tot onder de limiet (H.264, 1080p-cap). Verhoog CRF tot het past."""
-    for crf in (26, 30, 34):
+    """Her-encodeer tot onder de limiet. GEEN resolutie-cap: het bron-raster is ook het
+    punch-in/scherpte-budget — de oude `scale=min(1080,iw)` maakte van landscape 1080p
+    een 1080x607-bron die Creatomate ~3x moest upscalen in het 9:16-frame (pap).
+    CRF-ladder alleen; ruim voldoende om 1080p-bronnen onder 95 MB te krijgen."""
+    for crf in (24, 28, 32, 36):
         subprocess.run(
-            ["ffmpeg", "-y", "-i", str(src), "-vf", "scale='min(1080,iw)':-2",
+            ["ffmpeg", "-y", "-i", str(src),
              "-c:v", "libx264", "-crf", str(crf), "-preset", "veryfast",
-             "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", str(dst)],
+             "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(dst)],
             check=True, capture_output=True,
         )
         if dst.stat().st_size <= limit:
@@ -238,7 +241,8 @@ def cuts_from_plan(plan: dict, transcript: dict | None) -> list[dict]:
     - `talking_head`: één enkel getrimd segment (legacy);
     - niets: de hele clip als één segment."""
     if plan.get("cuts"):
-        return [{"trim_start": c["trim_start"], "trim_duration": c["trim_duration"]}
+        return [{"trim_start": c["trim_start"], "trim_duration": c["trim_duration"],
+                 **({"punch_in": c["punch_in"]} if c.get("punch_in") else {})}
                 for c in plan["cuts"]]
     th = plan.get("talking_head", {})
     dur = th.get("trim_duration")
@@ -249,7 +253,12 @@ def cuts_from_plan(plan: dict, transcript: dict | None) -> list[dict]:
 
 def build_talking_head(proto: dict, url: str, cuts: list[dict]):
     """Zet N cuts van dezelfde opname sequentieel op track 1 (jump-cut-montage). Geeft de
-    elementen + een cut-tijdlijn [(tijdlijn_start, bron_start, bron_eind)] + totale duur."""
+    elementen + een cut-tijdlijn [(tijdlijn_start, bron_start, bron_eind)] + totale duur.
+
+    Per cut optioneel `punch_in`: {"scale": 1.25, "focus_x": 0.5, "focus_y": 0.4} —
+    reframet het shot (wijd → dichterbij) en geeft jump-cuts een bewuste wissel i.p.v.
+    een glitch-look. focus_x/y = welk bronpunt (0..1) in het midden van het frame komt;
+    blijf binnen `punchin_max` uit de footage-index (daarboven wordt het zichtbaar zacht)."""
     style = {k: v for k, v in proto.items()
              if k not in ("id", "source", "time", "duration", "trim_start", "trim_duration")}
     els, timeline, t = [], [], 0.0
@@ -259,6 +268,14 @@ def build_talking_head(proto: dict, url: str, cuts: list[dict]):
         el.update(id=f"th_{i}", type="video", source=url,
                   trim_start=round(c["trim_start"], 2), trim_duration=round(dur, 2),
                   time=round(t, 2), duration=round(dur, 2))
+        pi = c.get("punch_in")
+        if pi:
+            s = max(1.0, float(pi.get("scale", 1.15)))
+            fx, fy = float(pi.get("focus_x", 0.5)), float(pi.get("focus_y", 0.5))
+            # Element groter dan het canvas; positioneer zó dat bronpunt (fx,fy) centreert.
+            el.update(width=f"{s*100:.1f}%", height=f"{s*100:.1f}%",
+                      x=f"{(0.5 + s*(0.5-fx))*100:.2f}%", y=f"{(0.5 + s*(0.5-fy))*100:.2f}%",
+                      x_alignment="50%", y_alignment="50%")
         els.append(el)
         timeline.append((t, c["trim_start"], c["trim_start"] + dur))
         t += dur
@@ -276,7 +293,13 @@ def build_captions(prototype: dict, transcript: dict, cut_timeline: list) -> lis
     out, idx = [], 0
     for tl_start, s0, s1 in cut_timeline:
         win = [w for w in words if w["start"] >= s0 - 0.05 and w["start"] < s1]
-        for ln in chunk_words(win):
+        lines = chunk_words(win)
+        # Gaten dichten: een regel blijft staan tot de volgende begint (korte stiltes
+        # gaven 'dood beeld' zonder caption); bij lange stiltes max +1s na-tijd.
+        for j, ln in enumerate(lines):
+            nxt = lines[j + 1]["start"] if j + 1 < len(lines) else s1
+            ln["end"] = min(s1, nxt if nxt - ln["end"] <= 2.5 else ln["end"] + 1.0)
+        for ln in lines:
             el = dict(style)
             el.update(id=f"caption_{idx}", type="text", text=ln["text"],
                       time=round(tl_start + (ln["start"] - s0), 2),

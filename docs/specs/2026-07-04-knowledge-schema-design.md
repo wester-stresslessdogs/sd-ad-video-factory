@@ -185,7 +185,8 @@ niet kiezen voor deze footage); zachte eis → best-effort.
   "file_id": "…", "name": "IMG_2850.MOV",
   "kind": "talking_head",                // talking_head | b_roll | mixed
   "duration": 146.4, "resolution": "1920x1080", "orientation": "landscape", "fps": 30,
-  "has_audio": true, "audio_quality": "clean",   // clean | noisy | unusable | none
+  "has_audio": true, "audio_content": "speech",  // speech | ambient | none (afgeleid uit
+                                                 // Whisper; 'clean/noisy' vergt oren — later)
 
   "framing": {
     "distance": "wide",                  // uit shot_distance

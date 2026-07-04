@@ -48,12 +48,14 @@ footage die de gebruiker aanwijst).
    ```bash
    python scripts/index_footage.py
    ```
-   Dit indexeert **alle ruwe footage** (recursief, exclude finished ads) met een rijke
-   samenvatting + `kind` (talking_head/b_roll) + `dog_behavior` + `setting` + `good_for`.
-   Zo weet je precies wat er in Drive leeft en waarvoor het geschikt is.
+   Dit indexeert **alle ruwe footage** (recursief, exclude finished ads) op **moment-
+   niveau** (schema v2): per clip framing/`punchin_max`, honden, en `moments` met
+   `dog_behavior` × `human_behavior` × `valence` (vocabulaire: `knowledge/taxonomy.json`)
+   + `lead_in`/`lead_out`. Talking-heads hebben een `takes`-kaart + `transcript_ref`.
 
-2. **Kies/transcribeer de talking-head.** Kies een `kind: talking_head`-clip (of laat de
-   gebruiker kiezen) en transcribeer 'm (voor cue-timing — captions doet Creatomate zelf):
+2. **Kies de talking-head.** Kies een `kind: talking_head`-clip (of laat de gebruiker
+   kiezen). Het transcript staat al klaar via `transcript_ref` (out van de indexer);
+   alleen voor niet-geïndexeerde bronnen zelf transcriberen:
    ```bash
    python .claude/skills/ad-render/render.py transcribe --source <file_id>
    ```
@@ -68,10 +70,12 @@ footage die de gebruiker aanwijst).
      de engine vindt zelf het juiste tijdstip op de gemonteerde tijdlijn (via de
      word-timestamps). Zo landt de B-roll precies op de woorden. Val je zin buiten de
      behouden cuts, dan meldt de engine dat en slaat 'm over.
-   - Match de zin **semantisch** tegen `knowledge/footage-index.json` (`kind: b_roll`):
-     kies op `summary` / `dog_behavior` / `setting` / `good_for` de best passende clip.
-     Zegt de tekst "blaffende / trekkende / reactieve hond"? Kies een clip die dát toont —
-     de betekenis moet kloppen, niet zomaar een willekeurige hond.
+   - Match de zin op **moment-niveau** tegen `knowledge/footage-index.json`: zoek in
+     `moments[]` op `dog_behavior` × `human_behavior` × `valence` (taxonomie-tags) en
+     neem `t[0]` (minus `lead_in` als inglijden mooier is) als `broll_trim_start`.
+     Let op `valence_note`-waarschuwingen (bv. neuslikken ná een snoepje ≠ stresssignaal)
+     en prefereer dezelfde hond als in de talking-head (`dogs.id_hint`). De betekenis
+     moet kloppen, niet zomaar een willekeurige hond.
    - Geen goede match? **Sla de cue over** (talking-head blijft in beeld) en meld het.
      Liever géén B-roll dan misleidende B-roll.
 
@@ -84,21 +88,25 @@ footage die de gebruiker aanwijst).
    {
      "cuts": [
        {"trim_start": 0.0,   "trim_duration": 27.7},
-       {"trim_start": 89.5,  "trim_duration": 19.6},
+       {"trim_start": 89.5,  "trim_duration": 19.6, "punch_in": {"scale": 1.25, "focus_y": 0.4}},
        {"trim_start": 134.1, "trim_duration": 13.1}
      ],
      "broll": [
-       {"phrase": "pull on the leash", "file_id": "<b_roll-id>", "duration": 3.5, "style": "pip"},
+       {"phrase": "pull on the leash", "file_id": "<b_roll-id>", "broll_trim_start": 12.5, "duration": 3.5, "style": "pip"},
        {"phrase": "body language", "file_id": "<b_roll-id>", "duration": 3.5, "style": "pip", "pip": {"y": "24%"}}
      ],
      "end_card_time": null, "end_card_duration": 5
    }
    ```
-   `trim_start`/`trim_duration` = **bron**-tijden (uit het transcript). B-roll-timing bij
+   `trim_start`/`trim_duration` = **bron**-tijden (uit het transcript). **`punch_in`** per
+   cut reframet het shot (wijd → dichterbij) én geeft jump-cuts een bewuste wissel:
+   `scale` binnen `framing.punchin_max` uit de index, `focus_x`/`focus_y` = welk bronpunt
+   (0..1) centreert (gezicht boven midden ≈ 0.35-0.42). B-roll-timing bij
    voorkeur via **`phrase`** (word-anchored); `time` (tijdlijn-seconde) mag ook expliciet.
    `style`: `pip` of `fullscreen` (default = template-huisstijl). `pip: {y: …}` stelt de
-   kaartpositie per plaatsing bij. `broll_trim_start` kiest een mooi moment binnen een
-   lange B-roll-clip. Eén doorlopend segment? Gebruik
+   kaartpositie per plaatsing bij. **`broll_trim_start`** = start van het gekozen
+   **moment** uit de index (`moments[].t[0]`, eventueel minus `lead_in` om in te glijden —
+   knip nooit blind vanaf 0.0). Eén doorlopend segment? Gebruik
    `"talking_head": {"trim_start":…, "trim_duration":…}`, of laat alles weg voor de hele
    clip. `keep_audio: true` per B-roll als je uitzonderlijk de clip-audio wél wilt.
    **Toon het plan**: welke cuts (met de zin), B-roll waar, welke asides weggelaten.

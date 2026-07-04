@@ -1,0 +1,73 @@
+{
+  "_comment": "Gedeeld tag-vocabulaire (gecontroleerd). Bron van waarheid: docs/specs/2026-07-04-knowledge-schema-design.md. Consumenten: scripts/index_footage.py (Vision kiest UIT deze lijsten), /ad-scripts (cues in deze termen), /ad-plan (moment-queries). Uitbreiden = bewuste edit hier + in de spec, daarna her-indexeren; de indexer levert kandidaten aan via proposed_tags.",
+  "version": 1,
+  "dog_behavior": {
+    "stress_kalmeersignalen": [
+      "lip-licking", "yawning", "look-away", "whale-eye", "body-shake-off",
+      "scratching-self", "displacement-sniffing", "freezing", "cowering",
+      "tail-tucked", "stress-panting", "trembling", "pacing",
+      "hypervigilant-scanning", "drooling"
+    ],
+    "reactiviteit_probleem": [
+      "barking", "demand-barking", "howling", "whining", "growling", "snapping",
+      "lunging", "leash-pulling", "leash-reactivity", "jumping-up",
+      "mouthing-nipping", "resource-guarding", "chasing", "ignoring-owner",
+      "door-dashing"
+    ],
+    "thuis_probleem": [
+      "chewing-destruction", "digging", "counter-surfing", "trash-raiding",
+      "scratching-at-door", "house-soiling", "begging", "stealing-items"
+    ],
+    "kalm_positief": [
+      "relaxed-lying", "settled", "soft-body", "loose-tail-wag", "play-bow",
+      "playing-with-dog", "playing-with-toy", "zoomies", "eye-contact-checkin",
+      "handler-engagement"
+    ],
+    "training_oefening": [
+      "sit", "down", "stay", "recall", "loose-leash-walking", "heel",
+      "place-mat-work", "leave-it", "drop-it", "hand-target", "crate-training",
+      "muzzle-training", "impulse-control-exercise"
+    ],
+    "alledaags_neutraal": [
+      "sniffing-exploration", "walking", "running", "trotting", "eating",
+      "drinking", "being-groomed", "being-leashed", "being-petted",
+      "being-rewarded", "greeting-dog", "greeting-person", "in-car", "swimming",
+      "fetching"
+    ]
+  },
+  "human_behavior": {
+    "training_handeling": [
+      "giving-treat", "luring-with-treat", "marker-clicker", "hand-signal",
+      "verbal-cue", "teaching-exercise", "guiding-on-leash",
+      "redirecting-attention", "rewarding-calm-behavior", "demonstrating-technique"
+    ],
+    "affectie_verzorging": [
+      "petting-body", "petting-on-head", "cuddling", "grooming", "feeding",
+      "playing-with-dog", "kneeling-to-dog-level"
+    ],
+    "fout_voorbeeld": [
+      "leash-jerking", "pushing-dog", "scolding", "looming-over-dog",
+      "forced-hug", "ignoring-signals"
+    ],
+    "observatie_communicatie": [
+      "observing-dog", "reading-body-language", "pointing", "deliberate-ignoring",
+      "waiting-calmly"
+    ],
+    "richting_camera": [
+      "talking-to-camera", "explaining-voiceover", "showing-prop",
+      "reacting-to-dog"
+    ]
+  },
+  "valence": ["problem", "neutral", "positive"],
+  "shot_distance": ["selfie", "close", "medium", "wide"],
+  "camera": ["static", "handheld", "walking", "pov"],
+  "setting": ["home-indoor", "garden", "street", "park", "training-area", "car", "vet"],
+  "people": ["none", "owner", "trainer", "owner-and-dog", "crowd"],
+  "hook_type": [
+    "pattern-interrupt", "bold-claim", "curiosity-gap", "relatability",
+    "pov-in-medias-res", "question", "myth-bust", "before-after"
+  ],
+  "beat": ["hook", "problem", "agitate", "insight", "proof", "offer", "cta"],
+  "caption_anim": ["karaoke", "word-pop", "line-static", "line-pill", "none"],
+  "broll_role": ["illustrate", "prove", "rhythm", "emotional"]
+}

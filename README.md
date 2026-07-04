@@ -66,16 +66,22 @@ cp knowledge/video-templates/config.example.json knowledge/video-templates/confi
 > Geen MCP-servers nodig voor v1: Apify loopt via API-token, Drive via service-account.
 > De warehouse (eigen ad-performance) is bewust **buiten scope voor v1**.
 
-### 5. Footage indexeren (voor `/ad-render`)
-Bouwt `knowledge/footage-index.json` op via visuele analyse (Vision) van **alle ruwe
-footage** in Drive (recursief; afgewerkte ads worden overgeslagen), gekeyed op `file_id`,
-met een rijke samenvatting + `kind` (talking_head/b_roll) + hondengedrag + setting. Keyframes
-worden rechtstreeks uit de Drive-URL gelezen (geen volledige downloads). Draai eenmalig
-(en opnieuw bij nieuwe footage):
+### 5. Footage indexeren (voor `/ad-render` en `/ad-plan`)
+Bouwt `knowledge/footage-index.json` (**schema v2 — moment-niveau**) op uit **alle ruwe
+footage** in Drive (recursief; afgewerkte ads worden overgeslagen), gekeyed op `file_id`.
+Per clip: framing (afstand/camera/`punchin_max`), kwaliteit, honden (continuïteit),
+en **momenten** — tijdvensters met `dog_behavior` × `human_behavior` × `valence` uit het
+gecontroleerde vocabulaire (`knowledge/taxonomy.json`) + `lead_in`/`lead_out` (inglij-
+ruimte). Talking-heads krijgen daarnaast een Whisper-transcript (`output/transcripts/`)
++ **take-kaart** (bruikbare takes vs retakes/asides). Clips worden éénmalig lokaal
+gecachet (`output/.cache/`); onbekend gedrag komt als `_proposed_tags`-voorstel terug
+(vocabulaire groeit bewust, zie de spec). Ontwerp:
+`docs/specs/2026-07-04-knowledge-schema-design.md`. Draai bij nieuwe footage:
 ```bash
-python scripts/index_footage.py
+python scripts/index_footage.py            # nieuw · --force = alles · --only <id> = één
 ```
-`/ad-render` kiest de talking-head-bron én matcht de B-roll-cues semantisch tegen deze index.
+`/ad-render` kiest de talking-head-bron én matcht B-roll-cues op moment-niveau tegen
+deze index (welke seconden van welke clip, mét inglij-marge).
 
 ## Wat je zelf invult (niet in git)
 
