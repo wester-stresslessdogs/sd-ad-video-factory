@@ -429,6 +429,52 @@ Wat dit dossier laat zien:
   moment 3, knip 8.0–12.0 (lead_in 1.0 om in te glijden). "Springt je hond op?" →
   `jumping-up × problem` → moment 5, knip 12.5–18.0.
 
+## Toetsing aan extern referentiedocument (2026-07-04, besluit)
+
+Ramon leverde een extern overzicht aan van hoe zo'n pipeline "normaal" werkt
+(`docs/reference/2026-07-04-extern-automated-video-editing-workflow.md`). Oordeel:
+**het valideert onze architectuur** — pixels éénmalig naar tekst, alle beslissingen
+als tekst-redenering over gestructureerde data, een EDL als deliverable, een domme
+renderer. Ons plan ís die architectuur (edit-brief = hun EDL, footage-index = hun
+bibliotheek, `/ad-plan` = hun editorial AI). Per afwijkend punt het besluit:
+
+**Afgewezen:**
+- **Vector-DB + embedding-matching (Pinecone/FAISS, cosine-drempel)** — overkill én
+  zwakker. Bij 36 (straks honderden) clips leest de planner de hele index gewoon in
+  context en matcht met oordeel. Belangrijker: embeddings kunnen betekenis-nuance
+  niet dragen — "hond likt neus na snoepje" embedt vlák bij "kalmeersignaal
+  tonglikken", precies de verwisseling die onze `valence` + `valence_note` blokkeert.
+  Taxonomie-query + LLM-oordeel verslaat cosine similarity hier. Heroverwegen pas
+  als de bibliotheek niet meer in context past (>±500 clips).
+- **Eén caption per B-roll-clip** — dat is exact de te-dunne index die ons probleem
+  veroorzaakte; onze moment-vensters met lead_in/out zijn strikt rijker.
+- **Renderer-keuze openbreken (Shotstack/Remotion/…)** — Creatomate werkt end-to-end
+  en staat in hun eigen lijstje; geen reden tot wissel (audit-besluit blijft).
+- **Aparte normalisatie-stage** — onnodig; Creatomate slikt gemengde formaten, onze
+  fix is de compressie-bug (Fase 0).
+- **Vaste editorial-regels als dé stijl** — hun regels-tabel is statisch; bij ons komt
+  de stijl per video uit de winner-edit-spec (research-gedreven, het hele punt).
+
+**Overgenomen:**
+1. **Huisregels-tabel in `/ad-plan`** (goed patroon, als *defaults* onder de
+   winner-spec, niet erboven): korte vermelding (<~2s spraak) → geen cut · aanhoudend
+   concept over meerdere zinnen → fullscreen, terug op natuurlijke pauze · zij
+   demonstreert iets on-camera → pip (haar handeling is het hoofdbeeld) · geen match
+   boven de lat → overslaan (hadden we) · insert-rate-limiet (hadden we: ~1/10-15s).
+2. **Talking-head-momenten noteren óók gebaren/demonstraties** ("wijst", "doet
+   handeling voor", "knielt naar hond") — nodig om de pip-vs-fullscreen-regel te
+   kunnen toepassen en pip-positie veilig te kiezen. (Kleine aanvulling op de
+   indexer-prompt; schema had het veld al via `moments[].action` + `human_behavior`.)
+3. **Failure-modes expliciet in `/ad-plan`**: over-editing rate-limit, geen geforceerde
+   matches, captions/vision cachen per file (hadden we), QC-checkpoint (hadden we, als
+   Vision-QC + mens).
+
+**Verschil in probleemstelling (belangrijkste kanttekening):** het document lost
+"cursusvideo + relevante B-roll" op. Wij maken **ad-varianten in bewezen stijlen** —
+de winner-dimensie (edit_spec, beats, pacing, caption-stijl, hook) ontbreekt daar
+volledig. Hun pipeline is ons Fase-1/2-fundament zonder ons Fase-A/merge-verhaal;
+overnemen als geheel zou ons terugzetten naar generiek monteren.
+
 ## Waarom dit de kwaliteit fixt
 
 De render was "gokken" omdat het plan gebouwd werd uit één zin per clip en één
