@@ -27,6 +27,10 @@ vóór elke commit.
 - Templates: **code** (`source`-JSON), dynamisch/research-gedreven, nooit de editor in.
 - Winnende ads zijn **inspiratie** → script én template worden herschreven naar óns
   aanbod (cursus + gratis-masterclass-funnel), geen kopie van het product van een ander.
-- **Twee inputlijnen**: nieuw (script → influencer filmt talking-head) en bestaand
-  (hergebruik van bestaande B-roll/video's in de research-stijl).
+- **Drie lijnen**: 1 = nieuwe ads uit bestaande footage (`/create-ads`), 2 = nieuwe
+  opname op een bestaand script monteren (`/create-ads`), 3 = scripts/briefings voor
+  creators (`/ad-scripts` + `/ad-briefing`) — de opname komt terug als lijn 2.
+- **Montage-regels**: één bron van waarheid — `knowledge/edit-grammar.md`. Nieuwe
+  review-lessen landen dáár (en waar mechanisch in `plan-check`), niet als losse
+  patches in SKILL.md's.
 - Warehouse (eigen ad-performance) is buiten scope voor v1.

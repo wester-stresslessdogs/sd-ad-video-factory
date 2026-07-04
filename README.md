@@ -1,9 +1,11 @@
 # Video Ad Factory
 
-Suite van 6 Claude Code skills die het video-advertentieproces automatiseren —
+Suite van 7 Claude Code skills die het video-advertentieproces automatiseren —
 van marktonderzoek tot afgewerkte MP4's — met als enige menselijke stap de opname.
+Drie lijnen: **1** nieuwe ads uit bestaande footage · **2** nieuwe opname op een
+bestaand script monteren · **3** nieuwe scripts/briefings voor creators (zie FLOW.md).
 
-Kern-flow in het kort: [FLOW.md](FLOW.md) · Origineel klantidee (archief): [tool-2-11-video-ad-factory.md](tool-2-11-video-ad-factory.md)
+Kern-flow in het kort: [FLOW.md](FLOW.md) · Montage-regels: [knowledge/edit-grammar.md](knowledge/edit-grammar.md) · Origineel klantidee (archief): [tool-2-11-video-ad-factory.md](tool-2-11-video-ad-factory.md)
 
 ## De pipeline
 
@@ -11,11 +13,11 @@ Kern-flow in het kort: [FLOW.md](FLOW.md) · Origineel klantidee (archief): [too
 |-------|------|--------|
 | `/ad-discover` | Vindt nieuwe concurrenten in de niche (NL/BE + EN) via Meta Ad Library, dedupt tegen de brand-registry | 🟡 v1 gebouwd (fetch-laag getest) |
 | `/ad-research` | Bewezen-werkende ads (gerankt op looptijd) → ad-ideeën, met adapteerbare EN-winners | 🟡 v1 gebouwd (fetch-laag getest) |
-| `/ad-scripts` | Ad-idee → opnameklaar script met 3+ hook-varianten | 🟡 v1 gebouwd (business-context ingevuld) |
-| `/ad-template` | Winnende ad-stijl (video-analyse) → Creatomate template als code | 🟡 v1 gebouwd (video-analyse getest) |
-| `/ad-briefing` | Script → teleprompter-briefing met emotie/camera-cues | 🟡 v1 gebouwd |
-| `/ad-render` | Ruwe opnames / bestaande B-roll → afgewerkte MP4-varianten via Creatomate → lokaal | 🟡 v1 gebouwd (Drive-read + render end-to-end getest) |
-| `/create-ads` | **N nieuwe ad-varianten uit bestaande footage** — consumeert opgeslagen winner-`edit_spec`s × footage-index v2 (géén nieuwe analyse), levert reviewbare ad-pakketten in `output/ads/`, renderen op afroep | 🟡 v1 gebouwd (eerste pakket: barkside×2850) |
+| `/ad-scripts` | **Lijn 3**: ad-idee → opnameklaar script (3+ hooks, beat-labels, taxonomie-cues) voor creators | 🟡 v1 gebouwd (business-context ingevuld) |
+| `/ad-template` | Winnende ad-stijl (video-analyse) → Creatomate template als code + `edit_spec` | 🟡 v1 gebouwd (video-analyse getest) |
+| `/ad-briefing` | **Lijn 3**: script → teleprompter-briefing met emotie/camera-cues | 🟡 v1 gebouwd |
+| `/ad-render` | Mechanische render-laag: plan.json → afgewerkte MP4 via Creatomate → lokaal | 🟢 end-to-end bewezen (8 review-rondes op het eerste pakket) |
+| `/create-ads` | **Lijn 1+2 — dé planner**: N ad-varianten uit bestaande footage (Lijn 1) of een nieuwe opname op een bestaand script (Lijn 2); consumeert winner-`edit_spec`s × footage-index v2, plant volgens `knowledge/edit-grammar.md`, levert reviewbare pakketten in `output/ads/`, renderen op afroep | 🟢 v8 (barkside×2850 door 6 reviews heen; plan-check + frame-poort verplicht) |
 
 > Databron is **Apify** (Meta Ad Library scraper), niet Foreplay. "Wat werkt" wordt
 > geproxyd op **looptijd** (geen publieke metrics). Gedeelde fetch-laag: `lib/fetch_ads.py`.
@@ -67,7 +69,7 @@ cp knowledge/video-templates/config.example.json knowledge/video-templates/confi
 > Geen MCP-servers nodig voor v1: Apify loopt via API-token, Drive via service-account.
 > De warehouse (eigen ad-performance) is bewust **buiten scope voor v1**.
 
-### 5. Footage indexeren (voor `/ad-render` en `/ad-plan`)
+### 5. Footage indexeren (voor `/create-ads` en `/ad-render`)
 Bouwt `knowledge/footage-index.json` (**schema v2 — moment-niveau**) op uit **alle ruwe
 footage** in Drive (recursief; afgewerkte ads worden overgeslagen), gekeyed op `file_id`.
 Per clip: framing (afstand/camera/`punchin_max`), kwaliteit, honden (continuïteit),

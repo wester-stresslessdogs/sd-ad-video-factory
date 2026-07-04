@@ -1,5 +1,5 @@
 {
-  "_comment": "Gedeeld tag-vocabulaire (gecontroleerd). Bron van waarheid: docs/specs/2026-07-04-knowledge-schema-design.md. Consumenten: scripts/index_footage.py (Vision kiest UIT deze lijsten), /ad-scripts (cues in deze termen), /ad-plan (moment-queries). Uitbreiden = bewuste edit hier + in de spec, daarna her-indexeren; de indexer levert kandidaten aan via proposed_tags.",
+  "_comment": "Gedeeld tag-vocabulaire (gecontroleerd). DIT bestand is de bron van waarheid; docs/specs/2026-07-04-knowledge-schema-design.md is de ontwerp-rationale. Consumenten: scripts/index_footage.py (Vision kiest UIT deze lijsten), /ad-scripts (cues in deze termen), /create-ads (moment-queries). Uitbreiden = bewuste edit hier, daarna her-indexeren waar relevant; de indexer levert kandidaten aan via proposed_tags.",
   "version": 1,
   "dog_behavior": {
     "stress_kalmeersignalen": [

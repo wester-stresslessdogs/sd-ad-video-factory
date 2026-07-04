@@ -31,6 +31,9 @@ vergelijking (behoefte × voorraad → dekking + substituties) in plaats van gev
 
 ## Tag-taxonomie (gedeeld vocabulaire)
 
+> **Canoniek:** de machine-leesbare lijst is `knowledge/taxonomy.json` — dáár wordt
+> uitgebreid. De YAML hieronder is de ontwerp-rationale en kan achterlopen.
+
 **Prioriteit van de dimensies.** `dog_behavior` en `human_behavior` zijn de **primaire
 match-assen** — een script-zin gaat vrijwel altijd over wat de hond doet of wat de mens
 doet. `valence` kwalificeert die twee. Al het andere (setting, framing, camera) is

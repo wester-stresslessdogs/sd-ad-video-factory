@@ -43,7 +43,8 @@ terug) en **variatie-aantal** (merken schalen winnaars op). Drempel staat in
      brand`.
    - **5-10 concrete ad-ideeën**, elk met: angle/hook, referentie-ad (page + looptijd
      als bewijs), passend product, en of het home of geadapteerd-internationaal is.
-4. **Rapporteer** in het formaat uit de spec §4 (trending / winners / aanbevolen ideeën).
+4. **Rapporteer** in drie blokken: (1) trending angles in de markt, (2) de winners
+   met bewijs (page, looptijd, varianten, link), (3) aanbevolen ad-ideeën.
 5. **Sluit af** met: "Wil je scripts laten genereren voor één of meer ideeën?" (→ /ad-scripts).
 
 ## Fallback (verplicht)

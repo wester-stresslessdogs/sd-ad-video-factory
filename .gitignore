@@ -18,8 +18,10 @@ __pycache__/
 *.pyc
 
 # Tijdelijke render/transcriptie-output + gedownloade analyse-frames
+# (uitzondering: output/scripts/ = opnameklare scripts voor creators, Lijn 3 — wél in git)
 scratch/
-output/
+output/*
+!output/scripts/
 *.mp4
 *.wav
 *.tmp

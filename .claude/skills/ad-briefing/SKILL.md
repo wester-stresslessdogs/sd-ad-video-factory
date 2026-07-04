@@ -3,10 +3,11 @@ name: ad-briefing
 description: Zet een video-ad script om in een opnameklare teleprompter-briefing — per clip de tekst, emotie/energie-aanwijzing, kamerahoek en geschatte duur, plus een shotlist. Neemt output van /ad-scripts OF een los script (markdown/docx/Google Doc). NL (Wester) of EN (Jess).
 ---
 
-# /ad-briefing — opnamebriefing
+# /ad-briefing — opnamebriefing (Lijn 3)
 
 Maakt van een script een document dat de opnemer (Wester/Jess) direct kan gebruiken.
-Volgt spec §3 Fase 3 en het voorbeeld in §4.
+Structuur en voorbeeld: `briefing-template.md` (in deze skill-map). De opname komt
+later terug als Lijn 2 — `/create-ads` monteert 'm.
 
 ## Input
 

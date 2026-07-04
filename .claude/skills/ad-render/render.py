@@ -861,19 +861,24 @@ def cmd_plan_check(args):
         warns.append(f"eerste B-roll al op {inserts[0][0]:.1f}s — geef de talking-head ≥ ~2s "
                      f"om zich te vestigen (overlap met de zin mag, maar niet vanaf frame 1)")
 
-    # 4. Elke las: bridge XOR zichtbare punch-wissel (delta ≥ 0.2) — precies één wissel
+    # 4. Elke las: bridge XOR zichtbare punch-wissel — precies één wissel.
+    # Delta < VISIBLE_PUNCH_DELTA op een kale las leest als fout, niet als keuze
+    # (edit-grammar B3/B4); achter een bridge hoort de punch gelijk te blijven —
+    # een bewuste subtiele her-framing daar mag, maar alleen verantwoord (⚠).
+    VISIBLE_PUNCH_DELTA = 0.25
     for i in range(1, len(cuts)):
         boundary = cut_timeline[i][0]
         bridged = any(a0 <= boundary - 0.2 and a1 >= boundary + 0.2 for a0, a1, _, _ in inserts)
         s_prev = float((cuts[i-1].get("punch_in") or {}).get("scale", 1.0))
         s_cur = float((cuts[i].get("punch_in") or {}).get("scale", 1.0))
         delta = abs(s_cur - s_prev)
-        if not bridged and delta < 0.2:
+        if not bridged and delta < VISIBLE_PUNCH_DELTA:
             errors.append(f"las {i} @ {boundary:.1f}s: geen bridge én punch-delta {delta:.2f} "
-                          f"< 0.2 — leest als glitch ('zelfde beeld, niks verandert')")
-        elif bridged and delta >= 0.2:
+                          f"< {VISIBLE_PUNCH_DELTA} — leest als glitch ('zelfde beeld, niks verandert')")
+        elif bridged and delta >= 0.1:
             warns.append(f"las {i} @ {boundary:.1f}s: bridge ÉN punch-wissel (delta {delta:.2f}) — "
-                         f"dubbele wissel; kies er één (houd de punch gelijk over een ge-bridgede las)")
+                         f"dubbele wissel; houd de punch gelijk over een ge-bridgede las, of "
+                         f"verantwoord de subtiele her-framing in de brief (edit-grammar B4)")
 
     # Rapport
     print(f"Tijdlijn: {total:.1f}s · {len(cuts)} cuts · {len(inserts)} inserts")

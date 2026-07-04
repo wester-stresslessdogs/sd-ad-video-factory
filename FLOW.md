@@ -9,34 +9,45 @@ marktonderzoek tot afgewerkte video's. **Enige handmatige stap: de opname zelf.*
    Vindt bewezen-werkende ads in de niche (NL/BE + EN) via de Meta Ad Library,
    gerankt op looptijd (lang draaien = winner). Groeit een lijst van gevolgde merken.
 
-2. **Schrijft scripts voor nieuwe video's** — `/ad-scripts`
-   Ad-idee → opnameklaar script met 3+ hooks, body en CTA, in de merk-tone.
+2. **Schrijft scripts voor nieuwe video's** — `/ad-scripts` *(Lijn 3)*
+   Ad-idee → opnameklaar script met 3+ hooks, beat-labels en taxonomie-cues,
+   in de merk-tone.
 
-3. **Maakt de opnamebriefing** — `/ad-briefing`
+3. **Maakt de opnamebriefing** — `/ad-briefing` *(Lijn 3)*
    Script → teleprompter-briefing met camerahoeken, emotie-aanwijzingen en shotlist.
 
 4. **→ Opname** *(handmatig — Wester NL / Jess EN)*
    Het enige wat een mens doet.
 
-5. **Monteert automatisch** — `/ad-render`
-   Ruwe opnames + script → captions, B-roll en muziek → afgewerkte MP4-varianten
-   via Creatomate → Google Drive. Eén opname wordt meerdere ad-varianten.
+5. **Plant en monteert** — `/create-ads` → `/ad-render`
+   `/create-ads` plant de montage (cuts, B-roll, framing — volgens
+   `knowledge/edit-grammar.md`) en levert reviewbare pakketten; `/ad-render` voert
+   het plan mechanisch uit via Creatomate. Eén opname wordt meerdere ad-varianten.
+   Werkt óók zonder nieuwe opname, rechtstreeks uit bestaande footage (Lijn 1).
 
 ## Templates: dynamisch en research-gedreven
 Géén één statische template. Op basis van de research (welke stijlen/formats werken
 bij concurrenten — caption-stijl, pacing, B-roll-intensiteit, hook-format) schrijven
-we **meerdere template-varianten** als code. `/ad-render` rendert het materiaal door
-al die varianten → veel video's om te testen. Wat blijkt te werken voedt de volgende
+we **meerdere template-varianten** als code. `/create-ads` rendert het materiaal
+door die varianten → veel video's om te testen. Wat blijkt te werken voedt de volgende
 research (stap 1). Templates zijn code (geen editor), maar het aantal en de stijlen
 **groeien mee met wat we leren** — testen is het doel, niet uniformiteit.
 
-## Twee inputlijnen
-- **Lijn 1 — nieuw materiaal**: script uit stap 2 → influencer filmt een talking-head
-  → `/ad-render` monteert tot varianten.
-- **Lijn 2 — bestaand materiaal**: er staan al scripts, influencer-video's én B-roll
-  in Drive. Twee dingen, beide in de research-stijl en zonder nieuwe opname:
-  (a) bestaande talking-head-video's hermonteren tot nieuwe varianten, en
-  (b) uit losse B-roll nieuwe video's bouwen (gedragen door captions/voiceover).
+## Drie lijnen
+- **Lijn 1 — bestaande footage**: nieuwe ads uit wat er al in Drive staat.
+  `/create-ads` kiest de beste combinaties (talking-head × winner-stijl), bouwt het
+  script uit de gesproken zinnen en monteert — zonder nieuwe opname.
+- **Lijn 2 — nieuwe opname op een bestaand script**: een creator heeft een script
+  (uit Lijn 3) gefilmd. De opname wordt geïndexeerd; `/create-ads` mapt de takes op
+  het script, plaatst B-roll en monteert. Dit is de uitvoerings-lijn voor alles wat
+  Lijn 3 produceert.
+- **Lijn 3 — nieuwe scripts voor creators**: `/ad-scripts` + `/ad-briefing` maken
+  opnameklare scripts en briefings uit de winner-research (beat-labels +
+  taxonomie-cues, zodat de montage ze later verstaat). De opname komt terug als
+  Lijn 2.
+
+Alle montage volgt één regelset: `knowledge/edit-grammar.md` (creatieve grammatica +
+mechanische regels + de twee verplichte poorten vóór elke render).
 
 ## Analyse is voorraad, creatie is een commando
 De analyse (winnende ads → rubric + `edit_spec` in de ad-library; footage → index v2
