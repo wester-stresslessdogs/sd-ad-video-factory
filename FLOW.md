@@ -38,6 +38,15 @@ research (stap 1). Templates zijn code (geen editor), maar het aantal en de stij
   (a) bestaande talking-head-video's hermonteren tot nieuwe varianten, en
   (b) uit losse B-roll nieuwe video's bouwen (gedragen door captions/voiceover).
 
+## Analyse is voorraad, creatie is een commando
+De analyse (winnende ads → rubric + `edit_spec` in de ad-library; footage → index v2
+met momenten/takes) draait **periodiek**, niet per ad. Daarna is nieuwe ads maken één
+commando: **`/create-ads N`** kiest de beste combinaties (talking-head × winner-stijl),
+bouwt per variant een reviewbaar pakket in `output/ads/<datum>_<slug>/` — script in
+gewone taal (hún zinnen, onze volgorde), plan, template-variant, inspiratie-
+verantwoording — en rendert pas op afroep. Zo blijft de kennis hergebruikt en de
+kosten per ad minimaal.
+
 ## Alles wordt naar ónze business vertaald
 Winnende ads zijn **inspiratie, geen mal**. De tool neemt over wat werkt (hook-structuur,
 stijl, cut-ritme, caption-stijl) maar **herschrijft het aanbod naar ons product**: geen

@@ -39,6 +39,14 @@ Maakt van een winnende ad-stijl een Creatomate-template als code, die we daarna 
    python lib/ad_library.py vision --ad-id <ad_id> --analysis "<volledige rubric-analyse>"
    ```
    Deze tekst is voortaan dé bron voor élke nieuwe template/script van deze ad.
+2c. **Edit-spec opslaan (verplicht)** — distilleer de rubric óók naar een gestructureerde
+   `edit_spec` op dezelfde entry in `knowledge/ad-library.json` (schema + voorbeeld:
+   `docs/specs/2026-07-04-knowledge-schema-design.md`, en de Barkside-entry als referentie):
+   hook (type/mechanisme/verbaal), `structure` (beats met tijdvensters), `pacing`,
+   `framing`, `broll`, `captions` (als parameters), `endcard`, `tags`, en vooral
+   **`replication_requirements`** (wat moet de footage hebben; `hard` true/false +
+   `substitute`). Dit is het machine-bruikbare contract waar `/create-ads` op draait —
+   proza zonder edit_spec is voor de pipeline onzichtbaar.
 3. **Business-case-vertaling** — neem de *stijl* over, maar zet het *aanbod* om naar ons
    aanbod volgens `knowledge/business-context/offer-translation.md`:
    - **End-card / CTA-graphic**: niet hun product ("download app / TRY NOW"), maar **onze**

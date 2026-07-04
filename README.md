@@ -15,6 +15,7 @@ Kern-flow in het kort: [FLOW.md](FLOW.md) · Origineel klantidee (archief): [too
 | `/ad-template` | Winnende ad-stijl (video-analyse) → Creatomate template als code | 🟡 v1 gebouwd (video-analyse getest) |
 | `/ad-briefing` | Script → teleprompter-briefing met emotie/camera-cues | 🟡 v1 gebouwd |
 | `/ad-render` | Ruwe opnames / bestaande B-roll → afgewerkte MP4-varianten via Creatomate → lokaal | 🟡 v1 gebouwd (Drive-read + render end-to-end getest) |
+| `/create-ads` | **N nieuwe ad-varianten uit bestaande footage** — consumeert opgeslagen winner-`edit_spec`s × footage-index v2 (géén nieuwe analyse), levert reviewbare ad-pakketten in `output/ads/`, renderen op afroep | 🟡 v1 gebouwd (eerste pakket: barkside×2850) |
 
 > Databron is **Apify** (Meta Ad Library scraper), niet Foreplay. "Wat werkt" wordt
 > geproxyd op **looptijd** (geen publieke metrics). Gedeelde fetch-laag: `lib/fetch_ads.py`.
