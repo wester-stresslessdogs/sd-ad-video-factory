@@ -251,6 +251,83 @@ Toelichting op de niet-vanzelfsprekende velden:
    lijn, valence problem") → toon `best_frame_t`-stills → menselijke sanity-check. Pas
    daarna gaat de merge erop bouwen.
 
+## De keten: hoe de rijkdom door het proces stroomt
+
+De index betekent niks als script, template en render 'm niet consumeren. Daarom is
+elke stap een **contract**: wat het produceert, in welk vocabulaire, en welke klok het
+gebruikt. Er zijn namelijk **vier klokken** in dit systeem, en de meeste fouten ontstaan
+door ze te verwarren:
+
+| Klok | Leeft in | Voorbeeld |
+|---|---|---|
+| K1 — winner-tijd | edit_spec.structure | "problem-beat @3–18s" (relatief ritme, geen absolute waarheid) |
+| K2 — bron-tijd talking-head | transcript word-timestamps + takes | "pet your dog on the head" @14.2s in IMG_2850 |
+| K3 — bron-tijd per B-roll-clip | moments[].t | lip-licking @5–8s, barking @10–15s in dezelfde clip |
+| K4 — output-tijdlijn | plan.json → render | de gemonteerde video waar captions/B-roll/end-card landen |
+
+De engine kan al tussen K2→K4 vertalen (phrase-anchoring + cut-remapping) en kan al
+een venster uit K3 pakken (`broll_trim_start`). Wat ontbrak was de **data** (welk
+venster!) en de **planner** die de vertalingen aan elkaar rijgt.
+
+### De contracten per stap
+
+**A. `/ad-research` + `/ad-template` → winner-edit-spec** (K1)
+Beats + pacing + stijl-parameters + `replication_requirements`, in taxonomie-termen.
+K1 is een ritme-blauwdruk: "hook 3s, dan ~15s probleem met 2 inserts" — verhoudingen,
+geen absolute tijden.
+
+**B. indexer v2 → footage-index** (K2 + K3)
+Talking-heads: transcript + take-kaart (K2). B-roll: `moments` met tijdvensters (K3),
+getagd op de twee primaire assen. **Dit is het antwoord op "de hond likt @5–8s en
+blaft @10–15s": dat zijn twee aparte moments in dezelfde clip, elk apart matchbaar
+en elk met hun eigen `broll_trim_start`.**
+
+**C. `/ad-scripts` → script mét gestructureerde cues** (contract-wijziging!)
+Elke zin krijgt: `beat` (uit de winner-structuur) + optionele B-roll-cue **in
+taxonomie-termen**, niet in vrije tekst:
+```
+[B-ROLL: dog_behavior=leash-pulling valence=problem]  (i.p.v. "hond trekt aan lijn")
+```
+Vrije tekst blijft toegestaan als toelichting, maar de match draait op de tags —
+zo is script-taal gegarandeerd dezelfde taal als index-taal. Voor Lijn 2 is het
+"script" het transcript zelf: de take-kaart levert de zinnen, `/ad-plan` kent er
+beats en cues aan toe.
+
+**D. `/ad-plan` (de merge) → edit-brief** — hier komen alle klokken samen:
+1. **Beat-mapping (K1×K2):** welke zinnen/takes vervullen welke beat; dekt het
+   transcript de winner-structuur? (Geen hook-waardige zin → benoemen + beste alternatief.)
+2. **Cuts (K2→K4):** takes met `delivery: good` → cutlijst die het winner-cut-ritme
+   benadert; punch-in-wissels binnen `punchin_max`.
+3. **B-roll-resolutie (cue×K3→K4):** per cue een moment-query op de twee assen →
+   `{phrase, file_id, broll_trim_start: <moment.t[0]>, duration: <venster>}`.
+   De `phrase` ankert *wanneer in de edit* (K4), de `broll_trim_start` *wat uit de
+   clip* (K3). Geen match → cue vervalt, expliciet gemeld.
+4. **Stijl (K1):** caption-/pacing-/end-card-parameters uit de edit_spec → template-variant.
+5. **Substitutie-rapport:** elke `replication_requirement` die de footage niet dekt +
+   de gekozen oplossing.
+
+**E. `/ad-render`:** mechanisch, ongewijzigd concept — voert de brief 1-op-1 uit.
+
+**F. QC:** frames uit de render → Vision toetst tegen de brief (ligt lip-licking
+inderdaad op "pet your dog on the head"? captions leesbaar? gezicht vrij?).
+
+### Eén zin, de hele keten door (concreet)
+
+Script-zin (Lijn 2, IMG_2850): *"...pet your dog on the head..."*
+1. Take-kaart: zit in take 1 (delivery good) → cut 1 behoudt 'm. (K2)
+2. Cue: `human_behavior=petting-on-head valence=problem`. (taxonomie)
+3. Moment-query: `Petting dog uncomfortable.mp4` heeft moment `t:[5,8]` met
+   `human_behavior:[petting-on-head]`, `dog_behavior:[lip-licking, look-away]`,
+   `valence: problem` → exact het bewijs bij de zin. (K3)
+4. Plan-regel: `{"phrase": "pet your dog on the head", "file_id": "…",
+   "broll_trim_start": 5.0, "duration": 3.0}`.
+5. Engine: phrase → word-timestamp 14.2s bron → 14.2s op de output-tijdlijn (cut 1
+   begint op 0) → precies dáár verschijnt seconde 5–8 van de B-roll-clip. (K4)
+6. QC ziet: hond likt z'n neus terwijl zij "pet your dog on the head" zegt. Klopt.
+
+Zonder moments had stap 3 de héle clip als "aaien, rustig" gezien en was er
+willekeurig vanaf 0.0 geknipt — dat is het verschil tussen gokken en weten.
+
 ## Waarom dit de kwaliteit fixt
 
 De render was "gokken" omdat het plan gebouwd werd uit één zin per clip en één
