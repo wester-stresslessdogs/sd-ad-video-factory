@@ -129,11 +129,38 @@ narekenen):
      --out ../ads/<map>/ad
    ```
 
-Plan-regels (zie ook `/ad-render` SKILL): elke las krijgt een **bridge of punch-in-
-wissel**; `punch_in.focus_y` past bij haar houding op dát moment; B-roll altijd via
-**moment-vensters** (`broll_trim_start = moments[].t[0]`, evt. minus `lead_in`); let op
-`valence_note`-waarschuwingen; zelfde hond prefereren; ~1 insert per 10-15s tenzij de
-winner-spec anders zegt.
+**Plan-regels** (zie ook `/ad-render` SKILL):
+- **Cut-grenzen liggen op zin-grenzen.** Kies start/eind op de word-timestamps: een cut
+  begint op een zin-start (of een herstart ná een valse start) en eindigt op een
+  zin-einde of in een stilte. Nooit een lopende zin afkappen "omdat de tijd op is".
+- **Bloopers eruit.** Herhaalde frases vlak achter elkaar ("it's free it's online, it's
+  free it's online") zijn valse starts — knip tot de twééde (goede) take.
+- **Elke las krijgt een bridge of een zichtbare punch-wissel** (delta ≥ 0.25). Een
+  micro-verschil (1.15 → 1.1) leest als glitch. `focus_y` past bij haar houding op dát
+  moment. Lange statische passages mag je óók op een zin-grens splitsen met een
+  punch-wissel — dat is Ramons "hard cut zoom".
+- **Opgesomd gedrag → toon het.** Somt de spreker gedragingen op ("als je hem aait…
+  likt hij z'n lippen"), dan hoort daar B-roll van dát gedrag — dit is waar de kijker
+  z'n eigen hond herkent. De "op haar gezicht"-regel geldt voor aanbod/CTA/reveal,
+  niet voor gedrags-opsommingen.
+- **B-roll gespreid**: ≥ 4s haar-in-beeld tussen inserts, nooit > 6s aaneengesloten uit
+  beeld. B-roll altijd via **moment-vensters** (`broll_trim_start = moments[].t[0]`,
+  evt. minus `lead_in`); let op `valence_note`; zelfde hond prefereren.
+
+**Twee verplichte poorten vóór élke render (geen uitzonderingen):**
+1. **`plan-check`** — mechanische lint met exact de renderer-wiskunde:
+   ```bash
+   .venv/bin/python .claude/skills/ad-render/render.py plan-check \
+     --plan <pakket>/plan.json --captions output/transcripts/<file_id>.json
+   ```
+   Vindt mid-zin-cuts, bloopers, B-roll-overlap/-muren en onzichtbare las-wissels.
+   Exit ≠ 0 → plan aanpassen, opnieuw. Nooit renderen met een rood plan.
+2. **Frames kijken** — voor élk gekozen B-roll-venster minimaal één frame uit het échte
+   venster trekken (uit `output/.cache/<file_id>.src`) en bekijken (Read):
+   klopt de inhoud met de bedoeling? Is de hond/handeling écht in beeld? De index is
+   een wegwijzer, geen waarheid — een moment kan verkeerd beschreven zijn ("observing-
+   dog" dat een lege wandeling blijkt). Fout beeld → ander moment kiezen én de
+   index-fout melden in de brief.
 
 ### 4. Presenteren
 Batch-overzicht in de chat: per pakket één regel (map · winner-stijl · hook-zin ·

@@ -419,6 +419,29 @@ def resolve_phrase_time(phrase: str, transcript: dict, cut_timeline: list) -> fl
     return None
 
 
+def resolve_insert_time(p: dict, cut_timeline: list, transcript: dict | None,
+                        idx: int = 0) -> tuple[float | None, str]:
+    """Eén bron van waarheid voor B-roll-timing (gebruikt door render én plan-check):
+    expliciete time wint; dan bridge_cut (over de las heen); dan phrase (word-anchored).
+    Geeft (tijdlijn-seconde, reden) — None = niet plaatsbaar, reden zegt waarom."""
+    t = p.get("time")
+    if t is not None:
+        return float(t), "expliciete time"
+    if p.get("bridge_cut") is not None:
+        n = int(p["bridge_cut"])
+        if 1 <= n < len(cut_timeline):
+            boundary = cut_timeline[n][0]
+            lead = float(p.get("lead", p.get("duration", 3.5) / 2))
+            return round(max(0.0, boundary - lead), 2), f"bridge over las {n} (grens {boundary:.1f}s)"
+        return None, f"bridge_cut {n} bestaat niet ({len(cut_timeline)} cuts)"
+    if p.get("phrase") and transcript is not None:
+        t = resolve_phrase_time(p["phrase"], transcript, cut_timeline)
+        if t is None:
+            return None, f"zin niet gevonden in behouden cuts: \"{p['phrase']}\""
+        return t, f"word-anchored op \"{p['phrase']}\""
+    return None, "geen time/bridge_cut/phrase"
+
+
 def build_broll(broll_tpl: dict, plan: dict, cut_timeline: list,
                 transcript: dict | None, total: float | None) -> list[dict]:
     """Bouw B-roll-cutaways. Elke plaatsing: fullscreen óf pip (zwevende inset). Timing
@@ -428,29 +451,9 @@ def build_broll(broll_tpl: dict, plan: dict, cut_timeline: list,
     pip_cfg = broll_tpl.get("pip", {})
     out = []
     for i, p in enumerate(plan.get("broll", [])):
-        # Timing: expliciete time wint; dan bridge_cut (over de las heen); dan phrase.
-        t = p.get("time")
-        if t is None and p.get("bridge_cut") is not None:
-            # bridge_cut: N (1-based) = overbrug de las tussen cut N en N+1. De B-roll
-            # start `lead` vóór de las en loopt eroverheen → de kijker ziet de jump-cut
-            # nooit. Default fullscreen (een pip laat de las erachter gewoon zien).
-            n = int(p["bridge_cut"])
-            if 1 <= n < len(cut_timeline):
-                boundary = cut_timeline[n][0]
-                lead = float(p.get("lead", p.get("duration", 3.5) / 2))
-                t = round(max(0.0, boundary - lead), 2)
-            else:
-                print(f"⚠️  B-roll #{i+1}: bridge_cut {n} bestaat niet "
-                      f"({len(cut_timeline)} cuts) — overgeslagen.", file=sys.stderr)
-                continue
-        if t is None and p.get("phrase") and transcript is not None:
-            t = resolve_phrase_time(p["phrase"], transcript, cut_timeline)
-            if t is None:
-                print(f"⚠️  B-roll overgeslagen — zin niet gevonden in behouden cuts: "
-                      f"\"{p['phrase']}\"", file=sys.stderr)
-                continue
+        t, why = resolve_insert_time(p, cut_timeline, transcript, i)
         if t is None:
-            print(f"⚠️  B-roll #{i+1} zonder time/phrase — overgeslagen.", file=sys.stderr)
+            print(f"⚠️  B-roll #{i+1} overgeslagen — {why}", file=sys.stderr)
             continue
         dur = p.get("duration", 3.5)
         if total is not None:
@@ -609,6 +612,147 @@ def cmd_render(args):
     print(f"\n✅ Render klaar → {dest}", file=sys.stderr)
 
 
+# ── Plan-check: mechanische lint vóór het renderen ───────────────────────────────
+def _sentence_boundary_ok(t: float, words: list[dict], kind: str) -> tuple[bool, str]:
+    """Valt een cut-grens op een zin-grens? start: het eerstvolgende woord begint een
+    zin (vorig woord eindigt op .!?  of er zit een stilte-gat ≥ 0.6s vóór). end: het
+    laatste woord vóór de grens eindigt op .!?  of er volgt een stilte-gat ≥ 0.6s."""
+    if not words:
+        return True, "geen transcript"
+    if kind == "start":
+        nxt = next((i for i, w in enumerate(words) if w["start"] >= t - 0.1), None)
+        if nxt is None:
+            return False, "grens ligt ná het laatste woord"
+        w = words[nxt]
+        if w["start"] - t > 1.0:
+            return True, f"start in stilte, eerste woord '{w['word'].strip()}' @ {w['start']:.1f}"
+        if nxt == 0:
+            return True, "eerste woord van de opname"
+        prev = words[nxt - 1]
+        if prev["word"].strip().endswith((".", "!", "?")) or w["start"] - prev["end"] >= 0.6:
+            return True, f"begint op zin-start '{w['word'].strip()}' @ {w['start']:.1f}"
+        # Herstart-detectie: begint de cut met exact de woorden die er vlak vóór ook
+        # staan (valse start weggeknipt), dan is dit een geldige edit-grens.
+        after = [t for x in words[nxt:nxt + 4] for t in _norm_tokens(x["word"])][:3]
+        before = [t for x in words[max(0, nxt - 6):nxt] for t in _norm_tokens(x["word"])]
+        if after and any(before[i:i + len(after)] == after for i in range(len(before))):
+            return True, f"begint op herstart van '{' '.join(after)}' (valse start ervóór weggeknipt)"
+        ctx = " ".join(x["word"].strip() for x in words[max(0, nxt - 4):nxt + 3])
+        return False, f"begint MIDDEN in een zin: …{ctx}…"
+    # end
+    last = next((i for i in range(len(words) - 1, -1, -1) if words[i]["end"] <= t + 0.15), None)
+    if last is None:
+        return False, "grens ligt vóór het eerste woord"
+    w = words[last]
+    if t - w["end"] > 1.0:
+        return True, f"eindigt in stilte na '{w['word'].strip()}'"
+    nxt_gap = (words[last + 1]["start"] - w["end"]) if last + 1 < len(words) else 99
+    if w["word"].strip().endswith((".", "!", "?")) or nxt_gap >= 0.6:
+        return True, f"eindigt op zin-einde '{w['word'].strip()}' @ {w['end']:.1f}"
+    ctx = " ".join(x["word"].strip() for x in words[max(0, last - 3):last + 4])
+    return False, f"kapt een zin af: …{ctx}… (zin loopt door)"
+
+
+def _find_bloopers(words: list[dict], s0: float, s1: float) -> list[str]:
+    """Vind valse starts binnen een cut-venster: dezelfde 2-5-woord-reeks twee keer
+    (bijna) direct achter elkaar ('It's free it's online, it's free it's online…')."""
+    win = [w for w in words if s0 <= w["start"] < s1]
+    toks = [_norm_tokens(w["word"]) for w in win]
+    flat = [(t, i) for i, ts in enumerate(toks) for t in ts]
+    seq = [t for t, _ in flat]
+    hits = []
+    for n in range(8, 1, -1):
+        for i in range(len(seq) - 2 * n + 1):
+            if seq[i:i + n] == seq[i + n:i + 2 * n]:
+                wi = win[flat[i][1]]
+                frag = " ".join(seq[i:i + n])
+                hits.append(f"herhaalde frase (valse start/blooper?) @ bron {wi['start']:.1f}s: \"{frag} {frag}…\"")
+        if hits:
+            break  # langste match is genoeg
+    return hits
+
+
+def cmd_plan_check(args):
+    """Lint een plan tegen het transcript vóór er credits aan een render opgaan.
+    Vindt precies de fouten-families uit de review van 2026-07-04: mid-zin-cuts,
+    bloopers/valse starts, B-roll-muren en overlap, onzichtbare las-wissels."""
+    plan = json.loads(Path(args.plan).read_text())
+    transcript = json.loads(Path(args.captions).read_text())
+    words = transcript.get("words") or []
+    cuts = cuts_from_plan(plan, transcript)
+    _, cut_timeline, total = build_talking_head({"id": "x"}, "url", cuts)
+
+    errors, warns = [], []
+
+    # 1. Cut-grenzen op zin-grenzen (defect: afgekapte/half-gestarte zinnen)
+    for i, c in enumerate(cuts):
+        ok, why = _sentence_boundary_ok(c["trim_start"], words, "start")
+        if not ok:
+            errors.append(f"cut {i+1} START {c['trim_start']:.1f}s: {why}")
+        end = c["trim_start"] + c["trim_duration"]
+        ok, why = _sentence_boundary_ok(end, words, "end")
+        if not ok:
+            errors.append(f"cut {i+1} EIND {end:.1f}s: {why}")
+
+    # 2. Bloopers/valse starts binnen behouden vensters
+    for i, c in enumerate(cuts):
+        for hit in _find_bloopers(words, c["trim_start"], c["trim_start"] + c["trim_duration"]):
+            errors.append(f"cut {i+1}: {hit}")
+
+    # 3. B-roll op de tijdlijn: overlap, muren, dekking van lassen
+    inserts = []
+    for i, p in enumerate(plan.get("broll", [])):
+        t, why = resolve_insert_time(p, cut_timeline, transcript, i)
+        if t is None:
+            warns.append(f"B-roll #{i+1} niet plaatsbaar — {why}")
+            continue
+        d = min(p.get("duration", 3.5), max(0.5, total - t))
+        inserts.append((t, t + d, i + 1, p.get("_moment", p.get("file_id", "?"))[:60]))
+    inserts.sort()
+    for (a0, a1, ai, _), (b0, b1, bi, _) in zip(inserts, inserts[1:]):
+        if b0 < a1 - 0.1:
+            errors.append(f"B-roll #{ai} en #{bi} OVERLAPPEN ({a0:.1f}-{a1:.1f} vs {b0:.1f}-{b1:.1f})")
+        elif b0 - a1 < 4.0:
+            warns.append(f"B-roll-muur: #{ai} en #{bi} liggen {b0-a1:.1f}s uit elkaar "
+                         f"(kijker ziet haar < 4s tussen inserts)")
+    # aaneengesloten off-screen-span
+    span_start, span_end = None, None
+    for a0, a1, _, _ in inserts:
+        if span_end is not None and a0 - span_end < 1.0:
+            span_end = max(span_end, a1)
+        else:
+            span_start, span_end = a0, a1
+        if span_end - span_start > 6.0:
+            errors.append(f"talking-head > 6s aaneengesloten uit beeld ({span_start:.1f}-{span_end:.1f})")
+            break
+
+    # 4. Elke las: bridge óf zichtbare punch-wissel (delta ≥ 0.2)
+    for i in range(1, len(cuts)):
+        boundary = cut_timeline[i][0]
+        bridged = any(a0 <= boundary - 0.2 and a1 >= boundary + 0.2 for a0, a1, _, _ in inserts)
+        s_prev = float((cuts[i-1].get("punch_in") or {}).get("scale", 1.0))
+        s_cur = float((cuts[i].get("punch_in") or {}).get("scale", 1.0))
+        if not bridged and abs(s_cur - s_prev) < 0.2:
+            errors.append(f"las {i} @ {boundary:.1f}s: geen bridge én punch-delta {abs(s_cur-s_prev):.2f} "
+                          f"< 0.2 — leest als glitch ('zelfde beeld, niks verandert')")
+
+    # Rapport
+    print(f"Tijdlijn: {total:.1f}s · {len(cuts)} cuts · {len(inserts)} inserts")
+    for t, e, n, m in inserts:
+        print(f"  insert #{n}: {t:.1f}-{e:.1f}s — {m}")
+    if errors:
+        print(f"\n❌ {len(errors)} blokkerende problemen:")
+        for e in errors:
+            print(f"  - {e}")
+    if warns:
+        print(f"\n⚠️  {len(warns)} waarschuwingen:")
+        for w in warns:
+            print(f"  - {w}")
+    if not errors and not warns:
+        print("\n✅ plan schoon")
+    sys.exit(1 if errors else 0)
+
+
 # ── CLI ──────────────────────────────────────────────────────────────────────────
 def main():
     ap = argparse.ArgumentParser(description="/ad-render engine")
@@ -618,6 +762,11 @@ def main():
     t.add_argument("--source", required=True, help="Drive file_id | URL | lokaal pad")
     t.add_argument("--out", help="Pad voor het transcript-JSON (default: output/renders/<stem>.transcript.json)")
     t.set_defaults(func=cmd_transcribe)
+
+    pc = sub.add_parser("plan-check", help="Lint een plan tegen het transcript (vóór renderen)")
+    pc.add_argument("--plan", required=True)
+    pc.add_argument("--captions", required=True, help="Transcript-JSON met word-timestamps")
+    pc.set_defaults(func=cmd_plan_check)
 
     r = sub.add_parser("render", help="Template + talking-head (+plan) → MP4")
     r.add_argument("--template", required=True, help="Bestandsnaam in knowledge/video-templates/ of pad")

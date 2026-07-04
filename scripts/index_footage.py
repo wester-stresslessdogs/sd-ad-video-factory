@@ -192,9 +192,14 @@ tag én zet het exacte gedrag in "proposed_tags" met één zin motivatie. Nuance
 "action"/"summary"-proza.
 
 ## Momenten (de kern)
-Segmenteer de clip in momenten: aaneengesloten vensters waarin één ding gebeurt. Elk moment:
+Segmenteer de clip in momenten: aaneengesloten vensters waarin één ding gebeurt.
+BESCHRIJF ALLEEN WAT JE ZIET in de frames van dát venster — niet wat je verwacht of
+wat elders in de clip gebeurt. Is er in een venster géén hond in beeld (alleen een
+persoon, benen, omgeving), zeg dat dan expliciet ("dog_visible": false) — een edit-
+planner die 'hond' zoekt mag dit venster dan nooit krijgen. Elk moment:
 - "t": [start, eind] in seconden (interpoleer tussen de frame-tijdstempels)
-- "action": één concrete zin (wat doet de hond, wat doet de mens)
+- "action": één concrete zin (wat doet de hond, wat doet de mens) — feitelijk, geen interpretatie
+- "dog_visible": true | false  (is er een hond duidelijk in beeld in dít venster?)
 - "dog_behavior" / "human_behavior": tags uit het vocabulaire (leeg mag)
 - "valence" + optioneel "valence_note" als de tag misleidend kan zijn (bv. neuslikken
   direct na een snoepje = aflikken, géén stresssignaal — waarschuw de planner expliciet)
@@ -279,6 +284,7 @@ def validate(v: dict, info: dict, tax: dict, proposals: list) -> dict:
         mm = {
             "t": t,
             "action": (m.get("action") or "").strip(),
+            "dog_visible": bool(m.get("dog_visible", True)),
             "dog_behavior": keep_known(m.get("dog_behavior"), tax["_dog_flat"], "moment"),
             "human_behavior": keep_known(m.get("human_behavior"), tax["_human_flat"], "moment"),
             "valence": m.get("valence") if m.get("valence") in tax["valence"] else "neutral",
@@ -286,6 +292,8 @@ def validate(v: dict, info: dict, tax: dict, proposals: list) -> dict:
             "lead_out": round(min(max(float(m.get("lead_out", 0) or 0), 0.0), dur - t[1]), 2),
             "best_frame_t": round(min(max(float(m.get("best_frame_t", t[0]) or t[0]), t[0]), t[1]), 2),
         }
+        if not mm["dog_visible"]:
+            mm["dog_behavior"] = []  # geen hond in beeld → geen hondengedrag-tags mogelijk
         if m.get("valence_note"):
             mm["valence_note"] = str(m["valence_note"]).strip()
         for pt in m.get("proposed_tags", []) or []:

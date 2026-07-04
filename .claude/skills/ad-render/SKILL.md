@@ -120,6 +120,14 @@ footage die de gebruiker aanwijst).
    clip. `keep_audio: true` per B-roll als je uitzonderlijk de clip-audio wél wilt.
    **Toon het plan**: welke cuts (met de zin), B-roll waar, welke asides weggelaten.
 
+4b. **Plan-check (verplicht vóór elke render).** Lint het plan tegen het transcript —
+   vindt mid-zin-cuts, valse starts/bloopers, B-roll-overlap en -muren, en lassen
+   zonder zichtbare wissel. Nooit renderen zolang dit rood is:
+   ```bash
+   python .claude/skills/ad-render/render.py plan-check --plan plan.json \
+     --captions <transcript.json>
+   ```
+
 5. **Render** (per template-variant één keer):
    ```bash
    python .claude/skills/ad-render/render.py render \
