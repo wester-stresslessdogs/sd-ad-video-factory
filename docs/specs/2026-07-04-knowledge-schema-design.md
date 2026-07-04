@@ -31,15 +31,71 @@ vergelijking (behoefte × voorraad → dekking + substituties) in plaats van gev
 
 ## Tag-taxonomie (gedeeld vocabulaire)
 
+**Prioriteit van de dimensies.** `dog_behavior` en `human_behavior` zijn de **primaire
+match-assen** — een script-zin gaat vrijwel altijd over wat de hond doet of wat de mens
+doet. `valence` kwalificeert die twee. Al het andere (setting, framing, camera) is
+rijke context: nuttig voor continuïteit en uitvoerbaarheid, maar nooit de reden waarom
+een clip gekozen wordt.
+
+**Domein-lens: dit is footage van force-free hondentrainers.** Het vocabulaire moet dus
+dekken wat een tráiner ziet — inclusief de subtiele stress-/kalmeersignalen (tonglikken,
+gapen, wegkijken) die voor een leek onzichtbaar zijn maar in deze content vaak letterlijk
+het onderwerp van de zin zijn.
+
+### Primair — `dog_behavior` (gegroepeerd; Vision kiest uit de bladeren, meerdere toegestaan)
+
 ```yaml
-# Dimensies met vaste waarden. Vision kiest; nooit zelf verzinnen.
-shot_distance:   [selfie, close, medium, wide]          # gezichtsvullend → figuur-in-omgeving
-camera:          [static, handheld, walking, pov]
-dog_behavior:    [barking, pulling-leash, lunging, jumping-up, reactive-dog,
-                  whining, ignoring, relaxed, sniffing, walking-calm, eye-contact,
-                  playing, being-petted, being-rewarded, training-exercise, lying-down]
+stress_kalmeersignalen:            # de kern-content van force-free training
+  [lip-licking, yawning, look-away, whale-eye, body-shake-off, scratching-self,
+   displacement-sniffing, freezing, cowering, tail-tucked, stress-panting,
+   trembling, pacing, hypervigilant-scanning, drooling]
+reactiviteit_probleem:
+  [barking, demand-barking, howling, whining, growling, snapping, lunging,
+   leash-pulling, leash-reactivity, jumping-up, mouthing-nipping,
+   resource-guarding, chasing, ignoring-owner, door-dashing]
+thuis_probleem:
+  [chewing-destruction, digging, counter-surfing, trash-raiding,
+   scratching-at-door, house-soiling, begging, stealing-items]
+kalm_positief:
+  [relaxed-lying, settled, soft-body, loose-tail-wag, play-bow, playing-with-dog,
+   playing-with-toy, zoomies, eye-contact-checkin, handler-engagement]
+training_oefening:
+  [sit, down, stay, recall, loose-leash-walking, heel, place-mat-work,
+   leave-it, drop-it, hand-target, crate-training, muzzle-training,
+   impulse-control-exercise]
+alledaags_neutraal:
+  [sniffing-exploration, walking, running, trotting, eating, drinking,
+   being-groomed, being-leashed, being-petted, being-rewarded, greeting-dog,
+   greeting-person, in-car, swimming, fetching]
+```
+
+### Primair — `human_behavior` (nieuw; even zwaar als dog_behavior)
+
+```yaml
+training_handeling:
+  [giving-treat, luring-with-treat, marker-clicker, hand-signal, verbal-cue,
+   teaching-exercise, guiding-on-leash, redirecting-attention,
+   rewarding-calm-behavior, demonstrating-technique]
+affectie_verzorging:
+  [petting-body, petting-on-head, cuddling, grooming, feeding, playing-with-dog,
+   kneeling-to-dog-level]
+fout_voorbeeld:                    # 'wat je niet moet doen' — vaak problem-valence
+  [leash-jerking, pushing-dog, scolding, looming-over-dog, forced-hug,
+   ignoring-signals]
+observatie_communicatie:
+  [observing-dog, reading-body-language, pointing, deliberate-ignoring,
+   waiting-calmly]
+richting_camera:
+  [talking-to-camera, explaining-voiceover, showing-prop, reacting-to-dog]
+```
+
+### Kwalificatie & context (secundair)
+
+```yaml
 valence:         [problem, neutral, positive]           # illustreert dit pijn of oplossing?
-setting:         [home-indoor, garden, street, park, training-area, car, vet]
+shot_distance:   [selfie, close, medium, wide]
+camera:          [static, handheld, walking, pov]
+setting:         [home-indoor, garden, street, park, training-area, car, vet]  # nice-to-have
 people:          [none, owner, trainer, owner-and-dog, crowd]
 hook_type:       [pattern-interrupt, bold-claim, curiosity-gap, relatability,
                   pov-in-medias-res, question, myth-bust, before-after]
@@ -48,9 +104,20 @@ caption_anim:    [karaoke, word-pop, line-static, line-pill, none]
 broll_role:      [illustrate, prove, rhythm, emotional]
 ```
 
-`valence` staat bewust los van `dog_behavior`: "blaffende hond" is *problem* in de hook
-maar kan *neutral* zijn in een uitleg-context; de combinatie is de matchsleutel
-(script-zin "trekt aan de lijn" → `dog_behavior: pulling-leash` + `valence: problem`).
+`valence` staat bewust los van gedrag: "blaffende hond" is *problem* in de hook maar
+kan *neutral* zijn in een uitleg-context; `petting-on-head` is affectie voor een leek
+maar *problem* in ons verhaal (het IMG_2850-script gaat er letterlijk over). De
+combinatie gedrag × valence is de matchsleutel.
+
+### Groeimechanisme (rijk blijven zónder tag-rot)
+
+Het vocabulaire moet "genoeg hebben om de juiste keuze te maken" — maar vrij verzinnen
+leidt tot rot. Compromis: de indexer mag per moment **`proposed_tags`** teruggeven voor
+gedrag dat écht niet in de lijst past (met één zin motivatie). Die komen NIET in de
+zoekbare tags terecht; ze verschijnen in het indexer-rapport en worden periodiek
+menselijk/bewust aan dít document toegevoegd (en dan her-geïndexeerd waar relevant).
+Zo groeit de taal met de footage mee, maar blijft elke tag gegarandeerd matchbaar.
+De prozavelden (`summary`, `moments[].action`) blijven de vangnet-nuance.
 
 ## Schema 1 — winner-edit-spec (in `ad-library.json` per ad, naast `vision.analysis`)
 
@@ -134,12 +201,15 @@ niet kiezen voor deze footage); zachte eis → best-effort.
   "summary": "2-4 zinnen proza: wie, wat, sfeer, kernactie.",
   "tags": ["wide", "static", "garden", "relaxed", "sniffing", "neutral"],
 
-  // DE kern-upgrade: momenten i.p.v. één beschrijving per clip (verplicht bij >8s)
+  // DE kern-upgrade: momenten i.p.v. één beschrijving per clip (verplicht bij >8s).
+  // Per moment BEIDE primaire assen: wat doet de hond, wat doet de mens.
   "moments": [
     {"t": [0, 12],  "action": "vrouw spreekt recht in camera, hond loopt in",
-     "tags": ["eye-contact"], "valence": "neutral", "best_frame_t": 4.0},
-    {"t": [34, 41], "action": "hond snuffelt op voorgrond, loopt door beeld",
-     "tags": ["sniffing", "walking-calm"], "valence": "neutral", "best_frame_t": 37.0}
+     "dog_behavior": ["sniffing-exploration"], "human_behavior": ["talking-to-camera"],
+     "valence": "neutral", "best_frame_t": 4.0},
+    {"t": [34, 41], "action": "hond snuffelt op voorgrond; zij wacht rustig af",
+     "dog_behavior": ["displacement-sniffing"], "human_behavior": ["waiting-calmly", "observing-dog"],
+     "valence": "neutral", "best_frame_t": 37.0}
   ],
 
   // Alleen talking_head: de take-kaart (uit transcript + Vision samen)
@@ -186,8 +256,10 @@ Toelichting op de niet-vanzelfsprekende velden:
 De render was "gokken" omdat het plan gebouwd werd uit één zin per clip en één
 prozastuk per winner. Na deze fase is elke edit-beslissing een lookup:
 - *Welke cuts?* → `takes` met `delivery: good` + `complete_thought`.
-- *Welke B-roll op "trekt aan de lijn"?* → moment-query `pulling-leash × problem`,
-  zelfde hond, `t`-venster + `broll_trim_start` erbij geleverd.
+- *Welke B-roll op "trekt aan de lijn"?* → moment-query `leash-pulling × problem`,
+  zelfde hond, `t`-venster + `broll_trim_start` erbij geleverd. En op "geef 'm een
+  beloning als hij rustig blijft" → `giving-treat`/`rewarding-calm-behavior × positive` —
+  de mens-as matcht zinnen waar hondgedrag alleen niet genoeg is.
 - *Mag een punch-in?* → `punchin_max`.
 - *Welke caption-stijl/tempo?* → `edit_spec.captions` / `edit_spec.pacing`, letterlijk.
 - *Wat kan niet?* → `replication_requirements` × footage-velden → expliciete substituties.
