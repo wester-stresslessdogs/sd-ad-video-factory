@@ -226,6 +226,12 @@ Toelichting op de niet-vanzelfsprekende velden:
 - **`moments`** — B-roll-matching gebeurt voortaan op *moment*-niveau, niet clip-niveau.
   Een 52s-clip is geen "rustige hond"; het is zes bruikbare vensters met elk hun actie.
   `best_frame_t` = het representatieve still voor QC en snelle menselijke checks.
+- **`lead_in` / `lead_out`** — wiggle room per moment: hoeveel schone seconden vóór/ná
+  het actievenster bruikbaar zijn om **in te glijden** i.p.v. hard op het actie-frame te
+  knippen (planner-default: start ~0.5–1s vóór de actie als `lead_in` het toelaat).
+  De grens is **betekenis, niet beeldkwaliteit**: toont de seconde ervóór een
+  conflicterende actie (hond springt vlak vóór het "rustig zitten"-venster), dan is
+  `lead_in: 0` — ook al loopt de film gewoon door.
 - **`takes`** — maakt de Line-2 story-edit (cuts kiezen) een lookup i.p.v. handwerk per
   render. `delivery` markeert retakes/asides die er nu handmatig uitgeknipt worden.
 - **`dogs.id_hint`** — continuïteit: een golden retriever in de talking-head en een
@@ -327,6 +333,101 @@ Script-zin (Lijn 2, IMG_2850): *"...pet your dog on the head..."*
 
 Zonder moments had stap 3 de héle clip als "aaien, rustig" gezien en was er
 willekeurig vanaf 0.0 geknipt — dat is het verschil tussen gokken en weten.
+
+## Bijlage — voorbeeld-dossier (gold standard voor de indexer)
+
+Fictieve maar representatieve 30s B-roll-clip: hond slalomt door de benen van de
+trainer, krijgt een snoepje, likt zijn neus, springt op, wordt rustig gecorrigeerd.
+Zó moet de indexer 'm documenteren:
+
+```jsonc
+{
+  "file_id": "voorbeeld", "name": "leg_weave_training.mp4",
+  "kind": "b_roll",
+  "duration": 30.2, "resolution": "1920x1080", "orientation": "landscape", "fps": 30,
+  "has_audio": true, "audio_quality": "clean",
+  "framing": {"distance": "medium", "camera": "static", "subject_position": "center", "punchin_max": 1.5},
+  "quality": {"exposure": "goed (bewolkt daglicht)", "sharpness": "goed", "overall": "usable"},
+  "setting": "garden", "people": "trainer",
+  "dogs": [{"desc": "border collie, zwart-wit, volwassen", "id_hint": "bc-1"}],
+
+  "summary": "Trainingsmoment in de tuin: trainer laat de hond een slalom door haar benen
+    doen en beloont met een snoepje. Direct na de beloning likt de hond zijn neus en
+    springt hij enthousiast tegen haar op; zij corrigeert rustig door zich af te wenden
+    en om een zit te vragen. Eindigt met de hond rustig zittend, borst-aai als afsluiting.",
+
+  "tags": ["medium", "static", "garden", "training-exercise", "giving-treat",
+           "jumping-up", "redirecting-attention", "settled"],
+
+  "moments": [
+    {"t": [0.0, 3.5],
+     "action": "hond staat klaar en kijkt op naar de trainer; zij pakt zijn aandacht met een snoepje in de hand",
+     "dog_behavior": ["handler-engagement", "eye-contact-checkin"],
+     "human_behavior": ["luring-with-treat"],
+     "valence": "positive", "lead_in": 0.0, "lead_out": 0.5, "best_frame_t": 2.0},
+
+    {"t": [3.5, 9.0],
+     "action": "hond slalomt twee keer vlot en gefocust door de benen van de trainer",
+     "dog_behavior": ["training-exercise"],
+     "human_behavior": ["hand-signal", "teaching-exercise"],
+     "valence": "positive", "lead_in": 1.5, "lead_out": 1.0, "best_frame_t": 6.0,
+     "proposed_tags": [{"tag": "leg-weave",
+       "why": "specifieke truc (slalom door benen); 'training-exercise' is te generiek om deze oefening later terug te vinden"}]},
+
+    {"t": [9.0, 11.5],
+     "action": "trainer geeft het snoepje; hond neemt het netjes aan",
+     "dog_behavior": ["being-rewarded"],
+     "human_behavior": ["giving-treat", "rewarding-calm-behavior"],
+     "valence": "positive", "lead_in": 1.0, "lead_out": 0.5, "best_frame_t": 10.2},
+
+    {"t": [11.5, 13.5],
+     "action": "hond likt nadrukkelijk zijn neus, direct na het snoepje",
+     "dog_behavior": ["lip-licking"],
+     "human_behavior": ["observing-dog"],
+     "valence": "neutral",
+     "valence_note": "neuslikken dírect na een snoepje is aflikken, geen stresssignaal —
+       NIET gebruiken als illustratie bij 'stress/kalmeersignalen' ondanks de tag-match",
+     "lead_in": 0.5, "lead_out": 0.5, "best_frame_t": 12.4},
+
+    {"t": [13.5, 18.0],
+     "action": "hond springt twee keer enthousiast tegen de trainer op",
+     "dog_behavior": ["jumping-up"],
+     "human_behavior": [],
+     "valence": "problem", "lead_in": 1.0, "lead_out": 0.0, "best_frame_t": 15.0,
+     "lead_note": "lead_out 0: correctie begint direct — wil je alléén het springen (probleem-illustratie), knip dan uiterlijk op 18.0"},
+
+    {"t": [18.0, 26.0],
+     "action": "trainer wendt zich rustig af, vraagt met gebaar en stem om een zit; hond gaat zitten",
+     "dog_behavior": ["sit"],
+     "human_behavior": ["redirecting-attention", "verbal-cue", "hand-signal"],
+     "valence": "positive", "lead_in": 0.0, "lead_out": 1.0, "best_frame_t": 23.0,
+     "lead_note": "lead_in 0 om betekenis, niet om beeld: de seconde ervóór is springen —
+       alleen meenemen als je bewust probleem→oplossing in één insert wilt (dan t 14.5–24)"},
+
+    {"t": [26.0, 30.2],
+     "action": "hond zit rustig en kijkt de trainer aan; zij aait zijn borst",
+     "dog_behavior": ["settled", "eye-contact-checkin"],
+     "human_behavior": ["petting-body"],
+     "valence": "positive", "lead_in": 0.0, "lead_out": 0.0, "best_frame_t": 28.0}
+  ]
+}
+```
+
+Wat dit dossier laat zien:
+- **Zeven momenten in 30 seconden** — de clip is voor zeven verschillende script-zinnen
+  bruikbaar, elk met een eigen knipvenster. Clip-niveau had hiervan één zin gemaakt.
+- **Zelfde tag, andere betekenis**: `lip-licking` is hier *neutral* (aflikken na snoepje)
+  met een expliciete waarschuwing — de valence + note voorkomen dat dit moment ooit een
+  "stress"-zin illustreert. Dát is de trainer-lens in de data.
+- **`proposed_tags` in actie**: leg-weave zit niet in het vocabulaire → voorstel met
+  motivatie, zonder de zoekbare tags te vervuilen.
+- **Wiggle room is betekenis-gedreven**: moment 6 heeft `lead_in: 0` terwijl de film
+  gewoon doorloopt — de seconde ervóór (springen) zou de "rustige correctie"-boodschap
+  breken. En de `lead_note` biedt de planner bewust de optie om juist wél
+  probleem→oplossing in één insert te tonen.
+- **Combinatie-queries werken**: "beloon rustig gedrag" → `giving-treat × positive` →
+  moment 3, knip 8.0–12.0 (lead_in 1.0 om in te glijden). "Springt je hond op?" →
+  `jumping-up × problem` → moment 5, knip 12.5–18.0.
 
 ## Waarom dit de kwaliteit fixt
 
