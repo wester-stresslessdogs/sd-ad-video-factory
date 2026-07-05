@@ -61,6 +61,7 @@ menu. Hieronder alles wat we kennen, met het retentie-effect (vocabulaire uit
 | **B-roll cutaway** (fullscreen/pip) | demonstration, proof, prop-change | ✅ `broll` |
 | **B-roll bridge** (over de las) | las verbergen + illustreren tegelijk | ✅ `broll bridge_cut` |
 | **Photo-snap** (stills + flits + klik) | pattern-interrupt, re-hook | ✅ `photo_snaps` |
+| **Dog-met-baasje-cutaway** (korte B-roll van de band) | re-hook via connectie | ✅ `broll` — vaak wármer dan foto-flits |
 | **Sound-cue** (sfx-accent op cut/reveal) | sound-cue (top-winner-device, ~@17%) | ✅ sfx-element (nu alleen sluiter-klik; menu mag groeien) |
 | **End-card reveal** | payoff → CTA | ✅ `end_card_*` |
 | **Kinetische captions / woord-emphasis** | emphasis, houdt het oog in beweging | ⚠️ **deels** — Creatomate kán word/line-animatie + per-woord kleur/scale; engine gebruikt nu platte captions → `[BACKLOG]` voor de rijke variant |
@@ -112,10 +113,15 @@ punch. Een sleutelwoord verdient nadruk in de caption.
 ### H4. Contrast & pattern-interrupt
 De aandacht dipt op voorspelbare momenten (na de hook, midden in de uitleg). Daar
 breek je het patroon — maar met een **menu**, niet steeds dezelfde truc. Een
-photo-snap, een sound-cue, een plotse cutaway, een register-punch: kies wat bij het
-moment past, en gebruik elk device **spaarzaam** (photo-snap max ~1×; grammar A5).
+photo-snap, een dog-met-baasje-cutaway, een sound-cue, een register-punch: kies wat
+bij het moment past, en gebruik elk device **spaarzaam** (photo-snap max ~1×; grammar A5).
 - *Dient:* pattern-interrupt, re-hook, callback.
-- *Defect:* óf een vlakte zonder interrupt, óf dezelfde truc herhaald tot gimmick.
+- *Defect:* óf een vlakte zonder interrupt, óf dezelfde truc herhaald tot gimmick, óf
+  een interrupt op een plek waar 'ie niet **hoort** — technisch mag ≠ hier thuis. Een
+  device dat niet klopt met het moment leest goedkoop (Ramon v9: de 43s-snap).
+- *Regel:* een interrupt moet **kloppen én raken** — het moment nodigt 'm uit (de
+  woorden + de beat) én het beeld verbindt (hond mét baasje/kijkend > willekeurig).
+  De render-judge (R3) beoordeelt dit op de échte mp4, niet op het plan.
 - *Engine:* het hele device-menu (§2). De kunst is de kéuze, niet het effect.
 
 ### H5. Emotionele boog
@@ -192,8 +198,21 @@ hier staat, plan je 't niet en zakt de poort er niet op.
 
 ---
 
+## Onderzoeks-frameworks (waar de QC-aanpak op leunt)
+- **VLM-as-a-judge** — een visie/audio-model dat de *gerenderde output* beoordeelt
+  tegen een rubric (niet het plan). Dit is de kern van de render-judge (§F): kijk +
+  luister naar de mp4, want de storende défecten (audio-tik, dubbele cut, timing,
+  relatability) bestaan pas in beweging + geluid. `review-packet` levert de compacte
+  input (frames + audio-scan) zodat één judge-pass volstaat.
+- **Retention-device-taxonomie** (`winner-patterns.md`) — sound-cue, direct-address,
+  reveal, pattern-interrupt, payoff… : het gedeelde vocabulaire tussen winner-analyse
+  (input) en onze montage (bouwen). De hefbomen H1-H5 mappen hierop.
+- **UGC-montageprincipes** — geen dode frames, cut-to-speech, versnellen naar de CTA,
+  contrast op de reveal. Verwerkt in H1/H5 en grammar A4.
+
 ## Verwijzingen
 - `edit-grammar.md` — de bindende regels (deze craft-noties zijn hun *waarom*).
-- `edit-grammar.md` §F — de creatieve poort die een plan hiertegen scoort.
+- `edit-grammar.md` §F — de render-judge die de mp4 hiertegen scoort.
+- `edit-grammar.md` B6 — `raw_cuts`/`pre_edited`: waar de bron zélf al knipt.
 - `knowledge/winner-patterns.md` — retention_device-vocabulaire + timing over de winners.
 - `knowledge/video-analysis-rubric.md` — hoe een winner geanalyseerd wordt (input-kant).

@@ -68,13 +68,23 @@ De kijker ziet honden en herinnert zich waarom die hier is: de band met een hond
 - **Huis-tool, stijl-bewust.** Niet winner-gedekt vereist; de winner-`edit_spec`
   bepaalt de smaak (kalme edit → 2 snaps, rustiger timing; punchy edit → 3 snaps,
   strak). Max ~1 groep per video — vaker en het wordt een gimmick.
-- **Still-keuze**: verschillende honden (variatie = "honden zoals de jouwe"), hond
-  duidelijk in beeld, positieve/neutrale lading, medium/close. Intentie-regel C3
-  geldt ook hier: de foto's moeten de zin kunnen beantwoorden. Elke still als frame
-  bekijken vóór gebruik (poort E2).
-- **Plaatsing**: binnen één cut (een las verstoppen is bridge-werk, C-regels), niet
-  over B-roll heen, telt mee als cutaway voor spreiding (C6). De aanbod/CTA-staart
-  blijft op haar gezicht (C1) — daar waarschuwt plan-check pas vanaf 20s.
+- **Twee vormen, kies de warmste.** De flits-foto's zijn de *snelle* variant; vaak
+  raakt een korte **B-roll-clip van een hond mét baasje** (de band in beweging) méér
+  dan losse foto's — minder "gimmick", meer connectie. Punchy winner → foto-flits;
+  warme/rustige boodschap → dog-met-baasje-B-roll. De flits is niet het doel, de
+  connectie is het (Ramon v9: "klik-flits ziet er goedkoop/blend uit").
+- **Still-/clip-keuze — relatability, niet variatie.** Niet "3 verschillende honden"
+  om het verschil; wél honden die de kíjker raken: hond mét baasje, hond die in de
+  camera/naar de mens kijkt, warme lading, medium/close. Willekeurige straathonden
+  lezen als stock. Intentie-regel C3 geldt: de beelden moeten de zin beantwoorden.
+  Elke keuze als frame bekijken (E2), en de plaatsing beoordeelt de render-judge (R3).
+- **Plaatsing moet KLOPPEN, niet alleen "passen".** Een kale strek ≥15s is nódig maar
+  niet genóeg — het moment moet het device *uitnodigen* (de woorden én de beat). Een
+  snap op een plek waar 'ie technisch mag maar niet hóórt, leest goedkoop (Ramon v9:
+  de 43s-snap zat op zo'n plek). Liever de attention-recapture wat vroeger, waar de
+  aandacht echt dipt en de copy 'm draagt. Binnen één cut (een las verstoppen is
+  bridge-werk), niet over B-roll heen, telt als cutaway (C6); de aanbod/CTA-staart
+  blijft op haar gezicht (C1).
 - **Techniek**: `photo_snaps` in het plan (`/ad-render` SKILL); SFX =
   `assets/sfx/camera-shutter.mp3` (public domain, zie `assets/sfx/README.md`).
 
@@ -112,6 +122,23 @@ ge-bridgede las.
 `focus_y` past bij waar zij in beeld staat (staand ≈ 0.35–0.42; knielend ≈ 0.5–0.6) —
 frames checken, niet gokken. De engine klemt de geometrie tegen zwarte randen;
 `scale` blijft ≤ `punchin_max`.
+
+### B6. 'Ruwe' footage is niet altijd ruw — ken de bron-cuts
+Een creator kan een opname al zélf gemonteerd hebben (slechte stukken eruit geknipt).
+Dan zit de bron vól interne cuts, en een montage-las of **contigue zoom-punch bovenóp
+zo'n bron-cut = een 'dubbele cut'** (twee discontinuïteiten op elkaar → hij springt).
+De index draagt dit: `raw_cuts` (bron-tijden, van `scene_cuts(adaptive=True)` /
+`render.py detect-cuts`) en `pre_edited`.
+
+- **`pre_edited: true` → geen enkel bron-segment is gegarandeerd continu.** Plan dan
+  **géén contigue zoom-punches** (die véronderstellen continuïteit die er niet is);
+  elke las is een echte knip en krijgt zijn XOR-wissel (B3). Dit beschermt óók tegen
+  de bron-cuts die de detector *mist* (motion-gemaskeerde cuts ontsnappen — best-effort).
+- **`raw_cuts` = gevaar-lijnen.** Leg een montage-las niet binnen ~0.5s van een
+  bron-cut; land er exact op (schone knip) of blijf eruit. Nooit een trim-venster
+  blind over een bron-cut heen (dan zit de dubbele cut ín je shot).
+- Detectie is best-effort (near-identieke-shot-cuts zitten op de ruisvloer); de
+  render-judge (§F, kijken) en de mens blijven de backstop.
 
 ---
 
@@ -172,12 +199,13 @@ naar boven — de engine stript ze alleen bij stapeling met de card).
 
 ---
 
-## E. De poorten vóór élke render (geen uitzonderingen)
+## E. De poorten (geen uitzonderingen)
 
-Drie poorten, oplopend in kosten, elk op minder kandidaten. **Allemaal op het plan —
-de render staat ná de poorten, niet ertussen.**
+Getrapt, oplopend in kosten. **Twee poorten vóór de render (op het plan), één erná (op
+de échte mp4).** De render is geen extra kost — die maak je tóch om te leveren; de
+render-judge kijkt naar díe ene render (niet 20 lus-renders).
 
-1. **`plan-check`** (mechanisch, gratis) — lint met exact de renderer-wiskunde:
+1. **`plan-check`** (mechanisch, gratis, vóór render) — lint met exact de renderer-wiskunde:
    ```bash
    .venv/bin/python .claude/skills/ad-render/render.py plan-check \
      --plan <pakket>/plan.json --captions output/transcripts/<file_id>.json
@@ -185,73 +213,77 @@ de render staat ná de poorten, niet ertussen.**
    Exit ≠ 0 → plan aanpassen, opnieuw. **Waarschuwingen zijn geen ruis**: elke ⚠
    los je op of verantwoord je expliciet in qc/brief. Nooit renderen met een
    onverklaarde ⚠.
-2. **Frames kijken** (goedkoop, gecacht) — voor élk gekozen B-roll-/photo-snap-venster
-   minimaal één frame uit het échte venster trekken (uit `output/.cache/<file_id>.src`)
-   en bekijken: klopt de inhoud met de bedoeling? De index is een wegwijzer, geen
-   waarheid. Fout beeld → ander moment kiezen én de index-fout melden in de brief.
-3. **Creatieve poort** (§F, tekst + gecachte stills) — is dit plan niet alleen correct
-   maar ook góéd? De director-review scoort het plan tegen `craft-reference.md` en
-   levert concrete fixes of groen licht. Pas na groen render je — één keer.
+2. **Frames kijken** (goedkoop, gecacht, vóór render) — voor élk gekozen
+   B-roll-/photo-snap-venster minimaal één frame uit het échte venster trekken (uit
+   `output/.cache/<file_id>.src`) en bekijken: klopt de inhoud met de bedoeling? De
+   index is een wegwijzer, geen waarheid. Fout beeld → ander moment kiezen én de
+   index-fout melden in de brief.
+3. **Creatieve poort — de render-judge** (§F, **ná één render**) — kijkt én luistert
+   naar de gerenderde mp4 (via `review-packet`) en scoort de belééfde kwaliteit. Dit is
+   de enige poort die render-artefacten ziet die het plan niet toont: audio-tikken,
+   dubbele cuts (zoom-punch/bron-cut), timing die niet klopt, foto's die niet raken.
+   🟢 → klaar; 🟡 → max 1-2 gerichte re-renders; 🔴 → mens/shoot-list.
+
+Poort 1+2 houden de render schoon (geen verspilde credits aan een kapot plan); poort 3
+vangt wat pas in beweging + geluid bestaat.
 
 ---
 
-## F. De creatieve poort — de director-review (bindend, kosten-bewust)
+## F. De render-judge — de creatieve poort (bindend, kosten-bewust)
 
-`plan-check` (E1) vangt kapot; frames (E2) vangen verkeerd beeld. Deze poort vangt
-**vlak** — een plan dat technisch klopt maar niet góéd is. De review speelt
-"creative director": scoort het plan tegen de vijf hefbomen van `craft-reference.md`
-en levert of groen licht, of een kleine set concrete fixes. Draait als `/ad-review`.
+`plan-check` (E1) vangt kapot; frames (E2) vangen verkeerd beeld op stills. Maar de
+défecten die een kijker écht stoort bestaan pas in beweging + geluid: een audio-tik,
+een dubbele cut, een device dat qua timing niet klopt, foto's die niet raken. Die zag
+een plan-review nooit. Deze poort **kijkt en luistert naar de gerenderde mp4**. Draait
+als `/ad-review`; leunt op `render.py review-packet`.
 
-### F1. De kosten-architectuur (dit is waarom de poort betaalbaar is)
-Dit doen we in bulk; de review mag niet ontsporen. Vijf harde regels:
+### F1. De kosten-architectuur (waarom render-niveau tóch betaalbaar is)
+De valkuil is niet "de render bekijken" — het is **20 keer renderen in een lus**. Die
+twee zijn niet hetzelfde. Vijf regels houden 't goedkoop:
 
-1. **Plan-niveau, niet render-niveau.** Beoordeel het *plan* (tekst) + de al-gecachte
-   stills — géén verse render. De render verlaat de loop: pas als het plan slaagt
-   render je één keer. Dit maakt render een vaste kost (1×/ad), niet een lus-kost.
-2. **Getrapt, oplopend duur.** plan-check (gratis) → deze poort (tekst + gecachte
-   stills, goedkoop) → één render → één visuele bevestiging. Nooit een dure trap op
-   een plan dat een goedkopere al zakt.
-3. **Harde cap: ≤ 2 herzieningen.** Nooit "tot perfect" — een creatieve rubric geeft
-   nooit vlekkeloos. De lat is *"goed genoeg om aan Ramon te tonen"*, niet autonoom
-   perfect.
-4. **Niet-convergentie → bail, niet nóg een poging.** Verbetert de score niet tussen
-   passes, óf vraagt de enige fix een effect dat de engine niet kan → **stop**. Route
-   naar `shoot-list.md` (ontbrekende footage) of leg 't voor aan Ramon met de vlek
-   benoemd. Niet-convergeren is informatie: de footage kán deze lat niet halen —
-   geen reden om door te branden.
-5. **Alleen engine-vandaag.** De rubric eist niets van de wishlist
-   (`craft-reference.md` §8). Ontbrekende capaciteit → wishlist-notitie in de brief,
-   **nooit** een fail. (Anders draait de loop eindeloos op iets wat we niet kunnen
-   renderen.)
+1. **Eén render, dan de judge — niet de render ín de lus.** Je rendert tóch om te
+   leveren; de judge kijkt naar díe ene render. Poort 1+2 (plan-check + frames) houden
+   dat plan schoon vóór de render, zodat die render geen verspilling is.
+2. **Het judge-packet is goedkoop.** `review-packet` trekt uit de bestaande mp4 de
+   frames rond elke las (PSNR = "verandert er iets?"), de snap/B-roll-frames, en scant
+   de output-audio — geen nieuwe render, geen credits, geen frame-per-seconde.
+3. **Harde cap: ≤ 1-2 gerichte re-renders.** Nooit "tot perfect". Alleen de ads die
+   zakken re-renderen, elk hooguit 1-2×. De lat is *"goed genoeg om aan Ramon te tonen"*.
+4. **Niet-convergentie → bail.** Verbetert het niet, óf vraagt de fix een effect dat de
+   engine niet kan → **stop**, verdict 🔴 (mens/shoot-list). Niet doorbranden.
+5. **Alleen engine-vandaag.** Eis niets van de wishlist (`craft-reference.md` §8).
+   Ontbrekende capaciteit → wishlist-notitie, nooit een fail.
 
-Goedkope input: gecachte stills (al getrokken bij E2), laag-res, alleen sleutelframes
-— geen render, geen frame-per-seconde. De craft-kennis staat één keer in
-`craft-reference.md`; de review *past 'm toe*, denkt 'm niet elke keer opnieuw uit.
+De craft-kennis staat één keer in `craft-reference.md`; de judge *past 'm toe*. En
+`raw_cuts`/`pre_edited` (B6) verschuiven werk naar vóór de render — hoe beter het plan
+de bron-cuts respecteert, hoe minder de judge afkeurt.
 
-### F2. De rubric — de vijf hefbomen + finish
-Scoor het plan per regel: **oordeel** (goed / vlak) + bij "vlak" een **concrete fix**
-gekoppeld aan een plan-veld. Alleen fixes met een engine-vandaag-device.
+### F2. De rubric — belééfde kwaliteit (kijk + luister naar de mp4)
+Loop het `review-packet` + de frames langs en scoor per regel: **oordeel** (goed / fout)
++ bij fout een **concrete fix** (plan-diff, engine-vandaag-device). De eerste drie zijn
+render-only — ze bestaan niet in het plan:
 
-| # | Hefboom | Vraag aan het plan |
+| # | Criterium | Wat de judge checkt (uit het packet + kijken/luisteren) |
 |---|---|---|
-| H1 | Ritme & pacing | Vallen cuts op spraak/adem? Dode lucht weg? Versnelt het richting de CTA? |
-| H2 | Beweging & energie | Nergens > ~15s pure talking-head zonder cutaway? Genoeg variatie in kader/cutaway/tekst? |
-| H3 | Emphasis & sturing | Springt elke sleutel-beat eruit (scale, directe aanspraak, sleutelwoord)? Of is alles even ver weg? |
-| H4 | Contrast & interrupt | Zit er een pattern-interrupt waar de aandacht dipt — en gevarieerd, niet dezelfde truc herhaald? |
-| H5 | Emotionele boog | Bouwt de scale-ladder naar de reveal en ademt 'ie erna? Of technisch net maar vlak? |
-| — | Finish & business | Safe-area/geen afsnijding, consistente stijl, CTA tot het eind, aanbod vertaald (ons product)? |
+| R1 | **Audio schoon** | `audio_spikes`: elke luister-kandidaat beluisteren. Een tik/plop/klap = **blokkerend**, wegknippen. (Een luide woord-onset is oké — mechanisch niet te scheiden, dus luisteren.) |
+| R2 | **Cuts vloeiend** | `boundaries`: harde cut met hoge PSNR = "niks verandert" (jump/zinloos); contigue zoom-punch met lage PSNR = leest als jump. `raw_cuts_visible` + `unexpected_scene_changes`: een bron-cut of dubbele cut die doorschemert (B6). |
+| R3 | **Device hoort hier** | `cutaway_frames`: klopt de tíming van elke photo-snap/B-roll met déze video, of voelt 't geplakt? En raken de beelden (relatability: hond mét baasje/kijkend, niet willekeurig)? |
+| H1 | Ritme & pacing | Cuts op spraak/adem, dode lucht weg, versnelt naar de CTA? |
+| H2 | Beweging & energie | Nergens > ~15s kale talking-head? Genoeg variatie? |
+| H3 | Emphasis & sturing | Springt elke sleutel-beat eruit (scale/aanspraak/sleutelwoord)? |
+| H4 | Contrast & interrupt | Pattern-interrupt waar de aandacht dipt — gevarieerd, niet herhaald? |
+| H5 | Emotionele boog | Bouwt de scale-ladder naar de reveal en ademt 'ie erna? |
+| — | Finish & business | Safe-area/geen afsnijding, consistente stijl, CTA tot 't eind, aanbod vertaald? |
 
-Elke "vlak" → één regel: *wat* is vlak, *welk device* lost het op, *welk plan-veld*
-verandert. Geen vage smaak-opmerkingen; alleen fixes die een plan-diff zijn.
+Elke fout → één regel: *wat*, *welk device lost het op*, *welk plan-veld* verandert.
 
 ### F3. Het verdict
 De review sluit met één van drie:
-- **🟢 GROEN** — plan is goed genoeg; render. (Wishlist-noties mogen mee als
-  toekomst-notitie, blokkeren niet.)
-- **🟡 HERZIEN** — kleine set concrete fixes (elk een plan-diff). Pas toe, draai
-  plan-check opnieuw, review één keer. Max 2× (F1.3).
+- **🟢 GROEN** — render is goed genoeg; klaar. (Wishlist-noties mogen mee, blokkeren niet.)
+- **🟡 HERZIEN** — kleine set concrete fixes (elk een plan-diff). Pas toe op het plan,
+  `plan-check` opnieuw, **re-render**, judge één keer. Max 1-2× (F1.3).
 - **🔴 MENS/SHOOT-LIST** — niet convergeerbaar met deze footage (F1.4). Benoem de vlek,
-  route ontbrekende footage naar `shoot-list.md`, leg voor aan Ramon. Niet renderen
+  route ontbrekende footage naar `shoot-list.md`, leg voor aan Ramon. Niet leveren
   "want het moet af" — liever eerlijk melden.
 
 Output = `output/ads/<pakket>/director-notes.md` (de review als leesbaar document,

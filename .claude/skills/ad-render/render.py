@@ -24,6 +24,7 @@ CLI:
 """
 import argparse
 import json
+import re
 import subprocess
 import sys
 import time
@@ -821,6 +822,132 @@ def _audio_levels(mp3: Path) -> list[tuple[float, float]]:
     return levels
 
 
+def _render_audio_scan(media: Path, win: float = 0.5) -> list[tuple[float, float, float]]:
+    """Peak+RMS (dBFS) per venster uit de OUTPUT-audio — grond-waarheid voor wat de
+    kijker écht hoort (spraak + sfx + muziek samen). Basis voor de anomalie-detectie
+    in de render-judge. Vereist ffmpeg."""
+    cmd = ["ffprobe", "-v", "error", "-f", "lavfi",
+           "-i", f"amovie={media},astats=metadata=1:reset=1:length={win}",
+           "-show_entries",
+           "frame=pts_time:frame_tags=lavfi.astats.Overall.RMS_level,lavfi.astats.Overall.Peak_level",
+           "-of", "csv=p=0"]
+    out = subprocess.run(cmd, capture_output=True, text=True).stdout
+    wins = []
+    for line in out.splitlines():
+        p = line.split(",")
+        try:
+            a, b = float(p[1]), float(p[2])
+            # kolom-volgorde van astats is niet gegarandeerd; peak ≥ rms per definitie
+            wins.append((float(p[0]), min(a, b), max(a, b)))  # t, rms, peak
+        except (ValueError, IndexError):
+            continue
+    return wins
+
+
+def _flag_audio_spikes(wins: list[tuple[float, float, float]],
+                       exclude: list[tuple[float, float]] | None = None,
+                       crest_db: float = 22.0, floor_db: float = -30.0) -> list[dict]:
+    """Transients (klik/plop/bonk) die de kijker hoort: een venster met een PIEK die
+    ver boven de LOKALE RMS-basislijn (±1s buren) uitsteekt, in een verder rustige
+    omgeving. Lokale crest onderscheidt een losse tik van normale spraak-pieken (die
+    boven een even luide omgeving zitten). `exclude` = geplande sfx-vensters
+    (photo-snap-kliks) — die zijn bedoeld, geen anomalie. Blokkerend."""
+    exclude = exclude or []
+    hits = []
+    for i, (t, rms, pk) in enumerate(wins):
+        neigh = [w[1] for w in wins if abs(w[0] - t) <= 1.0 and w[1] > -90]
+        local = sorted(neigh)[len(neigh) // 2] if neigh else -60.0  # lokale mediaan-RMS
+        if not (pk - local >= crest_db and pk >= floor_db):
+            continue
+        if any(a - 0.25 <= t <= b + 0.25 for a, b in exclude):
+            continue  # geplande sfx — bedoeld
+        # Isolatie: een échte transient (klik/plop) valt daarna meteen terug; een
+        # spraak-onset blíjft luid. Vraag dat de piek 0.12-0.45s later ≥ 10dB zakt —
+        # anders is het gewoon een woord dat begint (geen anomalie). Dit onderscheidt
+        # een tik van spraak; near-spraak-niveau blijft daardoor onbeslist → best-effort.
+        after = [w[2] for w in wins if t + 0.12 <= w[0] <= t + 0.45]
+        if after and max(after) > pk - 10.0:
+            continue
+        hits.append({"t": round(t, 2), "peak": round(pk, 1),
+                     "local_rms": round(local, 1), "crest": round(pk - local, 1)})
+    merged = []
+    for h in hits:
+        if merged and h["t"] - merged[-1]["t"] <= 0.6:
+            continue
+        merged.append(h)
+    return merged
+
+
+def _scene_scores(media: Path) -> list[tuple[float, float]]:
+    """(tijd, scdet-score) per frame via ffmpeg — ruwe visuele-verschil-curve."""
+    out = subprocess.run(["ffmpeg", "-i", str(media), "-vf", "scdet=threshold=1",
+                          "-f", "null", "-"], capture_output=True, text=True).stderr
+    pts = []
+    for m in re.finditer(r"scd\.score:\s*([0-9.]+),\s*lavfi\.scd\.time:\s*([0-9.]+)", out):
+        pts.append((float(m.group(2)), float(m.group(1))))
+    pts.sort()
+    return pts
+
+
+def scene_cuts(media: Path, threshold: float = 22.0, adaptive: bool = False) -> list[dict]:
+    """Scene-/shot-wissels in een clip via ffmpeg-scdet. Twee modi:
+
+    - **absoluut** (`adaptive=False`, default): scores boven `threshold` = een harde
+      knip (camera-herstart, totaal ander shot). Render-backstop: onverwachte
+      discontinuïteiten die niet op een geplande las vallen.
+    - **adaptief** (`adaptive=True`): lokale pieken bóven de eigen bewegings-basislijn.
+      Vangt de subtiele knippen die een creator zélf in 'ruwe' footage maakte — cuts
+      TUSSEN bijna-identieke talking-head-shots scoren laag (~8-10) en verdrinken onder
+      een absolute drempel, maar steken lokaal uit boven de beweging (~3-5). Dit is de
+      INDEX-modus: `raw_cuts` per clip, zodat de planner weet waar de bron al knipt
+      (edit-grammar B6 — een montage-las of 'contigue' zoom-punch bovenóp een ruwe cut =
+      'dubbele cut'; de bron is dáár niet continu)."""
+    pts = _scene_scores(media)
+    cuts, last = [], -9.0
+    if not adaptive:
+        for t, score in pts:
+            if score >= threshold and t - last > 0.5:
+                cuts.append({"t": round(t, 2), "score": round(score, 1)})
+                last = t
+        return cuts
+    for i, (t, score) in enumerate(pts):
+        neigh = [s for tt, s in pts if abs(tt - t) <= 2.0]
+        base = sorted(neigh)[len(neigh) // 2] if neigh else 0.0      # lokale mediaan = beweging
+        local = [s for tt, s in pts if abs(tt - t) <= 0.4]
+        is_peak = score >= max(local) if local else True
+        # Hazard-lijst: bias naar recall. Een gemíste ruwe cut = een onzichtbare
+        # dubbele-cut-val; een extra kandidaat = de planner is er alleen iets
+        # voorzichtiger. Vandaar de milde drempel (score ≥ 6.8 én ≥ 1.3× de lokale
+        # bewegings-basislijn). Near-identieke-shot-cuts zitten op de ruisvloer —
+        # dit is best-effort; de render-judge (kijken) + mens blijven de backstop.
+        if is_peak and score >= 6.8 and score >= 1.3 * max(base, 1.0) and t - last > 0.6:
+            cuts.append({"t": round(t, 2), "score": round(score, 1)})
+            last = t
+    return cuts
+
+
+def _psnr(a: Path, b: Path) -> float:
+    """Gemiddelde PSNR (dB) tussen twee frames via ffmpeg — hoog = bijna identiek."""
+    out = subprocess.run(["ffmpeg", "-i", str(a), "-i", str(b),
+                          "-filter_complex", "psnr", "-f", "null", "-"],
+                         capture_output=True, text=True).stderr
+    m = re.search(r"average:([0-9.]+|inf)", out)
+    if not m:
+        return 0.0
+    return float("inf") if m.group(1) == "inf" else float(m.group(1))
+
+
+def extract_render_frame(render: Path, t: float, tag: str, out_dir: Path) -> Path:
+    """Trek één frame uit de GERENDERDE mp4 op output-tijd t (voor de render-judge)."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    f = out_dir / f"{tag}.jpg"
+    if not f.exists():
+        subprocess.run(["ffmpeg", "-y", "-ss", f"{max(0.0, t):.3f}", "-i", str(render),
+                        "-frames:v", "1", "-q:v", "3", str(f)],
+                       check=True, capture_output=True)
+    return f
+
+
 def _plausible_dur(word: str) -> float:
     """Ruwe max-spreekduur van een woord. Whisper rekt woord-vensters op over
     niet-spraak (kuch/lach/aanloop) — een 4-letterwoord van 1.7s is verdacht."""
@@ -1062,6 +1189,153 @@ def cmd_extract_still(args):
     print(still)
 
 
+def cmd_review_packet(args):
+    """Bouwt het render-judge-packet (edit-grammar §F3): uit de GERENDERDE mp4 de frames
+    rond elke las (PSNR-paar = 'verandert er visueel iets op de knip?'), de snap/B-roll-
+    frames, en een output-audio-scan op transients. Goedkoop — de render bestaat al, dit
+    maakt er geen nieuwe. De judge (Claude) bekijkt de frames + leest dit en scoort §F2.
+    Output = <render-dir>/review/packet.json + frames/."""
+    render = Path(args.render)
+    plan = json.loads(Path(args.plan).read_text())
+    transcript = json.loads(Path(args.captions).read_text())
+    cuts = cuts_from_plan(plan, transcript)
+    _, cut_timeline, total = build_talking_head({"id": "x"}, "url", cuts)
+    out_dir = Path(args.out) if args.out else render.parent / "review"
+    frames_dir = out_dir / "frames"
+
+    # cutaway-spans (B-roll + photo-snaps) + geplande sfx-vensters
+    covers, sfx_windows, snap_frames = [], [], []
+    for i, p in enumerate(plan.get("broll", [])):
+        t, _ = resolve_insert_time(p, cut_timeline, transcript, i)
+        if t is None:
+            continue
+        d = min(p.get("duration", 3.5), max(0.5, total - t))
+        covers.append((t, t + d))
+        mid = extract_render_frame(render, t + d / 2, f"broll{i+1}", frames_dir)
+        snap_frames.append({"kind": "broll", "n": i + 1, "t": round(t + d / 2, 2), "frame": str(mid)})
+    for gi, g in enumerate(plan.get("photo_snaps", [])):
+        t, _ = resolve_insert_time(g, cut_timeline, transcript, gi)
+        if t is None:
+            continue
+        snaps = g.get("snaps", [])
+        sd = float(g.get("snap_duration", 0.55))
+        d = len(snaps) * sd
+        covers.append((t, t + d))
+        if g.get("sfx", True):
+            sfx_windows.append((t, t + d))
+        for si in range(len(snaps)):
+            st = t + si * sd + sd * 0.5  # midden van elke snap-still
+            f = extract_render_frame(render, st, f"snap{gi+1}_{si+1}", frames_dir)
+            snap_frames.append({"kind": "snap", "group": gi + 1, "idx": si + 1,
+                                "t": round(st, 2), "frame": str(f)})
+
+    def _covered(tb):
+        return any(a - 0.15 <= tb <= b + 0.15 for a, b in covers)
+
+    # 1. Las-frames + PSNR: verandert er visueel iets op de knip? (hoog = bijna
+    #    identiek = jump/dubbele-cut of een zinloze knip — edit-grammar B3 'niks verandert')
+    boundaries = []
+    for i in range(1, len(cuts)):
+        B = cut_timeline[i][0]
+        contiguous = abs(cuts[i-1]["trim_start"] + cuts[i-1]["trim_duration"]
+                         - cuts[i]["trim_start"]) < 0.05
+        covered = _covered(B)
+        entry = {"las": i, "t": round(B, 2), "contiguous": contiguous, "covered": covered}
+        if not covered:
+            fa = extract_render_frame(render, B - 0.07, f"las{i}_pre", frames_dir)
+            fb = extract_render_frame(render, B + 0.07, f"las{i}_post", frames_dir)
+            entry["psnr"] = round(_psnr(fa, fb), 1)
+            entry["pre"], entry["post"] = str(fa), str(fb)
+        boundaries.append(entry)
+
+    # 2. Output-audio: transients (klik/plop/bonk), geplande sfx uitgezonderd
+    spikes = _flag_audio_spikes(_render_audio_scan(render), exclude=sfx_windows)
+
+    # 3. Ruwe cuts van de bron die ZICHTBAAR in de output zitten (edit-grammar B6): de
+    #    creator knipte de 'ruwe' take al — een montage-las/zoom-punch bovenóp zo'n ruwe
+    #    cut = 'dubbele cut'. Bron-tijden → output via cut_timeline.
+    src_id = transcript.get("source")
+    raw = []
+    idx = ROOT / "knowledge" / "footage-index.json"
+    if src_id and idx.exists():
+        raw = json.loads(idx.read_text()).get("clips", {}).get(src_id, {}).get("raw_cuts", [])
+    boundary_ts = [b["t"] for b in boundaries]
+    raw_visible = []
+    for tl0, s0, s1 in cut_timeline:
+        for rc in raw:
+            if s0 <= rc["t"] <= s1:
+                ot = round(tl0 + (rc["t"] - s0), 2)
+                near = min((abs(ot - bt) for bt in boundary_ts), default=9.0)
+                raw_visible.append({"output_t": ot, "src_t": rc["t"],
+                                    "near_las_dt": round(near, 2), "compound": near < 0.5})
+
+    # 4. Backstop: onverwachte harde scene-wissels — niet op een geplande las én niet
+    #    BINNEN een cutaway (photo-snap-flitsen scoren hoog maar zijn bedoeld).
+    def _in_cover(tt):
+        return any(a - 0.3 <= tt <= b + 0.3 for a, b in covers)
+    unexpected = [sc for sc in scene_cuts(render, threshold=25.0)
+                  if not _in_cover(sc["t"]) and all(abs(sc["t"] - bt) > 0.5 for bt in boundary_ts)]
+
+    packet = {"render": str(render), "total": round(total, 1), "boundaries": boundaries,
+              "audio_spikes": spikes, "raw_cuts_visible": raw_visible,
+              "unexpected_scene_changes": unexpected, "cutaway_frames": snap_frames,
+              "frames_dir": str(frames_dir)}
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "packet.json").write_text(json.dumps(packet, indent=2))
+
+    HIGH_PSNR, LOW_PSNR = 22.0, 17.0
+    print(f"Render-packet: {total:.1f}s · {len(boundaries)} lassen · {len(snap_frames)} cutaway-frames")
+    print(f"  frames → {frames_dir}")
+    for b in boundaries:
+        if "psnr" not in b:
+            print(f"  las {b['las']} @ {b['t']:.1f}s — verstopt door cutaway (overgeslagen)")
+            continue
+        flag = ""
+        if b["contiguous"] and b["psnr"] < LOW_PSNR:
+            flag = "  ⚠ contigue zoom-punch met grote sprong = leest als JUMP/dubbele cut"
+        elif not b["contiguous"] and b["psnr"] >= HIGH_PSNR:
+            flag = "  ⚠ WEINIG VERANDERING (jump-cut/stutter of zinloze knip)"
+        kind = "contigue zoom-punch" if b["contiguous"] else "harde cut"
+        print(f"  las {b['las']} @ {b['t']:.1f}s — {kind}, PSNR {b['psnr']}{flag}")
+    if raw_visible:
+        print(f"\n✂️  {len(raw_visible)} RUWE cut(s) van de bron zichtbaar in de output (B6):")
+        for r in raw_visible:
+            c = " — DUBBELE CUT (montage-las < 0.5s ernaast)" if r["compound"] else ""
+            print(f"  @ output {r['output_t']:.1f}s (bron {r['src_t']:.1f}s){c}")
+    if unexpected:
+        print(f"\n🎬 {len(unexpected)} onverwachte scene-wissel(s) (ruwe cut schemert door / artefact):")
+        for u in unexpected:
+            print(f"  @ {u['t']:.1f}s (score {u['score']})")
+    if spikes:
+        print(f"\n🔊 {len(spikes)} audio-luister-kandidaat(en) — een tik/plop óf een luide "
+              f"woord-onset in een stille strek. Mechanisch niet te scheiden → de "
+              f"render-judge/mens beluistert en knipt bij anomalie (blokkerend als 't een klap is):")
+        for s in sorted(spikes, key=lambda x: -x["crest"])[:8]:
+            print(f"  @ {s['t']:.1f}s — piek {s['peak']}dB, {s['crest']}dB boven lokale RMS")
+    else:
+        print("\n🔊 geen audio-luister-kandidaten")
+    print(f"\npacket → {out_dir / 'packet.json'}  — nu de render-judge: bekijk de frames, scoor §F2")
+
+
+def cmd_detect_cuts(args):
+    """Interne cuts in een clip (edit-grammar B6). Default adaptief — vangt de subtiele
+    knippen die een creator zélf in 'ruwe' footage maakte. Draai dit bij het indexeren:
+    de planner mag geen las of 'contigue' zoom-punch bovenóp een ruwe cut leggen."""
+    src = args.source if Path(args.source).exists() else CACHE_DIR / f"{args.source}.src"
+    if not Path(src).exists():
+        print(f"→ download {args.source} via SA...", file=sys.stderr)
+        drive.download(args.source, Path(src))
+    cuts = scene_cuts(Path(src), adaptive=not args.hard, threshold=args.threshold)
+    print(json.dumps(cuts, indent=2))
+    dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries",
+                "format=duration", "-of", "csv=p=0", str(src)],
+                capture_output=True, text=True).stdout or 0)
+    pre_edited = len(cuts) >= 3 and dur > 0 and len(cuts) / dur > 0.03  # > ~1 cut / 30s
+    print(f"{len(cuts)} interne cut(s) over {dur:.0f}s — "
+          f"{'VOOR-GEMONTEERD (pre_edited=true): behandel met zorg' if pre_edited else 'grotendeels schoon'}",
+          file=sys.stderr)
+
+
 # ── CLI ──────────────────────────────────────────────────────────────────────────
 def main():
     ap = argparse.ArgumentParser(description="/ad-render engine")
@@ -1091,6 +1365,19 @@ def main():
     es.add_argument("--source", required=True, help="Drive file_id | URL | lokaal pad")
     es.add_argument("--t", type=float, required=True, help="Bron-seconde van het frame")
     es.set_defaults(func=cmd_extract_still)
+
+    rp = sub.add_parser("review-packet", help="Bouw het render-judge-packet uit een gerenderde mp4 (las-frames + PSNR + audio-scan)")
+    rp.add_argument("--render", required=True, help="De gerenderde ad.mp4")
+    rp.add_argument("--plan", required=True)
+    rp.add_argument("--captions", required=True, help="Transcript-JSON met word-timestamps")
+    rp.add_argument("--out", help="Output-dir (default: <render-dir>/review)")
+    rp.set_defaults(func=cmd_review_packet)
+
+    dc = sub.add_parser("detect-cuts", help="Interne cuts in ruwe footage (adaptief) — voor de footage-index (edit-grammar B6)")
+    dc.add_argument("--source", required=True, help="Drive file_id | lokaal pad")
+    dc.add_argument("--hard", action="store_true", help="Alleen harde scene-wissels (absolute drempel) i.p.v. adaptief")
+    dc.add_argument("--threshold", type=float, default=22.0, help="Drempel voor --hard modus")
+    dc.set_defaults(func=cmd_detect_cuts)
 
     args = ap.parse_args()
     args.func(args)

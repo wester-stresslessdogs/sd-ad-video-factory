@@ -365,6 +365,30 @@ def walk_videos(folder_id: str, exclude: set[str]) -> list[dict]:
     return out
 
 
+def raw_cuts(src: Path) -> list[dict]:
+    """Interne cuts in 'ruwe' footage (edit-grammar B6): een creator kan de opname al
+    gemonteerd hebben (slechte stukken eruit geknipt). Adaptieve lokale-piek-detectie op
+    de scdet-curve — cuts TUSSEN bijna-identieke talking-head-shots scoren laag (~8-10)
+    maar steken lokaal uit boven de beweging (~3-5). Best-effort: motion-gemaskeerde cuts
+    kunnen ontsnappen → daarom telt vooral de pre_edited-vlag (is die true, dan behandelt
+    de planner de héle clip als gesplitst: geen contigue zoom-punches, elke las is een
+    echte knip). Canonieke tuning: render.py scene_cuts(adaptive=True)."""
+    out = subprocess.run(["ffmpeg", "-i", str(src), "-vf", "scdet=threshold=1",
+                          "-f", "null", "-"], capture_output=True, text=True).stderr
+    pts = sorted((float(m.group(2)), float(m.group(1))) for m in
+                 re.finditer(r"scd\.score:\s*([0-9.]+),\s*lavfi\.scd\.time:\s*([0-9.]+)", out))
+    cuts, last = [], -9.0
+    for t, score in pts:
+        neigh = sorted(s for tt, s in pts if abs(tt - t) <= 2.0)
+        base = neigh[len(neigh) // 2] if neigh else 0.0
+        local = [s for tt, s in pts if abs(tt - t) <= 0.4]
+        if score >= (max(local) if local else 0) and score >= 6.8 and \
+           score >= 1.3 * max(base, 1.0) and t - last > 0.6:
+            cuts.append({"t": round(t, 2), "score": round(score, 1)})
+            last = t
+    return cuts
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────────
 def index_one(f: dict, tax: dict) -> tuple[dict, list]:
     src = local_source(f)
@@ -402,6 +426,11 @@ def index_one(f: dict, tax: dict) -> tuple[dict, list]:
     if v["kind"] == "talking_head" and transcript:
         entry["transcript_ref"] = str(TRANSCRIPTS_DIR.relative_to(ROOT) / f"{f['id']}.json")
         entry["takes"] = v["takes"]
+        rc = raw_cuts(src)  # edit-grammar B6 — waar knipt de bron zélf al?
+        if rc:
+            entry["raw_cuts"] = rc
+            entry["pre_edited"] = (len(rc) >= 3 and info["duration"] > 0
+                                   and len(rc) / info["duration"] > 0.03)
     return entry, proposals
 
 
