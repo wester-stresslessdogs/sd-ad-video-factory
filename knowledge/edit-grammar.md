@@ -53,6 +53,31 @@ Rustige delivery mag rustig blijven — maar stiltes waarin niets gebeurt zijn g
 zijn wissel via B3). Snelle cuts op een kalme delivery ogen nep: het tempo van de
 **opname** stuurt de montage, niet het tempo van de winner.
 
+### A5. Attention-recapture: de photo-snap (huis-tool, max ~1× per video)
+Praat-zware video's (veel talking-head, weinig cutaways) lekken aandacht. De
+**photo-snap** haalt de kijker terug: 2-3 stills van verschíllende honden als snelle
+"foto's" — witte flits + sluiter-klik per snap (~0.55s per still), spraak loopt door.
+De kijker ziet honden en herinnert zich waarom die hier is: de band met een hond.
+
+- **Trigger = tempo én woorden, allebei.** Alleen inzetten waar (a) de kijker te lang
+  alléén de talking-head zag (≥ ~15s zonder cutaway — punches tellen niet; plan-check
+  waarschuwt) én (b) ze iets zegt dat de honden visueel kunnen beantwoorden ("dogs",
+  "your dog", "communicating", "dog guardians like you"). Het tempo bepaalt óf, de
+  woorden bepalen wáár. Geen passende zin in de kale strek → geen snap (geen
+  decoratie).
+- **Huis-tool, stijl-bewust.** Niet winner-gedekt vereist; de winner-`edit_spec`
+  bepaalt de smaak (kalme edit → 2 snaps, rustiger timing; punchy edit → 3 snaps,
+  strak). Max ~1 groep per video — vaker en het wordt een gimmick.
+- **Still-keuze**: verschillende honden (variatie = "honden zoals de jouwe"), hond
+  duidelijk in beeld, positieve/neutrale lading, medium/close. Intentie-regel C3
+  geldt ook hier: de foto's moeten de zin kunnen beantwoorden. Elke still als frame
+  bekijken vóór gebruik (poort E2).
+- **Plaatsing**: binnen één cut (een las verstoppen is bridge-werk, C-regels), niet
+  over B-roll heen, telt mee als cutaway voor spreiding (C6). De aanbod/CTA-staart
+  blijft op haar gezicht (C1) — daar waarschuwt plan-check pas vanaf 20s.
+- **Techniek**: `photo_snaps` in het plan (`/ad-render` SKILL); SFX =
+  `assets/sfx/camera-shutter.mp3` (public domain, zie `assets/sfx/README.md`).
+
 ---
 
 ## B. Cuts & lassen (mechanisch — plan-check dwingt dit af)
@@ -126,7 +151,9 @@ misleidende B-roll.
 ≥ 4s haar-in-beeld tussen inserts; nooit > 6s aaneengesloten uit beeld; richtsnoer
 ~één insert per 10–15s (aanwezig, niet overladen). De talking-head vestigt zich
 eerst (~2s) vóór de eerste insert — dankzij C2 mag dat al tijdens de eerste zin
-(gebruik `offset`).
+(gebruik `offset`). **Andersom geldt ook**: ≥ ~15s alleen talking-head (staart:
+20s) = aandacht lekt — overweeg B-roll of een photo-snap (A5); plan-check
+waarschuwt op zulke kale strekken. Photo-snaps tellen mee als cutaway.
 
 ---
 

@@ -79,11 +79,20 @@ def compress_under_limit(src: Path, dst: Path, limit: int = SIZE_LIMIT) -> Path:
     return dst  # laatste poging; best effort
 
 
+MIN_BANDWIDTH_PROBE = 2 * 1024 * 1024  # onder ~2 MB meet je latency, geen bandbreedte
+
+
 def _serves_fast(url: str, mb: float = 3.0, min_bps: int = 400_000) -> bool:
     """Kan Creatomate dit tempo aan? Download de eerste MB's en meet. Catbox bleek
     2026-07-04 gedegradeerd (~50 KB/s → render-fail 'didn't reply in time'); deze
-    probe voorkomt dat we een trage URL doorgeven en een render verbranden."""
+    probe voorkomt dat we een trage URL doorgeven en een render verbranden.
+
+    Kleine bestanden (< ~2 MB: stills, sfx, flash) meet je NIET op bandbreedte — dan
+    domineert de verbindings-latency (een paar honderd bytes in 0,3s ≈ 'te traag'
+    terwijl de host prima is) én een klein bestand veroorzaakt sowieso nooit een
+    Creatomate-timeout. Voor die alleen bereikbaarheid checken (status + bytes binnen)."""
     want = int(mb * 1024 * 1024)
+    reachability_only = want < MIN_BANDWIDTH_PROBE
     try:
         t0 = time.time()
         got = 0
@@ -93,10 +102,24 @@ def _serves_fast(url: str, mb: float = 3.0, min_bps: int = 400_000) -> bool:
                 got += len(chunk)
                 if got >= want:
                     break
+        if reachability_only:
+            return got > 0
         dt = max(time.time() - t0, 0.01)
         return got >= want * 0.9 and got / dt >= min_bps
     except requests.RequestException:
         return False
+
+
+def _up_uguu(path: Path) -> tuple[str, float | None]:
+    with open(path, "rb") as fh:
+        r = requests.post("https://uguu.se/upload",
+                          files={"files[]": (path.name, fh, "video/mp4")}, timeout=900)
+    data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+    files = (data.get("files") or []) if isinstance(data, dict) else []
+    url = files[0].get("url") if files else ""
+    if not url or not url.startswith("http"):
+        raise RuntimeError(f"uguu {r.status_code}: {r.text[:120]}")
+    return url, time.time() + 2.7 * 3600  # retentie 3u; wij verversen ruim ervóór
 
 
 def _up_0x0(path: Path) -> tuple[str, float | None]:
@@ -133,16 +156,20 @@ def _up_catbox(path: Path) -> tuple[str, float | None]:
     return url, None  # permanent
 
 
-def upload_public(path: Path) -> tuple[str, float | None]:
+def upload_public(path: Path, probe_mb: float = 3.0) -> tuple[str, float | None]:
     """Upload naar een publieke host en geef (url, expires_epoch|None). Probeert hosts
-    in volgorde en accepteert alleen een URL die de snelheids-probe haalt. Voor
-    productie: vervang door eigen R2/S3 (stabiel, eigen beheer) — één functie."""
+    in volgorde en accepteert alleen een URL die de snelheids-probe haalt (`probe_mb`
+    schaalt mee voor kleine bestanden). Voor productie: vervang door eigen R2/S3
+    (stabiel, eigen beheer) — één functie."""
     errors = []
-    for name, up in (("0x0.st", _up_0x0), ("tmpfiles.org", _up_tmpfiles), ("catbox", _up_catbox)):
+    # uguu eerst (getest 2026-07-05: ~7,8 MB/s waar 0x0.st offline is en catbox ~78 KB/s
+    # kroop). 0x0.st blijft als kandidaat mocht het terugkomen; catbox/tmpfiles als vangnet.
+    for name, up in (("uguu.se", _up_uguu), ("0x0.st", _up_0x0),
+                     ("tmpfiles.org", _up_tmpfiles), ("catbox", _up_catbox)):
         try:
             print(f"→ Upload naar {name}...", file=sys.stderr)
             url, expires = up(path)
-            if _serves_fast(url):
+            if _serves_fast(url, mb=probe_mb):
                 return url, expires
             errors.append(f"{name}: te traag")
             print(f"  {name} serveert te traag — volgende host.", file=sys.stderr)
@@ -169,6 +196,23 @@ def host_file(file_id: str) -> str:
     print(f"→ Upload {small.stat().st_size/1e6:.0f} MB naar publieke host...", file=sys.stderr)
     url, expires = upload_public(small)
     cache[file_id] = {"url": url, "size": small.stat().st_size, "expires": expires}
+    HOST_CACHE.write_text(json.dumps(cache, indent=2))
+    return url
+
+
+def host_local(path: Path, key: str) -> str:
+    """Host een klein lokaal bestand (still/sfx/flash) via de host-keten, gecachet op
+    `key` in hosted.json. De snelheids-probe schaalt mee met de bestandsgrootte."""
+    cache = json.loads(HOST_CACHE.read_text()) if HOST_CACHE.exists() else {}
+    size_mb = path.stat().st_size / 1e6
+    entry = cache.get(key)
+    if entry:
+        expired = entry.get("expires") and time.time() > entry["expires"] - 300
+        if not expired and _serves_fast(entry["url"], mb=size_mb * 0.9, min_bps=50_000):
+            return entry["url"]
+    url, expires = upload_public(path, probe_mb=size_mb * 0.9)
+    cache[key] = {"url": url, "size": path.stat().st_size, "expires": expires}
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
     HOST_CACHE.write_text(json.dumps(cache, indent=2))
     return url
 
@@ -487,6 +531,72 @@ def build_broll(broll_tpl: dict, plan: dict, cut_timeline: list,
     return out
 
 
+SFX_SHUTTER = ROOT / "assets" / "sfx" / "camera-shutter.mp3"
+
+
+def extract_still(file_id: str, t: float) -> Path:
+    """Trek één frame uit de gecachte bron als jpg-'foto' (gecachet op id+tijd)."""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    still = CACHE_DIR / f"still_{file_id}_{t:.1f}.jpg"
+    if not still.exists():
+        src = CACHE_DIR / f"{file_id}.src"
+        if not src.exists():
+            print(f"→ Still-bron {file_id} — download via SA...", file=sys.stderr)
+            drive.download(file_id, src)
+        subprocess.run(["ffmpeg", "-y", "-ss", str(t), "-i", str(src),
+                        "-frames:v", "1", "-q:v", "2", str(still)],
+                       check=True, capture_output=True)
+    return still
+
+
+def _white_flash_jpg() -> Path:
+    """Klein wit vlak (gecachet) — als image-element gerekt over het frame = de flits."""
+    p = CACHE_DIR / "white_flash.jpg"
+    if not p.exists():
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["ffmpeg", "-y", "-f", "lavfi", "-i", "color=white:s=108x192",
+                        "-frames:v", "1", str(p)], check=True, capture_output=True)
+    return p
+
+
+def build_photo_snaps(plan: dict, cut_timeline: list, transcript: dict | None,
+                      total: float | None) -> list[dict]:
+    """Edit-grammar A5: attention-recapture. 2-3 stills van verschillende honden als
+    snelle 'foto's' — witte flits + sluiter-klik per snap, spraak loopt door. Timing
+    word-anchored ('phrase' + 'offset') of expliciet ('time'), net als B-roll."""
+    out = []
+    for gi, g in enumerate(plan.get("photo_snaps", [])):
+        t, why = resolve_insert_time(g, cut_timeline, transcript, gi)
+        if t is None:
+            print(f"⚠️  photo-snap #{gi+1} overgeslagen — {why}", file=sys.stderr)
+            continue
+        snap_d = float(g.get("snap_duration", 0.55))
+        flash_d = min(0.13, snap_d / 3)
+        sfx_url = None
+        if g.get("sfx", True):
+            if SFX_SHUTTER.exists():
+                sfx_url = host_local(SFX_SHUTTER, "sfx:camera-shutter")
+            else:
+                print(f"⚠️  photo-snap #{gi+1}: sfx gevraagd maar {SFX_SHUTTER} ontbreekt "
+                      f"— snap zonder klik gerenderd", file=sys.stderr)
+        flash_url = host_local(_white_flash_jpg(), "img:white-flash")
+        for i, s in enumerate(g.get("snaps", [])):
+            st = round(t + i * snap_d, 2)
+            still = extract_still(s["file_id"], float(s["frame_t"]))
+            url = host_local(still, f"still:{s['file_id']}:{float(s['frame_t']):.1f}")
+            out.append({"id": f"snap_{gi}_{i}", "type": "image", "track": 20,
+                        "source": url, "time": st, "duration": round(snap_d, 2),
+                        "fit": "cover"})
+            out.append({"id": f"snapflash_{gi}_{i}", "type": "image", "track": 21,
+                        "source": flash_url, "time": st, "duration": flash_d,
+                        "fit": "cover"})
+            if sfx_url:
+                out.append({"id": f"snapclick_{gi}_{i}", "type": "audio", "track": 22,
+                            "source": sfx_url, "time": st, "duration": 0.32,
+                            "volume": g.get("sfx_volume", "65%")})
+    return out
+
+
 def build_source(template: dict, talking_head_url: str, plan: dict | None,
                  duration: float | None, music_url: str | None,
                  captions: dict | None = None) -> dict:
@@ -509,6 +619,10 @@ def build_source(template: dict, talking_head_url: str, plan: dict | None,
     if broll_tpl is not None:
         elements = [e for e in elements if e.get("id") != "broll"]
         elements += build_broll(broll_tpl, plan, cut_timeline, captions, total)
+
+    # 2b) photo-snaps (attention-recapture, edit-grammar A5)
+    if plan.get("photo_snaps"):
+        elements += build_photo_snaps(plan, cut_timeline, captions, total)
 
     # 3) captions uit ons transcript, gemapt op de gemonteerde tijdlijn
     cap_proto = next((e for e in elements if e.get("id") == "captions"), None)
@@ -860,6 +974,50 @@ def cmd_plan_check(args):
     if inserts and inserts[0][0] < 1.8:
         warns.append(f"eerste B-roll al op {inserts[0][0]:.1f}s — geef de talking-head ≥ ~2s "
                      f"om zich te vestigen (overlap met de zin mag, maar niet vanaf frame 1)")
+
+    # 3c. Photo-snaps (edit-grammar A5): valideer groepen en neem ze mee als cutaways.
+    snap_spans = []
+    for gi, g in enumerate(plan.get("photo_snaps", [])):
+        t, why = resolve_insert_time(g, cut_timeline, transcript, gi)
+        if t is None:
+            warns.append(f"photo-snap #{gi+1} niet plaatsbaar — {why}")
+            continue
+        n = len(g.get("snaps", []))
+        if not 2 <= n <= 3:
+            warns.append(f"photo-snap #{gi+1}: {n} snaps — richtsnoer is 2-3 (klik-klik-klik)")
+        for s in g.get("snaps", []):
+            if not (s.get("file_id") and s.get("frame_t") is not None):
+                errors.append(f"photo-snap #{gi+1}: snap mist file_id/frame_t")
+        d = n * float(g.get("snap_duration", 0.55))
+        end = t + d
+        # binnen één cut blijven — over een las heen verstopt hij de wissel (dat is
+        # bridge-werk, geen snap-werk)
+        for ci, (tl_start, s0, s1) in enumerate(cut_timeline):
+            if tl_start < end and t < tl_start and ci > 0:
+                errors.append(f"photo-snap #{gi+1} ({t:.1f}-{end:.1f}s) kruist las {ci} "
+                              f"@ {tl_start:.1f}s — houd snaps binnen één cut")
+        for a0, a1, ai, _ in inserts:
+            if t < a1 and a0 < end:
+                errors.append(f"photo-snap #{gi+1} overlapt B-roll #{ai} "
+                              f"({a0:.1f}-{a1:.1f} vs {t:.1f}-{end:.1f})")
+        snap_spans.append((t, end))
+    if len(plan.get("photo_snaps", [])) > 1:
+        warns.append(f"{len(plan['photo_snaps'])} photo-snap-groepen — richtsnoer is "
+                     f"max ~1 per video (A5); verantwoord dit in de brief")
+
+    # 3d. Lange kale strekken: te lang alleen talking-head = aandacht lekt weg.
+    # Cutaways = B-roll + photo-snaps; punch-wissels tellen niet. De staart krijgt
+    # meer ruimte (aanbod/CTA horen op haar gezicht, C1) — daar pas vanaf 20s.
+    cutaways = sorted([(a0, a1) for a0, a1, _, _ in inserts] + snap_spans)
+    edges = [0.0] + [e for span in cutaways for e in span] + [total]
+    for j in range(0, len(edges) - 1, 2):
+        g0, g1 = edges[j], edges[j + 1]
+        stretch = g1 - g0
+        is_tail = g1 >= total - 0.01
+        if stretch >= (20.0 if is_tail else 15.0):
+            warns.append(f"{stretch:.0f}s aaneengesloten alleen talking-head "
+                         f"({g0:.1f}-{g1:.1f}s{' , staart' if is_tail else ''}) — overweeg "
+                         f"een photo-snap (A5) of B-roll rond een passende zin")
 
     # 4. Elke las: bridge XOR zichtbare punch-wissel — precies één wissel.
     # Delta < VISIBLE_PUNCH_DELTA op een kale las leest als fout, niet als keuze

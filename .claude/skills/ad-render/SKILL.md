@@ -63,6 +63,15 @@ Output: `output/renders/<naam>.mp4` + de Creatomate-URL.
      "duration": 3.5, "style": "pip", "offset": 2.2, "pip": {"y": "24%"}},
     {"bridge_cut": 1, "lead": 1.2, "file_id": "<id>", "broll_trim_start": 5.0, "duration": 3.0}
   ],
+  "photo_snaps": [
+    {"phrase": "communicating this the whole time", "offset": -0.2,
+     "snap_duration": 0.55, "sfx": true,
+     "snaps": [
+       {"file_id": "<id>", "frame_t": 12.3},
+       {"file_id": "<id>", "frame_t": 4.0},
+       {"file_id": "<id>", "frame_t": 8.8}
+     ]}
+  ],
   "end_card_time": null, "end_card_duration": 5
 }
 ```
@@ -83,6 +92,11 @@ Output: `output/renders/<naam>.mp4` + de Creatomate-URL.
 - **`bridge_cut`: N** legt de B-roll óver de las tussen cut N en N+1 (`lead` =
   seconden vóór de las); bridges zijn fullscreen (een pip laat de las erachter zien).
 - **`caption_y`** per cut verplaatst de captions voor dat shot.
+- **`photo_snaps`** (edit-grammar A5): groep van 2-3 stills als snelle "foto's" —
+  per snap trekt de engine het frame op `frame_t` uit de gecachte bron, host het,
+  en legt er een witte flits (0.13s) + sluiter-klik (`assets/sfx/camera-shutter.mp3`,
+  `sfx_volume` default 65%) onder; spraak loopt door. Timing als B-roll
+  (`phrase`+`offset` of `time`); groep blijft binnen één cut.
 - **End-card**: alle template-elementen met id `end_card*` krijgen dezelfde
   `time`+`duration`. Captions in het card-venster blijven staan als de laatste cut ze
   met `caption_y` verplaatst heeft (anders gestript tegen stapelen).
