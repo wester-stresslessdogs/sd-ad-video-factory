@@ -172,9 +172,12 @@ naar boven — de engine stript ze alleen bij stapeling met de card).
 
 ---
 
-## E. De twee poorten vóór élke render (geen uitzonderingen)
+## E. De poorten vóór élke render (geen uitzonderingen)
 
-1. **`plan-check`** — mechanische lint met exact de renderer-wiskunde:
+Drie poorten, oplopend in kosten, elk op minder kandidaten. **Allemaal op het plan —
+de render staat ná de poorten, niet ertussen.**
+
+1. **`plan-check`** (mechanisch, gratis) — lint met exact de renderer-wiskunde:
    ```bash
    .venv/bin/python .claude/skills/ad-render/render.py plan-check \
      --plan <pakket>/plan.json --captions output/transcripts/<file_id>.json
@@ -182,7 +185,74 @@ naar boven — de engine stript ze alleen bij stapeling met de card).
    Exit ≠ 0 → plan aanpassen, opnieuw. **Waarschuwingen zijn geen ruis**: elke ⚠
    los je op of verantwoord je expliciet in qc/brief. Nooit renderen met een
    onverklaarde ⚠.
-2. **Frames kijken** — voor élk gekozen B-roll-venster minimaal één frame uit het
-   échte venster trekken (uit `output/.cache/<file_id>.src`) en bekijken: klopt de
-   inhoud met de bedoeling? De index is een wegwijzer, geen waarheid. Fout beeld →
-   ander moment kiezen én de index-fout melden in de brief.
+2. **Frames kijken** (goedkoop, gecacht) — voor élk gekozen B-roll-/photo-snap-venster
+   minimaal één frame uit het échte venster trekken (uit `output/.cache/<file_id>.src`)
+   en bekijken: klopt de inhoud met de bedoeling? De index is een wegwijzer, geen
+   waarheid. Fout beeld → ander moment kiezen én de index-fout melden in de brief.
+3. **Creatieve poort** (§F, tekst + gecachte stills) — is dit plan niet alleen correct
+   maar ook góéd? De director-review scoort het plan tegen `craft-reference.md` en
+   levert concrete fixes of groen licht. Pas na groen render je — één keer.
+
+---
+
+## F. De creatieve poort — de director-review (bindend, kosten-bewust)
+
+`plan-check` (E1) vangt kapot; frames (E2) vangen verkeerd beeld. Deze poort vangt
+**vlak** — een plan dat technisch klopt maar niet góéd is. De review speelt
+"creative director": scoort het plan tegen de vijf hefbomen van `craft-reference.md`
+en levert of groen licht, of een kleine set concrete fixes. Draait als `/ad-review`.
+
+### F1. De kosten-architectuur (dit is waarom de poort betaalbaar is)
+Dit doen we in bulk; de review mag niet ontsporen. Vijf harde regels:
+
+1. **Plan-niveau, niet render-niveau.** Beoordeel het *plan* (tekst) + de al-gecachte
+   stills — géén verse render. De render verlaat de loop: pas als het plan slaagt
+   render je één keer. Dit maakt render een vaste kost (1×/ad), niet een lus-kost.
+2. **Getrapt, oplopend duur.** plan-check (gratis) → deze poort (tekst + gecachte
+   stills, goedkoop) → één render → één visuele bevestiging. Nooit een dure trap op
+   een plan dat een goedkopere al zakt.
+3. **Harde cap: ≤ 2 herzieningen.** Nooit "tot perfect" — een creatieve rubric geeft
+   nooit vlekkeloos. De lat is *"goed genoeg om aan Ramon te tonen"*, niet autonoom
+   perfect.
+4. **Niet-convergentie → bail, niet nóg een poging.** Verbetert de score niet tussen
+   passes, óf vraagt de enige fix een effect dat de engine niet kan → **stop**. Route
+   naar `shoot-list.md` (ontbrekende footage) of leg 't voor aan Ramon met de vlek
+   benoemd. Niet-convergeren is informatie: de footage kán deze lat niet halen —
+   geen reden om door te branden.
+5. **Alleen engine-vandaag.** De rubric eist niets van de wishlist
+   (`craft-reference.md` §8). Ontbrekende capaciteit → wishlist-notitie in de brief,
+   **nooit** een fail. (Anders draait de loop eindeloos op iets wat we niet kunnen
+   renderen.)
+
+Goedkope input: gecachte stills (al getrokken bij E2), laag-res, alleen sleutelframes
+— geen render, geen frame-per-seconde. De craft-kennis staat één keer in
+`craft-reference.md`; de review *past 'm toe*, denkt 'm niet elke keer opnieuw uit.
+
+### F2. De rubric — de vijf hefbomen + finish
+Scoor het plan per regel: **oordeel** (goed / vlak) + bij "vlak" een **concrete fix**
+gekoppeld aan een plan-veld. Alleen fixes met een engine-vandaag-device.
+
+| # | Hefboom | Vraag aan het plan |
+|---|---|---|
+| H1 | Ritme & pacing | Vallen cuts op spraak/adem? Dode lucht weg? Versnelt het richting de CTA? |
+| H2 | Beweging & energie | Nergens > ~15s pure talking-head zonder cutaway? Genoeg variatie in kader/cutaway/tekst? |
+| H3 | Emphasis & sturing | Springt elke sleutel-beat eruit (scale, directe aanspraak, sleutelwoord)? Of is alles even ver weg? |
+| H4 | Contrast & interrupt | Zit er een pattern-interrupt waar de aandacht dipt — en gevarieerd, niet dezelfde truc herhaald? |
+| H5 | Emotionele boog | Bouwt de scale-ladder naar de reveal en ademt 'ie erna? Of technisch net maar vlak? |
+| — | Finish & business | Safe-area/geen afsnijding, consistente stijl, CTA tot het eind, aanbod vertaald (ons product)? |
+
+Elke "vlak" → één regel: *wat* is vlak, *welk device* lost het op, *welk plan-veld*
+verandert. Geen vage smaak-opmerkingen; alleen fixes die een plan-diff zijn.
+
+### F3. Het verdict
+De review sluit met één van drie:
+- **🟢 GROEN** — plan is goed genoeg; render. (Wishlist-noties mogen mee als
+  toekomst-notitie, blokkeren niet.)
+- **🟡 HERZIEN** — kleine set concrete fixes (elk een plan-diff). Pas toe, draai
+  plan-check opnieuw, review één keer. Max 2× (F1.3).
+- **🔴 MENS/SHOOT-LIST** — niet convergeerbaar met deze footage (F1.4). Benoem de vlek,
+  route ontbrekende footage naar `shoot-list.md`, leg voor aan Ramon. Niet renderen
+  "want het moet af" — liever eerlijk melden.
+
+Output = `output/ads/<pakket>/director-notes.md` (de review als leesbaar document,
+zelfde traceerbaarheid als brief/qc).

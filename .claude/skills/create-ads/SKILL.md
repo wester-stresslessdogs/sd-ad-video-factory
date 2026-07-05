@@ -103,6 +103,7 @@ Map: `output/ads/<YYYY-MM-DD>_<korte-slug>/` met:
 | `plan.json` | Het machine-plan voor render.py (formaat: `/ad-render` SKILL) |
 | `template.json` | De template-variant (caption-/stijl-parameters uit de edit_spec) |
 | `inspiration.md` | Winner + Ad Library-link + waarom die werkt + wat wij overnemen/aanpassen |
+| `director-notes.md` | De creatieve poort (`/ad-review`, grammar §F): oordeel per hefboom + verdict 🟢/🟡/🔴 |
 | *(na render)* `ad.mp4` + `qc.md` | De video + de QC-check tegen de eigen brief |
 
 **Formaat `brief.md`** (gewone taal, geen jargon):
@@ -128,15 +129,20 @@ Map: `output/ads/<YYYY-MM-DD>_<korte-slug>/` met:
    ```
 
 Het plan zelf bouw je volgens **`knowledge/edit-grammar.md`** (cuts, lassen, B-roll,
-captions, end-card) en sluit je af met **de twee poorten** (grammar E): `plan-check`
-groen + elk B-roll-venster op frames gecheckt. Geen uitzonderingen.
+captions, end-card) en sluit je af met **de drie poorten** (grammar E): `plan-check`
+groen → elk B-roll-/photo-snap-venster op frames gecheckt → **de creatieve poort**
+(`/ad-review`, grammar §F): scoort het plan tegen `knowledge/craft-reference.md` op de
+vijf hefbomen (ritme, beweging, emphasis, contrast, boog + finish) en levert 🟢 groen,
+🟡 concrete fixes (max 2 herzieningen), of 🔴 mens/shoot-list. **Alles op het plan — de
+render staat ná de poorten, niet ertussen.** Geen uitzonderingen.
 
 ### 4. Presenteren
 Batch-overzicht in de chat: per pakket één regel (map · winner-stijl · hook-zin ·
 lengte · afwijkingen). Dan stoppen. **Niet renderen.**
 
 ### 5. Renderen (op afroep)
-Zegt Ramon "render <map>" of "render alles" → draai per pakket het render-commando
+De creatieve poort (`/ad-review`) moet 🟢 zijn vóór de render — dat is het teken dat
+het plan af is. Zegt Ramon "render <map>" of "render alles" → draai per pakket het render-commando
 uit de brief, trek daarna 4-6 frames (hook / een las / een B-roll-moment /
 end-card) en schrijf `qc.md`: klopt het beeld met de brief? Captions leesbaar,
 B-roll op de juiste woorden, gezicht vrij. Afwijkingen → één fix-iteratie, daarna

@@ -1055,6 +1055,13 @@ def cmd_plan_check(args):
     sys.exit(1 if errors else 0)
 
 
+def cmd_extract_still(args):
+    """Trek één gecacht sleutelframe uit een bron — de goedkope input voor /ad-review
+    (de creatieve poort) en voor frames-kijken (poort E2). Geen render, geen credits."""
+    still = extract_still(args.source, args.t)
+    print(still)
+
+
 # ── CLI ──────────────────────────────────────────────────────────────────────────
 def main():
     ap = argparse.ArgumentParser(description="/ad-render engine")
@@ -1079,6 +1086,11 @@ def main():
     r.add_argument("--music", help="Optionele achtergrondmuziek-URL (default: geen)")
     r.add_argument("--out", help="Naam van de output-MP4 (zonder extensie)")
     r.set_defaults(func=cmd_render)
+
+    es = sub.add_parser("extract-still", help="Trek één gecacht sleutelframe uit een bron (voor /ad-review + frames-kijken)")
+    es.add_argument("--source", required=True, help="Drive file_id | URL | lokaal pad")
+    es.add_argument("--t", type=float, required=True, help="Bron-seconde van het frame")
+    es.set_defaults(func=cmd_extract_still)
 
     args = ap.parse_args()
     args.func(args)
