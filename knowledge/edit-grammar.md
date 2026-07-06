@@ -156,11 +156,31 @@ B-roll van dát gedrag. Start de insert TERWIJL ze het uitspreekt (hoor het + zi
 het), laat 'm over de zinsgrens doorlopen, en eindig vóór de kern van de volgende
 zin. Flow, geen blokjes (zin-klaar → B-roll → terug).
 
-### C3. Match op intentie, niet op tag-woord
-Een tag-hit is pas een match als **actor, context én lading** kloppen met de zin
-(displacement-sniffing bij een mens ≠ twee honden die elkaar begroeten). Toets
-`dog_behavior` × `human_behavior` × `valence` × het `action`-proza; respecteer
-`valence_note` (neuslikken na een snoepje ≠ stresssignaal). Twijfel = geen insert.
+### C3. De zin is de opdracht — extraheer de claim, dán pas matchen
+Beeld-keuze is géén tag-retrieval. Het beeld moet de **claim** van de zin
+beantwoorden, niet alleen het onderwerp raken. Twee stappen, in deze volgorde:
+
+**Stap 1 — extraheer de claim** van elke zin die om beeld vraagt, expliciet:
+- **onderwerp** — wie/wat (hond, baasje, gedrag, band);
+- **aantal/schaal** — enkelvoud of meervoud? "honderdduizend baasjes zoals jij" is
+  een meervoudsclaim: één voorbeeld leest als één klant, geen bewijs. Meervoud in de
+  zin → meervoud in beeld (snelle opeenvolging van verschíllende baasjes, of één
+  beeld met meerderen);
+- **lading** — probleem/negatief, warm/positief, neutraal-informatief;
+- **claim-type** — social proof, genoemd gedrag (C2), belofte/transformatie, band,
+  aanbod. Het type bepaalt het visuele antwoord: social proof vraagt véél en
+  verschíllend; gedrag vraagt exact dát gedrag; de band vraagt hond-mét-baasje.
+
+**Stap 2 — filter de kandidaten** (pas daarna): een tag-hit is pas een match als
+**actor, context én lading** kloppen met de zin (displacement-sniffing bij een mens ≠
+twee honden die elkaar begroeten). Toets `dog_behavior` × `human_behavior` ×
+`valence` × het `action`-proza; respecteer `valence_note` (neuslikken na een snoepje
+≠ stresssignaal). Twijfel = geen insert.
+
+De claim-extractie staat als reden bij élke beeld-beslissing in de brief (claim →
+beeld-antwoord → waarom); de render-judge toetst 'm (R3). Waarom deze volgorde: v11
+koos op onderwerp ("baasje met hond") bij een meervoudsclaim ("100.000 baasjes") —
+topicaal juist, claim-fout. De zin wist het al; de retrieval vroeg het nooit.
 
 ### C4. Altijd via moment-vensters, één stijl per video
 `broll_trim_start = moments[].t[0]` (evt. minus `lead_in` om in te glijden — nooit
@@ -294,7 +314,7 @@ render-only — ze bestaan niet in het plan:
 |---|---|---|
 | R1 | **Audio schoon** | `audio_spikes`: elke luister-kandidaat beluisteren. Een tik/plop/klap = **blokkerend**, wegknippen. (Een luide woord-onset is oké — mechanisch niet te scheiden, dus luisteren.) |
 | R2 | **Cuts vloeiend** | `boundaries`: harde cut met hoge PSNR = "niks verandert" (jump/zinloos); contigue zoom-punch met lage PSNR = leest als jump. `raw_cuts_visible` + `unexpected_scene_changes`: een bron-cut of dubbele cut die doorschemert (B6). |
-| R3 | **Device hoort hier** | `cutaway_frames`: klopt de tíming van elke photo-snap/B-roll met déze video, of voelt 't geplakt? En raken de beelden (relatability: hond mét baasje/kijkend, niet willekeurig)? |
+| R3 | **Device hoort hier én beantwoordt de claim** | `cutaway_frames` + het transcript op dat moment: (a) klopt de tíming met déze video, of voelt 't geplakt? (b) raken de beelden (relatability: hond mét baasje/kijkend, niet willekeurig)? (c) **beantwoordt het beeld de CLAIM van de zin** (onderwerp, aantal/schaal, lading — C3 stap 1)? Een meervoudsclaim ("duizenden baasjes") met één voorbeeld in beeld = mismatch, ook als het beeld mooi is. |
 | H1 | Ritme & pacing | Cuts op spraak/adem, dode lucht weg, versnelt naar de CTA? |
 | H2 | Beweging & energie | Nergens > ~15s kale talking-head? Genoeg variatie? |
 | H3 | Emphasis & sturing | Springt elke sleutel-beat eruit (scale/aanspraak/sleutelwoord)? |

@@ -49,7 +49,7 @@ Het packet wíjst; jij oordeelt. Scoor tegen de rubric (`edit-grammar.md` §F2):
 |---|---|---|
 | R1 | Audio schoon | `audio_spikes` — tik/plop/klap = blokkerend; luide onset = oké |
 | R2 | Cuts vloeiend | `boundaries` + `raw_cuts_visible` + `unexpected_scene_changes` |
-| R3 | Device hoort hier | `cutaway_frames` — timing klopt met déze video? Beelden raken (relatability)? |
+| R3 | Device hoort hier + beantwoordt de claim | `cutaway_frames` + transcript op dat moment — timing klopt? Beelden raken (relatability)? En: beantwoordt het beeld de CLAIM van de zin (onderwerp, **aantal/schaal**, lading — grammar C3 stap 1)? Meervoudsclaim + één voorbeeld = mismatch. |
 | H1-H5 | De vijf hefbomen | frames + plan (ritme, beweging, emphasis, contrast, boog) |
 | — | Finish & business | safe-area, stijl, CTA tot 't eind, aanbod vertaald |
 

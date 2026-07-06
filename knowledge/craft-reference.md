@@ -78,6 +78,28 @@ spec voor taak C — niet iets voor het volgende plan.
 
 ---
 
+## 2b. De zin is de opdracht — het beeld is het antwoord
+
+Het device-menu zegt *wat* we kunnen tonen; **de zin bepaalt wat er getoond móét
+worden.** Beeld-keuze is een antwoord op de claim van de zin, geen illustratie van
+haar onderwerp (edit-grammar C3). Dat verschil is waar montage van "netjes" naar
+"overtuigend" gaat:
+
+| De zin claimt… | Het beeld antwoordt… |
+|---|---|
+| meervoud/schaal ("100.000 baasjes zoals jij") | méérdere, verschíllende baasjes (snelle opeenvolging of één beeld met meerderen) — één voorbeeld leest als één klant |
+| genoemd gedrag ("hij likt z'n lippen") | exact dát gedrag, op dat moment (C2) |
+| de band ("alles tussen jou en je hond") | hond mét baasje, interactie — niet een hond alleen |
+| transformatie/belofte | vóór→ná-contrast, of het resultaat in beeld |
+| het aanbod / de vraag | háár gezicht (C1) — proof en de vraag landen op een mens |
+
+Elke beeld-beslissing draagt deze redenering expliciet (claim → antwoord → waarom, in
+de brief). Onderwerp-matchen ("de zin gaat over baasjes, dit beeld toont een baasje")
+is het valkuil-patroon: topicaal juist, claim-fout — en precies wat een kijker
+onbewust wél registreert.
+
+---
+
 ## 3. De vijf hefbomen — waaróm een montage werkt
 
 De creatieve poort (§F) scoort een plan op deze vijf. Elk: het principe, wat 'm dient,

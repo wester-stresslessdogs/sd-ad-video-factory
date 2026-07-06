@@ -114,7 +114,10 @@ Map: `output/ads/<YYYY-MM-DD>_<korte-slug>/` met:
 3. **Het script** — de gesproken zinnen in de nieuwe volgorde, per zin de
    bron-tijden, en inline de edit-beslissingen (`[B-ROLL pip: … @0.7-3.4 — toont
    exact de handeling]`, `[BRIDGE over de las → …]`, `[PUNCH-IN 1.3, ze spreekt de
-   kijker aan]`). Plus wat je wegliet (retakes/asides) in één regel.
+   kijker aan]`). **Elke beeld-beslissing draagt zijn redenering: claim →
+   beeld-antwoord → waarom** (grammar C3 stap 1: onderwerp, aantal/schaal, lading,
+   claim-type — "100.000 baasjes" is meervoud, dus meervoud in beeld). Een beslissing
+   zonder claim-regel is niet af. Plus wat je wegliet (retakes/asides) in één regel.
 4. **Stijl** — captions/pacing/end-card: wat de winner doet → wat wij doen (en
    waarom het afwijkt als het afwijkt). Benoem de hook-framing-keuze (grammar A3)
    en de scale-ladder van de video (grammar A1).
