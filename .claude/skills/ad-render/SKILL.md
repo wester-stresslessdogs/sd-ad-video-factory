@@ -87,7 +87,10 @@ Output: `output/renders/<naam>.mp4` + de Creatomate-URL.
   hij dat en slaat over. `time` (tijdlijn-seconde) mag ook expliciet. `offset`
   verschuift t.o.v. de woorden. `broll_trim_start` = start van het gekozen
   **moment** uit de index. `style`: `pip` of `fullscreen` (default =
-  template-huisstijl); `pip: {y: …}` stelt de kaartpositie per plaatsing bij.
+  template-huisstijl). **`pip` = overlay** (verkleinde inset óver de talking-head, die
+  eronder dóórloopt) — de aandacht-laag van edit-grammar C7 voor praat-zware strekken;
+  `fullscreen` = cutaway (vervangt haar). `pip: {y: …, width: …}` legt de inset in de
+  dode ruimte (vaak boven, `y` ~22-28%) zodat hij haar gezicht/captions niet bedekt.
   `keep_audio: true` als de clip-audio uitzonderlijk mee moet.
 - **`bridge_cut`: N** legt de B-roll óver de las tussen cut N en N+1 (`lead` =
   seconden vóór de las); bridges zijn fullscreen (een pip laat de las erachter zien).

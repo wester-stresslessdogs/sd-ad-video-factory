@@ -1076,17 +1076,21 @@ def cmd_plan_check(args):
             warns.append(f"B-roll #{i+1} niet plaatsbaar — {why}")
             continue
         d = min(p.get("duration", 3.5), max(0.5, total - t))
-        inserts.append((t, t + d, i + 1, p.get("_moment", p.get("file_id", "?"))[:60]))
+        ov = p.get("style") == "pip"  # overlay (C7): talking-head blijft eronder in beeld
+        inserts.append((t, t + d, i + 1, p.get("_moment", p.get("file_id", "?"))[:60], ov))
     inserts.sort()
-    for (a0, a1, ai, _), (b0, b1, bi, _) in zip(inserts, inserts[1:]):
+    for (a0, a1, ai, _, ao), (b0, b1, bi, _, bo) in zip(inserts, inserts[1:]):
         if b0 < a1 - 0.1:
             errors.append(f"B-roll #{ai} en #{bi} OVERLAPPEN ({a0:.1f}-{a1:.1f} vs {b0:.1f}-{b1:.1f})")
-        elif b0 - a1 < 4.0:
+        elif b0 - a1 < 4.0 and not ao and not bo:
+            # muur geldt alleen tussen cutaways; een overlay laat haar zichtbaar
             warns.append(f"B-roll-muur: #{ai} en #{bi} liggen {b0-a1:.1f}s uit elkaar "
                          f"(kijker ziet haar < 4s tussen inserts)")
-    # aaneengesloten off-screen-span
+    # aaneengesloten off-screen-span — alleen cutaways (overlay = ze blijft in beeld)
     span_start, span_end = None, None
-    for a0, a1, _, _ in inserts:
+    for a0, a1, _, _, ov in inserts:
+        if ov:
+            continue
         if span_end is not None and a0 - span_end < 1.0:
             span_end = max(span_end, a1)
         else:
@@ -1123,7 +1127,7 @@ def cmd_plan_check(args):
             if tl_start < end and t < tl_start and ci > 0:
                 errors.append(f"photo-snap #{gi+1} ({t:.1f}-{end:.1f}s) kruist las {ci} "
                               f"@ {tl_start:.1f}s — houd snaps binnen één cut")
-        for a0, a1, ai, _ in inserts:
+        for a0, a1, ai, _, _ in inserts:
             if t < a1 and a0 < end:
                 errors.append(f"photo-snap #{gi+1} overlapt B-roll #{ai} "
                               f"({a0:.1f}-{a1:.1f} vs {t:.1f}-{end:.1f})")
@@ -1135,7 +1139,7 @@ def cmd_plan_check(args):
     # 3d. Lange kale strekken: te lang alleen talking-head = aandacht lekt weg.
     # Cutaways = B-roll + photo-snaps; punch-wissels tellen niet. De staart krijgt
     # meer ruimte (aanbod/CTA horen op haar gezicht, C1) — daar pas vanaf 20s.
-    cutaways = sorted([(a0, a1) for a0, a1, _, _ in inserts] + snap_spans)
+    cutaways = sorted([(a0, a1) for a0, a1, _, _, _ in inserts] + snap_spans)
     edges = [0.0] + [e for span in cutaways for e in span] + [total]
     for j in range(0, len(edges) - 1, 2):
         g0, g1 = edges[j], edges[j + 1]
@@ -1153,7 +1157,9 @@ def cmd_plan_check(args):
     VISIBLE_PUNCH_DELTA = 0.25
     for i in range(1, len(cuts)):
         boundary = cut_timeline[i][0]
-        bridged = any(a0 <= boundary - 0.2 and a1 >= boundary + 0.2 for a0, a1, _, _ in inserts)
+        # alleen een fullscreen-cutaway verbergt een las; een overlay (pip) niet
+        bridged = any(a0 <= boundary - 0.2 and a1 >= boundary + 0.2
+                      for a0, a1, _, _, ov in inserts if not ov)
         s_prev = float((cuts[i-1].get("punch_in") or {}).get("scale", 1.0))
         s_cur = float((cuts[i].get("punch_in") or {}).get("scale", 1.0))
         delta = abs(s_cur - s_prev)
@@ -1167,8 +1173,8 @@ def cmd_plan_check(args):
 
     # Rapport
     print(f"Tijdlijn: {total:.1f}s · {len(cuts)} cuts · {len(inserts)} inserts")
-    for t, e, n, m in inserts:
-        print(f"  insert #{n}: {t:.1f}-{e:.1f}s — {m}")
+    for t, e, n, m, ov in inserts:
+        print(f"  insert #{n}: {t:.1f}-{e:.1f}s — {'[overlay] ' if ov else ''}{m}")
     if errors:
         print(f"\n❌ {len(errors)} blokkerende problemen:")
         for e in errors:

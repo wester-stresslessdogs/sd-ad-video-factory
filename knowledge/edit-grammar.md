@@ -165,8 +165,10 @@ Een tag-hit is pas een match als **actor, context én lading** kloppen met de zi
 ### C4. Altijd via moment-vensters, één stijl per video
 `broll_trim_start = moments[].t[0]` (evt. minus `lead_in` om in te glijden — nooit
 blind vanaf 0.0). Zelfde hond prefereren (`dogs.id_hint`) — een andere hond leest
-als stock. Eén insert-stijl per video (`pip` óf `fullscreen`, uit de `edit_spec`) —
-meng niet; bridges zijn altijd fullscreen (een pip laat de las erachter zien).
+als stock. Eén **cutaway**-stijl per video (`pip` óf `fullscreen`, uit de `edit_spec`)
+— meng niet; bridges zijn altijd fullscreen (een pip laat de las erachter zien). De
+overlay-aandacht-laag (C7) staat hier los van: dat is geen cutaway maar een laag óver
+haar heen, en die mag naast fullscreen-cutaways bestaan.
 
 ### C5. Geen match → talking-head blijft + shoot-list
 Nooit placeholders of geforceerde matches (besluit 2026-07-04). Elke cue zonder
@@ -179,8 +181,33 @@ misleidende B-roll.
 ~één insert per 10–15s (aanwezig, niet overladen). De talking-head vestigt zich
 eerst (~2s) vóór de eerste insert — dankzij C2 mag dat al tijdens de eerste zin
 (gebruik `offset`). **Andersom geldt ook**: ≥ ~15s alleen talking-head (staart:
-20s) = aandacht lekt — overweeg B-roll of een photo-snap (A5); plan-check
-waarschuwt op zulke kale strekken. Photo-snaps tellen mee als cutaway.
+20s) = aandacht lekt — vul met een fullscreen-cutaway, een photo-snap (A5) óf een
+overlay-B-roll (C7); plan-check waarschuwt op zulke kale strekken. Alle drie tellen
+mee als cutaway.
+
+### C7. Overlay-B-roll — laat haar praten én toon de hond (aandacht-laag)
+Praten óver honden is nooit zo sterk als honden tónen — doe allebei tegelijk. Bij een
+praat-zware strek (de omgekeerde-spreiding van C6: ≥ ~15s talking-head) legt een
+**verkleinde B-roll-overlay** (pip) in de dóde ruimte van het kader een hond bovenóp
+het beeld terwijl zij dóórpraat. De kijker houdt de boodschap (haar stem) én ziet de
+reden (de hond).
+
+- **Overlay ≠ cutaway.** Een fullscreen-insert vervángt haar; een overlay houdt haar
+  in beeld (pip, talking-head eronder). Daarom botst dit NIET met C1 zolang haar
+  gezicht vrij blijft — ze verdwijnt niet. Juist bruikbaar wáár een fullscreen-cutaway
+  niet mag (bv. over de proef of het aanbod: zij blijft, de hond komt erbij). De reveal
+  zelf houd je schoon.
+- **Plaats in de dode ruimte.** Meestal de bóvenkant (lucht/achtergrond boven een
+  staande spreker). Grootte + positie zó dat de overlay noch haar gezicht noch de
+  captions bedekt — kijk naar het échte kader (frames, niet gokken); stel `pip: {y,
+  width}` bij (bv. `y` ~22-28% voor de bovenruimte).
+- **Inhoud matcht de zin** (C2/C3): een hond die past bij wat ze zegt (bij "dog
+  guardians like you" een baasje-met-hond; bij genoemd gedrag dát gedrag).
+- **Mag samen met fullscreen-cutaways.** De overlay is een andere láág/functie dan de
+  cutaway-stijl-keuze (C4) — houd één consistente overlay-behandeling (grootte/positie)
+  per video, maar hij hoeft niet de enige insert-stijl te zijn.
+- **Telt als cutaway voor de spreiding** (C6) en beoordeelt de render-judge (R3): dekt
+  hij haar gezicht/captions niet, en past het beeld?
 
 ---
 

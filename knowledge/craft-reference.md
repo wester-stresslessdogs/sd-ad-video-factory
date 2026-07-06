@@ -62,6 +62,7 @@ menu. Hieronder alles wat we kennen, met het retentie-effect (vocabulaire uit
 | **B-roll bridge** (over de las) | las verbergen + illustreren tegelijk | ✅ `broll bridge_cut` |
 | **Photo-snap** (stills + flits + klik) | pattern-interrupt, re-hook | ✅ `photo_snaps` |
 | **Dog-met-baasje-cutaway** (korte B-roll van de band) | re-hook via connectie | ✅ `broll` — vaak wármer dan foto-flits |
+| **Overlay-B-roll** (verkleinde pip óver de talking-head, in de dode ruimte) | aandacht vasthouden zónder haar weg te halen — "toon honden terwijl ze praat" | ✅ `broll style:pip` — C7 |
 | **Sound-cue** (sfx-accent op cut/reveal) | sound-cue (top-winner-device, ~@17%) | ✅ sfx-element (nu alleen sluiter-klik; menu mag groeien) |
 | **End-card reveal** | payoff → CTA | ✅ `end_card_*` |
 | **Kinetische captions / woord-emphasis** | emphasis, houdt het oog in beweging | ⚠️ **deels** — Creatomate kán word/line-animatie + per-woord kleur/scale; engine gebruikt nu platte captions → `[BACKLOG]` voor de rijke variant |
@@ -97,8 +98,12 @@ cutaway, tekst of geluid. Richtsnoer: **niet > ~15s puur talking-head zonder cut
 punch-trede of één cutaway breekt de vlakte al.
 - *Dient:* pattern-interrupt, re-hook.
 - *Defect:* de "praat-zware vlakte" — Ramon's v8-klacht die de photo-snap opving.
-- *Engine:* `punch_in`-ladder, `broll`, `photo_snaps`. `[BACKLOG]`: slow push-in,
-  kinetische captions (goedkoopste continue beweging als ze er zijn).
+- *Sleutel-inzicht:* praten óver honden < honden tónen — dus bij een praat-zware strek
+  een **overlay-B-roll** (C7): laat haar dóórpraten (de boodschap) en leg een hond in
+  de dode ruimte (de reden). Beide tegelijk; ze verdwijnt niet.
+- *Engine:* `punch_in`-ladder, `broll` (fullscreen én overlay-pip), `photo_snaps`.
+  `[BACKLOG]`: slow push-in, kinetische captions (goedkoopste continue beweging als ze
+  er zijn).
 
 ### H3. Emphasis & sturing van de blik
 De montage stuurt waar de kijker kijkt en wat zwaar weegt. **Scale = afstand**
