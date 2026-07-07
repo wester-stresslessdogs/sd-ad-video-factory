@@ -111,6 +111,21 @@ def punchin_max(h: int) -> float:
     return round(max(1.0, min(3.0, UPSCALE_BUDGET * h / OUT_H)), 2)
 
 
+def merge_boundaries(cut_times: list[float], duration: float,
+                     min_gap: float = 0.6) -> list[list[float]]:
+    """Kandidaat-grenstijden → aaneengesloten segment-spans die [0, duration]
+    dekken. Interieur-cut telt alleen als hij ≥min_gap van de vorige grens én
+    ≥min_gap vóór het einde ligt (anders: ruis / plak-tegen-rand). Altijd ≥1 span."""
+    dur = round(float(duration), 2)
+    interior = sorted({round(float(t), 2) for t in cut_times if 0.0 < float(t) < dur})
+    kept = [0.0]
+    for t in interior:
+        if t - kept[-1] >= min_gap and dur - t >= min_gap:
+            kept.append(t)
+    kept.append(dur)
+    return [[kept[i], kept[i + 1]] for i in range(len(kept) - 1)]
+
+
 def sample_frames(src: Path, file_id: str, duration: float) -> list[tuple[float, Path]]:
     """1 frame per ~5s (512px, tijdstempel in de naam). Uniform: ruwe footage is
     doorgaans één doorlopend shot; het Vision-model segmenteert zelf de momenten."""
