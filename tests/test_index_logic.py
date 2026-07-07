@@ -37,3 +37,28 @@ def test_merge_boundaries_drops_cut_too_close_to_start():
 
 def test_merge_boundaries_ignores_out_of_range():
     assert idx.merge_boundaries([-1.0, 120.0], 88.0) == [[0.0, 88.0]]
+
+
+# ── Task 2: clean_score ─────────────────────────────────────────────────────────
+def test_clean_score_good_take_usable():
+    assert idx.clean_score("usable", "good") == ("usable", None)
+
+
+def test_clean_score_retake_is_reject():
+    assert idx.clean_score("usable", "retake") == ("reject", "retake")
+
+
+def test_clean_score_aside_is_reject():
+    assert idx.clean_score("usable", "aside") == ("reject", "aside")
+
+
+def test_clean_score_vision_reject_flags_quality():
+    assert idx.clean_score("reject", "good") == ("reject", "quality")
+
+
+def test_clean_score_marginal_passes_through():
+    assert idx.clean_score("marginal", None) == ("marginal", None)
+
+
+def test_clean_score_broll_no_delivery():
+    assert idx.clean_score("usable", None) == ("usable", None)

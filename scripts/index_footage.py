@@ -280,6 +280,20 @@ def _clamp_t(pair, duration: float) -> list[float]:
     return [round(a, 2), round(b, 2)]
 
 
+def clean_score(quality_overall: str, delivery: str | None = None) -> tuple[str, str | None]:
+    """Discriminerende clean-score per SEGMENT. delivery retake/aside (talking-head)
+    overschrijft altijd naar reject; anders volgt de score de visuele vision-kwaliteit.
+    Segmenten isoleren de slechte take van de goede — dáárom werkt dit waar de
+    clip-brede v2-score altijd 'usable' teruggaf."""
+    if delivery in ("retake", "aside"):
+        return "reject", delivery
+    if quality_overall == "reject":
+        return "reject", "quality"
+    if quality_overall == "marginal":
+        return "marginal", None
+    return "usable", None
+
+
 def validate(v: dict, info: dict, tax: dict, proposals: list) -> dict:
     """Onbekende tags → proposed_tags (nooit de index in); tijden klemmen; enums checken."""
     dur = info["duration"]
