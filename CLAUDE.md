@@ -13,6 +13,10 @@ verandering, werk 'm meteen bij:
   en hoe templates werken (dynamisch, research-gedreven).
 - **tool-2-11-video-ad-factory.md** — het originele klantidee, dient als **archief**.
   Laat de archief-banner bovenaan staan; alleen aanraken als de historie/rationale wijzigt.
+- **docs/project-state.md** — de compacte, eerlijke *state-of-project* (semi-technisch,
+  presenteerbaar): de 3 lijnen, de skills in run-volgorde, hoe alles samenhangt, en de
+  open issues/twijfels. Werk 'm bij zodra een skill/lijn/status/architectuur verandert,
+  of als een issue opgelost is of erbij komt. Houd 'm kort — schrap net zoveel als je toevoegt.
 
 ## Git
 
