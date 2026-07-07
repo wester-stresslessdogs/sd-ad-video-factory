@@ -504,14 +504,11 @@ def walk_videos(folder_id: str, exclude: set[str]) -> list[dict]:
     return out
 
 
-def raw_cuts(src: Path) -> list[dict]:
-    """Interne cuts in 'ruwe' footage (edit-grammar B6): een creator kan de opname al
-    gemonteerd hebben (slechte stukken eruit geknipt). Adaptieve lokale-piek-detectie op
-    de scdet-curve — cuts TUSSEN bijna-identieke talking-head-shots scoren laag (~8-10)
-    maar steken lokaal uit boven de beweging (~3-5). Best-effort: motion-gemaskeerde cuts
-    kunnen ontsnappen → daarom telt vooral de pre_edited-vlag (is die true, dan behandelt
-    de planner de héle clip als gesplitst: geen contigue zoom-punches, elke las is een
-    echte knip). Canonieke tuning: render.py scene_cuts(adaptive=True)."""
+def scdet_candidates(src: Path) -> list[float]:
+    """Visuele-cut-kandidaten (adaptieve lokale-piek-detectie op de scdet-curve),
+    voor ALLE clips — kruiscontrole op de vision-voorgestelde grenzen. Canonieke
+    tuning: render.py scene_cuts(adaptive=True). Best-effort: motion-gemaskeerde
+    cuts kunnen ontsnappen, daarom is dit een kandidaat-bron, niet de waarheid."""
     out = subprocess.run(["ffmpeg", "-i", str(src), "-vf", "scdet=threshold=1",
                           "-f", "null", "-"], capture_output=True, text=True).stderr
     pts = sorted((float(m.group(2)), float(m.group(1))) for m in
@@ -523,7 +520,7 @@ def raw_cuts(src: Path) -> list[dict]:
         local = [s for tt, s in pts if abs(tt - t) <= 0.4]
         if score >= (max(local) if local else 0) and score >= 6.8 and \
            score >= 1.3 * max(base, 1.0) and t - last > 0.6:
-            cuts.append({"t": round(t, 2), "score": round(score, 1)})
+            cuts.append(round(t, 2))
             last = t
     return cuts
 
