@@ -62,3 +62,56 @@ def test_clean_score_marginal_passes_through():
 
 def test_clean_score_broll_no_delivery():
     assert idx.clean_score("usable", None) == ("usable", None)
+
+
+# ── Task 3: validate_segment ────────────────────────────────────────────────────
+def _tax():
+    return idx.load_taxonomy()
+
+
+def test_validate_segment_talking_head_take_reject():
+    seg_raw = {
+        "kind": "talking_head",
+        "framing": {"distance": "medium", "camera": "static", "subject_position": "center"},
+        "quality": {"exposure": "goed", "sharpness": "scherp", "overall": "usable"},
+        "setting": "garden", "people": "trainer",
+        "gist": "retake van de hook", "delivery": "retake", "complete_thought": False,
+        "moments": [
+            {"t": [30, 35], "action": "trainer herhaalt zin", "dog_visible": False,
+             "dog_behavior": [], "human_behavior": ["talking-to-camera"],
+             "valence": "neutral", "lead_in": 0, "lead_out": 0, "best_frame_t": 32},
+        ],
+    }
+    info = {"duration": 88.0, "height": 1920, "width": 1080}
+    proposals = []
+    out = idx.validate_segment(seg_raw, [27.7, 40.0], info, _tax(), proposals, "F#1")
+    assert out["id"] == "F#1"
+    assert out["t"] == [27.7, 40.0]
+    assert out["kind"] == "talking_head"
+    assert out["delivery"] == "retake"
+    assert out["quality"]["overall"] == "reject"        # delivery-override
+    assert out["quality"]["reject_reason"] == "retake"
+    # moment-tijd geklemd binnen de span
+    assert out["moments"][0]["t"][0] >= 27.7 and out["moments"][0]["t"][1] <= 40.0
+
+
+def test_validate_segment_broll_drops_unknown_tag():
+    seg_raw = {
+        "kind": "b_roll",
+        "framing": {"distance": "wide", "camera": "static", "subject_position": "left"},
+        "quality": {"exposure": "goed", "sharpness": "scherp", "overall": "usable"},
+        "setting": "park", "people": "owner-and-dog",
+        "moments": [
+            {"t": [0, 5], "action": "hond doet slalom", "dog_visible": True,
+             "dog_behavior": ["leg-weave"], "human_behavior": ["hand-signal"],
+             "valence": "positive", "lead_in": 0, "lead_out": 0, "best_frame_t": 2},
+        ],
+    }
+    info = {"duration": 30.0, "height": 1080, "width": 1920}
+    proposals = []
+    out = idx.validate_segment(seg_raw, [0.0, 30.0], info, _tax(), proposals, "F#0")
+    assert out["quality"]["overall"] == "usable"
+    assert "leg-weave" not in out["moments"][0]["dog_behavior"]   # onbekend → geweigerd
+    assert any(p["tag"] == "leg-weave" for p in proposals)       # → proposed_tags
+    assert "hand-signal" in out["moments"][0]["human_behavior"]  # bekend → behouden
+    assert "delivery" not in out                                  # b_roll heeft geen take-velden

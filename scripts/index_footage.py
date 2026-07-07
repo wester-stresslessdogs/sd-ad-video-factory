@@ -294,6 +294,92 @@ def clean_score(quality_overall: str, delivery: str | None = None) -> tuple[str,
     return "usable", None
 
 
+def validate_segment(seg_raw: dict, span: list[float], info: dict, tax: dict,
+                     proposals: list, seg_id: str) -> dict:
+    """Eén segment valideren: tijden klemmen binnen de span, taxonomie afdwingen
+    (onbekend → proposals), clean-score afleiden. b_roll krijgt geen take-velden."""
+    lo, hi = span
+
+    def keep_known(tags, vocab, where):
+        known = []
+        for t in tags or []:
+            if t in vocab:
+                known.append(t)
+            else:
+                proposals.append({"tag": t, "why": f"buiten vocabulaire ({where})"})
+        return known
+
+    def clamp_in_span(pair):
+        a, b = _clamp_t(pair, info["duration"])
+        a = max(lo, min(a, hi))
+        b = max(a, min(b, hi))
+        return [round(a, 2), round(b, 2)]
+
+    moments = []
+    for m in seg_raw.get("moments", []) or []:
+        t = clamp_in_span(m.get("t", span))
+        mm = {
+            "t": t,
+            "action": (m.get("action") or "").strip(),
+            "dog_visible": bool(m.get("dog_visible", True)),
+            "dog_behavior": keep_known(m.get("dog_behavior"), tax["_dog_flat"], "moment"),
+            "human_behavior": keep_known(m.get("human_behavior"), tax["_human_flat"], "moment"),
+            "valence": m.get("valence") if m.get("valence") in tax["valence"] else "neutral",
+            "lead_in": round(min(max(float(m.get("lead_in", 0) or 0), 0.0), t[0] - lo), 2),
+            "lead_out": round(min(max(float(m.get("lead_out", 0) or 0), 0.0), hi - t[1]), 2),
+            "best_frame_t": round(min(max(float(m.get("best_frame_t", t[0]) or t[0]), t[0]), t[1]), 2),
+        }
+        if not mm["dog_visible"]:
+            mm["dog_behavior"] = []
+        if m.get("valence_note"):
+            mm["valence_note"] = str(m["valence_note"]).strip()
+        moments.append(mm)
+
+    fr = seg_raw.get("framing") or {}
+    framing = {
+        "distance": fr.get("distance") if fr.get("distance") in tax["shot_distance"] else "medium",
+        "camera": fr.get("camera") if fr.get("camera") in tax["camera"] else "static",
+        "subject_position": fr.get("subject_position") if fr.get("subject_position") in ("left", "center", "right") else "center",
+        "punchin_max": punchin_max(info["height"]),
+    }
+    q = seg_raw.get("quality") or {}
+    kind = seg_raw.get("kind") if seg_raw.get("kind") in ("talking_head", "b_roll") else "b_roll"
+    delivery = seg_raw.get("delivery") if seg_raw.get("delivery") in ("good", "flat", "retake", "aside") else None
+    overall, reason = clean_score(
+        q.get("overall") if q.get("overall") in ("usable", "marginal", "reject") else "usable",
+        delivery if kind == "talking_head" else None,
+    )
+
+    tags = {framing["distance"], framing["camera"]}
+    if seg_raw.get("setting") in tax["setting"]:
+        tags.add(seg_raw["setting"])
+    for m in moments:
+        tags.update(m["dog_behavior"])
+        tags.update(m["human_behavior"])
+
+    seg = {
+        "id": seg_id,
+        "t": [round(lo, 2), round(hi, 2)],
+        "kind": kind,
+        "boundary_reason": seg_raw.get("boundary_reason") if seg_raw.get("boundary_reason") in ("file-start", "visual-cut", "take-restart") else "visual-cut",
+        "framing": framing,
+        "quality": {
+            "exposure": q.get("exposure", ""), "sharpness": q.get("sharpness", ""),
+            "overall": overall, "reject_reason": reason,
+            "dead_air": [clamp_in_span(p) for p in (seg_raw.get("dead_air") or [])],
+        },
+        "setting": seg_raw.get("setting") if seg_raw.get("setting") in tax["setting"] else "",
+        "people": seg_raw.get("people") if seg_raw.get("people") in tax["people"] else "",
+        "moments": moments,
+        "tags": sorted(tags),
+    }
+    if kind == "talking_head":
+        seg["gist"] = (seg_raw.get("gist") or "").strip()
+        seg["delivery"] = delivery or "flat"
+        seg["complete_thought"] = bool(seg_raw.get("complete_thought"))
+    return seg
+
+
 def validate(v: dict, info: dict, tax: dict, proposals: list) -> dict:
     """Onbekende tags → proposed_tags (nooit de index in); tijden klemmen; enums checken."""
     dur = info["duration"]
