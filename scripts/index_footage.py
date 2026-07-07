@@ -322,11 +322,19 @@ GRENZEN:
   scdet-kandidaten een goede hint.
 - Dead air / pauzes zijn GÉÉN grens.
 
+RETAKES HERKENNEN (belangrijk — doe dit eerst, over het HELE transcript):
+scan of dezelfde zin/gedachte (bijna) letterlijk MEER DAN ÉÉN keer voorkomt. Een creator
+neemt een zin vaak twee-drie keer op. Elke herhaalde poging is een RETAKE; alleen de
+schoonste/laatste versie mag "good". Voorbeeld: "crouch down sideways and wait" op 47s én
+opnieuw op 55s → de 47s-poging is delivery="retake". Ook een valse start / afgebroken zin /
+gestotter / kuch-onderbreking = "retake" of "flat", nooit "good". Bij twijfel: label
+"retake", niet "good" — een gemiste retake laat een dubbele zin in de montage staan.
+
 PER TALKING-HEAD-SEGMENT beoordeel je uit het transcript:
 - gist: kort wat er inhoudelijk gezegd wordt
-- delivery: "good" (bruikbare take) | "flat" (vlak/twijfel) | "retake" (herhaling van een
-  zin die elders bijna identiek terugkomt) | "aside" (regie/omgevingspraat, bv. "Kenny,
-  middle" — niet voor de kijker bedoeld)
+- delivery: "good" (schone, bruikbare, NIET elders herhaalde take) | "flat" (vlak/twijfel/
+  afgebroken) | "retake" (deze zin komt elders bijna identiek terug — dit is niet de
+  keeper) | "aside" (regie/omgevingspraat, bv. "Kenny, middle" — niet voor de kijker)
 - complete_thought: true als dit segment op zichzelf in een edit kan
 
 scdet-kandidaat-cuts (visueel, best-effort — NEGEER op statische talking-head): {scdet_ct}
