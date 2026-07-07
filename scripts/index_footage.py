@@ -359,7 +359,8 @@ gist/delivery/complete_thought weglaten."""
         model="gpt-4o", messages=[{"role": "user", "content": content}],
         response_format={"type": "json_object"}, max_tokens=1200, temperature=0.1,
     )
-    return json.loads(resp.choices[0].message.content).get("segments", [])
+    txt = resp.choices[0].message.content or "{}"  # None-content (refusal/leeg) → geen crash
+    return json.loads(txt).get("segments", [])
 
 
 def describe_segment(dense_frames, span, kind, transcript, tax, duration) -> dict:
@@ -382,7 +383,8 @@ def describe_segment(dense_frames, span, kind, transcript, tax, duration) -> dic
         model="gpt-4o", messages=[{"role": "user", "content": content}],
         response_format={"type": "json_object"}, max_tokens=3000, temperature=0.2,
     )
-    return json.loads(resp.choices[0].message.content)
+    txt = resp.choices[0].message.content or "{}"  # None-content (refusal/leeg) → geen crash
+    return json.loads(txt)
 
 
 # ── Validatie (code, niet het model) ─────────────────────────────────────────────
