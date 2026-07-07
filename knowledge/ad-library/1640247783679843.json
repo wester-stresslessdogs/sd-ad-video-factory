@@ -1,0 +1,273 @@
+{
+  "ad_id": "1640247783679843",
+  "page_name": "Saskia van der Made - hondentraining",
+  "analysis": "DIEPE VIDEO-ANALYSE — Saskia van der Made\n\n## Overzicht\nThe ad is a 14-second video in a 1:1 format, featuring a woman and her dog in a training area. The language is positive and encouraging.\n\n## Hook — waarom stopt de scroll\nThe immediate action of a dog and handler in a training course captures attention quickly.\n\n## Waarom het werkt\nThe ad uses positive reinforcement and engaging visuals to maintain viewer interest, leveraging principles of relatability and emotional connection.\n\n## Replicatie-blueprint\nFilm a dog and handler in a training scenario, edit to highlight positive interactions, and use captions to emphasize key moments.",
+  "edit_spec": {
+    "hook": {
+      "type": "pattern-interrupt",
+      "mechanism": "immediate action",
+      "visual": "dog and handler in motion",
+      "verbal": "Open.",
+      "duration_s": 2
+    },
+    "structure": [
+      {
+        "beat": "hook",
+        "t": [
+          0.0,
+          2.0
+        ],
+        "on_screen": "Dog and handler start course"
+      },
+      {
+        "beat": "proof",
+        "t": [
+          2.0,
+          4.0
+        ],
+        "on_screen": "Praise and task completion"
+      },
+      {
+        "beat": "insight",
+        "t": [
+          4.0,
+          6.0
+        ],
+        "on_screen": "Agility hoop"
+      },
+      {
+        "beat": "proof",
+        "t": [
+          6.0,
+          8.0
+        ],
+        "on_screen": "Approaching tunnel"
+      },
+      {
+        "beat": "offer",
+        "t": [
+          8.0,
+          10.0
+        ],
+        "on_screen": "Tunnel run"
+      },
+      {
+        "beat": "cta",
+        "t": [
+          10.0,
+          14.0
+        ],
+        "on_screen": "Greeting and affection"
+      }
+    ],
+    "pacing": {
+      "cuts_per_10s": 3,
+      "avg_shot_s": 2.5,
+      "cut_rule": "maintain engagement",
+      "energy_curve": "consistent",
+      "transitions": [
+        "hard-cut",
+        "jump-cut"
+      ]
+    },
+    "framing": {
+      "distance": "medium",
+      "camera": "static",
+      "movement": "none"
+    },
+    "broll": {
+      "share": 0.7,
+      "role": "illustrate",
+      "style": "natural",
+      "notes": "Focus on interaction and training"
+    },
+    "captions": {
+      "position_pct": 10,
+      "font_class": "sans-serif",
+      "weight": "bold",
+      "case": "uppercase",
+      "fill": "white",
+      "stroke_or_shadow": "black",
+      "background": "none",
+      "animation": "none",
+      "emphasis": "text-pop",
+      "max_chars": 30,
+      "sound_off_resilient": true
+    },
+    "audio": {
+      "music": true,
+      "vo_tone": "enthusiastic"
+    },
+    "endcard": {
+      "style": "simple"
+    },
+    "tags": [
+      "dog training",
+      "positive reinforcement",
+      "agility"
+    ],
+    "replication_requirements": [
+      {
+        "need": "dog and handler",
+        "for": "training demonstration",
+        "hard": true,
+        "substitute": "none"
+      }
+    ],
+    "moments": [
+      {
+        "t": [
+          0.0,
+          2.0
+        ],
+        "action": "A woman walks with a dog through a training course.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "loose-leash-walking"
+        ],
+        "human_behavior": [
+          "guiding-on-leash"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          2.0,
+          4.0
+        ],
+        "action": "The woman praises the dog as it completes a task.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "eye-contact-checkin"
+        ],
+        "human_behavior": [
+          "rewarding-calm-behavior"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          4.0,
+          6.0
+        ],
+        "action": "The dog runs through an agility hoop.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "running"
+        ],
+        "human_behavior": [
+          "observing-dog"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          6.0,
+          8.0
+        ],
+        "action": "The woman encourages the dog as it approaches a tunnel.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "sniffing-exploration"
+        ],
+        "human_behavior": [
+          "pointing"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          8.0,
+          10.0
+        ],
+        "action": "The dog enters the tunnel.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "running"
+        ],
+        "human_behavior": [
+          "waiting-calmly"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          10.0,
+          12.0
+        ],
+        "action": "The woman crouches to greet the dog as it exits the tunnel.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "eye-contact-checkin"
+        ],
+        "human_behavior": [
+          "kneeling-to-dog-level"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          12.0,
+          14.0
+        ],
+        "action": "The woman pets the dog affectionately.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "relaxed-lying"
+        ],
+        "human_behavior": [
+          "petting-body"
+        ],
+        "valence": "positive"
+      }
+    ],
+    "retention_timeline": [
+      {
+        "t": 0.0,
+        "device": "pattern-interrupt",
+        "note": "Immediate action with dog and handler grabs attention.",
+        "cut_type": "hard-cut"
+      },
+      {
+        "t": 2.0,
+        "device": "sound-cue",
+        "note": "Positive reinforcement with enthusiastic praise keeps engagement.",
+        "emphasis": "volume-spike"
+      },
+      {
+        "t": 4.0,
+        "device": "location-change",
+        "note": "Switch to agility hoop introduces new element, maintaining interest.",
+        "cut_type": "jump-cut"
+      },
+      {
+        "t": 6.0,
+        "device": "direct-address",
+        "note": "Encouragement from handler directly engages viewer."
+      },
+      {
+        "t": 12.0,
+        "device": "payoff",
+        "note": "Affectionate petting provides emotional closure, reinforcing positive outcome."
+      }
+    ],
+    "message_strategy": {
+      "awareness_level": "solution-aware",
+      "angle": "positive reinforcement and bonding",
+      "core_reframe": "Training is about building a joyful connection.",
+      "objection_preempted": "none",
+      "promise": "A happier, well-trained dog through positive methods.",
+      "proof_type": "demonstration"
+    },
+    "cta_mechanics": {
+      "urgency": "none",
+      "social_proof": "none",
+      "destination_style": "learn more about positive training",
+      "delivery": "visit our website"
+    },
+    "format": "talking_head",
+    "aspect": "1:1",
+    "duration_s": 14.1,
+    "language": "nl"
+  }
+}

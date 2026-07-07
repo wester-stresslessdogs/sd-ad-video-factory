@@ -17,59 +17,64 @@ Maakt van een winnende ad-stijl een Creatomate-template als code, die we daarna 
 
 ## Stappen
 
-0. **Check de ad-library eerst — Vision maar één keer.** Kijk in
-   `knowledge/ad-library.json` bij deze `ad_id`:
-   - Is `vision.done: true` → **hergebruik de opgeslagen `vision.analysis`-tekst**, sla
-     stap 1-2 (download + Vision) volledig over. Ga direct naar stap 3.
-   - Zo niet → doe stap 1-2 en sla de analyse daarna op (stap 2b).
-1. **Grondstof genereren** (scene-cuts + transcript):
+0. **Check de ad-library eerst — Vision maar één keer.** `knowledge/ad-library.json`
+   is een **lichte index** (status, `edit_spec_summary`, een `vision.ref` naar de
+   detail-file); de volledige `edit_spec` (incl. `moments`/`retention_timeline`) staat
+   in `knowledge/ad-library/<ad_id>.json`. Snelste check:
+   ```bash
+   python lib/ad_library.py show --ad-id <ad_id>
+   ```
+   - `vision.done: true` mét `edit_spec_summary.n_moments > 0` → **hergebruik**, sla
+     stap 1 volledig over. Ga direct naar stap 2.
+   - Zo niet (nieuwe ad, of een oude entry zonder detail/met het oude vlakke schema)
+     → doe stap 1.
+1. **Analyseren (geautomatiseerd, één commando)**:
    ```bash
    python .claude/skills/ad-template/analyze_ad_video.py --url "<video_url>" \
-       --out output/ad-analysis/<beschrijvende-naam> --transcript
+       --out output/ad-analysis/<beschrijvende-naam> \
+       --ad-id <ad_id> --page-name "<page_name>" --save
    ```
-   Output: hook-frame + één frame per **scène-cut** (vangt elke shot), metadata
-   (verhouding/duur/cut-count) en het **transcript** (verbale hook + script + audio-pacing).
-2. **Diepe analyse schrijven** — open de frames (Read-tool) + lees het transcript, en vul
-   **`knowledge/video-analysis-rubric.md`** volledig in. Geen vage samenvatting: shot-voor-shot
-   breakdown, hook-mechaniek, pacing/cut-ritme, camerawerk, editing, caption-stijl tot in detail,
-   audio, en vooral **sectie 13 (waarom het werkt)** + **sectie 14 (replicatie-blueprint)**.
-   Dit is de kennis waarop we later templates/scripts bouwen — dus grondig.
-2b. **Vision-analyse opslaan** (de volledige rubric-uitwerking) — zodat dit nooit opnieuw hoeft:
-   ```bash
-   python lib/ad_library.py vision --ad-id <ad_id> --analysis "<volledige rubric-analyse>"
-   ```
-   Deze tekst is voortaan dé bron voor élke nieuwe template/script van deze ad.
-2c. **Edit-spec opslaan (verplicht)** — distilleer de rubric óók naar een gestructureerde
-   `edit_spec` op dezelfde entry in `knowledge/ad-library.json` (schema + voorbeeld:
-   `docs/specs/2026-07-04-knowledge-schema-design.md`, en de Barkside-entry als referentie):
-   hook (type/mechanisme/verbaal), `structure` (beats met tijdvensters), `pacing`,
-   `framing`, `broll`, `captions` (als parameters), `endcard`, `tags`, en vooral
-   **`replication_requirements`** (wat moet de footage hebben; `hard` true/false +
-   `substitute`). Dit is het machine-bruikbare contract waar `/create-ads` op draait —
-   proza zonder edit_spec is voor de pipeline onzichtbaar.
-3. **Business-case-vertaling** — neem de *stijl* over, maar zet het *aanbod* om naar ons
+   Dit doet **alles in één stap**: download, scene-cut-frames (mét tijdstempel),
+   Whisper-transcript, één Vision-call (`gpt-4o`) die zowel het verkorte rubric-proza
+   als de volledige `edit_spec` teruggeeft — inclusief `moments` (dog_behavior ×
+   human_behavior × valence, dezelfde taxonomie als de footage-index),
+   `retention_timeline` (wélk aandachtsmechanisme wanneer, en waaróm dat scroll-away
+   voorkomt), `message_strategy` (awareness-level, reframe, objectie, belofte,
+   bewijstype) en `cta_mechanics` — en slaat het met `--save` direct op via
+   `lib/ad_library.py save-analysis`. Schema + rationale:
+   `docs/specs/2026-07-04-winner-analysis-v2.md`.
+   Onbekende tags komen terug als `proposed_tags` op stderr (vocabulaire-kandidaten,
+   zelfde principe als de footage-indexer) — nooit stilzwijgend verzonnen.
+
+   **Video-URL is een lokaal pad?** Werkt ook — geen her-download nodig bij
+   her-analyseren van een al-gecachete ad (`output/ad-analysis/<naam>/source.mp4`).
+
+   **Zonder `--ad-id`/`--save`**: draai zonder die flags om het resultaat eerst te
+   bekijken (JSON op stdout) vóór je 'm opslaat — handig bij een nieuwe/onzekere ad.
+2. **Business-case-vertaling** — neem de *stijl* over, maar zet het *aanbod* om naar ons
    aanbod volgens `knowledge/business-context/offer-translation.md`:
    - **End-card / CTA-graphic**: niet hun product ("download app / TRY NOW"), maar **onze**
      funnel-entry (gratis masterclass → LVC-cursus) met ons logo/onze CTA.
    - **Product-specifieke scènes** (bv. app-UI, ander merk): vervang door ons equivalent
      (cursus-/masterclass-mockup) of laat ze weg.
    - **Toon expliciet** wat je vertaalde ("app-end-card → onze masterclass-CTA").
-4. **Template genereren** — schrijf een Creatomate `source`-JSON naar
+3. **Template genereren** — schrijf een Creatomate `source`-JSON naar
    `knowledge/video-templates/<beschrijvende-naam>_<verhouding>.json` met:
    - `talking_head` video-element (onze opname, source op render-tijd)
    - `captions`-tekstelement met `transcript_source: "talking_head"` in de **waargenomen
      stijl** (kleur/positie/highlight-effect/font-gewicht)
    - `broll`-element(en) passend bij de waargenomen intensiteit (weglaten bij talking-head-only)
-   - `end_card`/CTA-element met **ons** aanbod (uit stap 3), niet dat van de inspiratie-ad
+   - `end_card`/CTA-element met **ons** aanbod (uit stap 2), niet dat van de inspiratie-ad
    - muziek-element indien de winnaar muziek-gedreven oogt
    Volg de structuur van bestaande templates (bv. `raw_ugc_1x1.json`).
-5. **Terugkoppelen naar de ad-library** — zodat deze ad niet nog eens geanalyseerd wordt:
+4. **Terugkoppelen naar de ad-library** — zodat deze ad niet nog eens getemplate wordt:
    ```bash
    python lib/ad_library.py link --ad-id <ad_id> \
-       --template knowledge/video-templates/<naam>.json \
-       --style "<korte stijl-samenvatting>" --status geanalyseerd
+       --template knowledge/video-templates/<naam>.json --status geanalyseerd
    ```
-6. **Kort valideren** (optioneel) — render één keer via de spike/`/ad-render` met een
+   (De Vision-analyse zelf is al opgeslagen door stap 1's `--save` — dit koppelt
+   alleen de template terug.)
+5. **Kort valideren** (optioneel) — render één keer via de spike/`/ad-render` met een
    praat-clip om te bevestigen dat captions correct verschijnen.
 
 ## Regels

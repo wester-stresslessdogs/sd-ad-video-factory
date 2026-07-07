@@ -14,14 +14,14 @@ Kern-flow in het kort: [FLOW.md](FLOW.md) · Montage-regels: [knowledge/edit-gra
 | `/ad-discover` | Vindt nieuwe concurrenten in de niche (NL/BE + EN) via Meta Ad Library, dedupt tegen de brand-registry | 🟡 v1 gebouwd (fetch-laag getest) |
 | `/ad-research` | Bewezen-werkende ads (gerankt op looptijd) → ad-ideeën, met adapteerbare EN-winners | 🟡 v1 gebouwd (fetch-laag getest) |
 | `/ad-scripts` | **Lijn 3**: ad-idee → opnameklaar script (3+ hooks, beat-labels, taxonomie-cues) voor creators | 🟡 v1 gebouwd (business-context ingevuld) |
-| `/ad-template` | Winnende ad-stijl (video-analyse) → Creatomate template als code + `edit_spec` | 🟡 v1 gebouwd (video-analyse getest) |
+| `/ad-template` | Winnende ad-stijl → Creatomate template als code + rijke `edit_spec` (geautomatiseerde Vision-analyse: moment-niveau dog/human-behavior, retentie-tijdlijn, message-strategie, cta-mechanics — zie `docs/specs/2026-07-04-winner-analysis-v2.md`) | 🟡 v2 gebouwd (analyse-laag getest op cached ad) |
 | `/ad-briefing` | **Lijn 3**: script → teleprompter-briefing met emotie/camera-cues | 🟡 v1 gebouwd |
 | `/ad-render` | Mechanische render-laag: plan.json → afgewerkte MP4 via Creatomate → lokaal | 🟢 end-to-end bewezen (8 review-rondes op het eerste pakket) |
 | `/create-ads` | **Lijn 1+2 — dé planner**: N ad-varianten uit bestaande footage (Lijn 1) of een nieuwe opname op een bestaand script (Lijn 2); consumeert winner-`edit_spec`s × footage-index v2, plant volgens `knowledge/edit-grammar.md`, levert reviewbare pakketten in `output/ads/`, renderen op afroep | 🟢 v8 (barkside×2850 door 6 reviews heen; plan-check + frame-poort verplicht) |
 
 > Databron is **Apify** (Meta Ad Library scraper), niet Foreplay. "Wat werkt" wordt
 > geproxyd op **looptijd** (geen publieke metrics). Gedeelde fetch-laag: `lib/fetch_ads.py`.
-> Data-assets: `knowledge/brand-registry.json` (wie we volgen) + `knowledge/research-config.json` (hoe we zoeken) + `knowledge/ad-library.json` (welke ads we al analyseerden + hun templates/scripts — voorkomt dubbel werk).
+> Data-assets: `knowledge/brand-registry.json` (wie we volgen) + `knowledge/research-config.json` (hoe we zoeken) + `knowledge/ad-library.json` (lichte index: welke ads we al analyseerden + hun templates/scripts — voorkomt dubbel werk; de volledige analyse per ad staat in `knowledge/ad-library/<ad_id>.json`, opvragen via `python lib/ad_library.py show --ad-id <id>`) + `knowledge/winner-patterns.md` (cross-ad synthese over alle geanalyseerde winnaars, `scripts/synthesize_winner_patterns.py` — her-draaien na elke nieuwe `/ad-template`-run).
 > Winnende ads zijn inspiratie — script én template worden naar ons aanbod herschreven (zie [FLOW.md](FLOW.md)).
 
 ## Setup (nieuwe machine)

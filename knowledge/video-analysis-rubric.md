@@ -8,6 +8,18 @@ en is daarna de bron voor élke template/script.
 
 Vul elke sectie in. Markeer per punt de bron: 👁️ keyframes · 🎙️ transcript · 🧠 inschatting.
 
+> **Sinds `2026-07-04-winner-analysis-v2.md`**: dit document is de mens-leesbare
+> checklist/referentie. De daadwerkelijke analyse wordt geautomatiseerd geproduceerd
+> door `.claude/skills/ad-template/analyze_ad_video.py` (één geschema-afgedwongen
+> Vision-call, zie `vision_prompt()`), die een verkort proza (secties 1/3/13/14 hier)
+> combineert met een gestructureerde `edit_spec` — inclusief `moments` (dog_behavior ×
+> human_behavior × valence, secties 2/5/9/10/12 hier gestructureerd), `retention_timeline`
+> (secties 3/4 hier gestructureerd: wélk aandachtsmechanisme wanneer, en waarom) en
+> `message_strategy`/`cta_mechanics` (nieuw — copy-strategie, stond nergens gestructureerd).
+> Sectie 6-8/11 (editing/captions/graphics/licht) landen in `edit_spec.pacing`/
+> `captions`/`framing`. Dit document blijft de bron van waarheid voor *wat* elke sectie
+> moet beantwoorden; het script is de afdwinging daarvan in code.
+
 ## 1. Overzicht
 Format (talking-head / POV / demo / testimonial / slideshow / mix), verhouding, duur,
 aantal shots + geschatte cut-frequentie (cuts/10s), taal.

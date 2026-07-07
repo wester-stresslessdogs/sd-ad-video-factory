@@ -18,6 +18,36 @@ moet in de taal zijn die die keten verstaat.
 - `knowledge/business-context/tone-of-voice.md` — merkstem (force-free, empathisch)
 - `knowledge/business-context/offer-translation.md` — inspiratie-aanbod → ons aanbod
 
+## Als de input een winnende ad is: laad ook de rijke analyse
+
+`knowledge/ad-library.json` is een lichte index; de volledige analyse (proza +
+`edit_spec` incl. `moments`/`retention_timeline`) staat in
+`knowledge/ad-library/<ad_id>.json`. Haal 'm op met:
+```bash
+python lib/ad_library.py show --ad-id <ad_id>
+```
+Gebruik de gestructureerde `edit_spec` (schema: `docs/specs/2026-07-04-winner-analysis-v2.md`)
+— dat is waar de echte scriptgrondstof zit, niet in de samenvatting:
+- `edit_spec.message_strategy` — awareness_level, angle, **core_reframe**, welke
+  objectie (`objection_preempted`) al preventief behandeld wordt, de belofte, het
+  bewijstype. Dit ís de copy-strategie; bouw de BODY hierop, niet op een generieke
+  "probleem→herkader→mechanisme"-mal als de winnaar iets specifiekers doet.
+- `edit_spec.retention_timeline` — wélk aandachtsmechanisme de winnaar op welk %
+  van de duur inzet (bv. een re-hook rond 40-50%). Plaats een analoge re-hook-regel
+  in de BODY op een vergelijkbaar punt — dit is waarom lange scripts (~40-60s) niet
+  wegzakken in het midden.
+- `edit_spec.moments` — de dog_behavior/human_behavior-combinaties die de winnaar
+  zelf gebruikt per beat. Gebruik dit als **realistische basis** voor je B-roll-cues
+  (stap 6) in plaats van tags te verzinnen die aannemelijk klinken.
+- `edit_spec.cta_mechanics` — of de winnaar urgentie/social proof gebruikt; vertaal
+  bewust (of laat weg als het niet bij de merkstem past — geen kunstmatige urgentie
+  toevoegen die er niet hoort).
+- **`knowledge/winner-patterns.md`** (optioneel, als het bestaat en gevuld is) —
+  cross-ad synthese over ALLE geanalyseerde winnaars (frequenties van hook-type,
+  retention_device, awareness_level, …). Gebruik dit als achtergrond ("dit patroon
+  is typisch voor onze niche"), niet als vervanging van de specifieke winnaar die
+  als bron dient. Bij n=1 zegt het bestand dat zelf ook — geen patroon-claim forceren.
+
 ## Input
 
 - Een idee uit een `/ad-research`-rapport (angle + product + referentie-ad), **of**
@@ -26,6 +56,11 @@ moet in de taal zijn die die keten verstaat.
 Ontbreekt het product? Kies het logische product bij de angle uit de catalogus en
 benoem de keuze.
 
+**Meerdere scripts in één keer?** Dat mag een mix zijn — hoeft geen vast aantal
+bronnen: één winnaar als basis voor N variant-scripts (elk met eigen invalshoek op
+dezelfde angle), OF N verschillende winnaars die elk hun eigen script worden, OF
+een combinatie. Zie "Let op" onderaan: per idee altijd een apart script-bestand.
+
 ## Genereer per script
 
 0. **Business-case-vertaling** (als de input een winnende/inspiratie-ad is). Neem de
@@ -33,16 +68,24 @@ benoem de keuze.
    `offer-translation.md`: hun product/CTA → onze funnel-entry (gratis masterclass →
    cursus), hun mechanisme → force-free methode, onze productnaam/prijs uit de
    catalogus. **Toon expliciet wat je koos** ("Vertaald naar: gratis masterclass →
-   LVC €127"). Kopieer nooit het product van een ander.
-1. **Bepaal awareness-level** (koud/oplossing/product-bewust) → kies passende
-   hook-stijl uit `advertising-strategy.md`.
+   LVC €127"). Kopieer nooit het product van een ander — ook niet als de winnaar zelf
+   een fysiek product/supplement blijkt te zijn (check `edit_spec.message_strategy`;
+   dat verandert de vertaling, niet het principe).
+1. **Bepaal awareness-level** — gebruik `edit_spec.message_strategy.awareness_level`
+   als de winnaar geanalyseerd is, anders handmatig (koud/oplossing/product-bewust)
+   → kies passende hook-stijl uit `advertising-strategy.md`.
 2. **HOOK (0:00–0:08) — minimaal 3 variaties.** Verschillende invalshoeken op
    dezelfde angle (bv. empathie / provocatie / persoonlijk verhaal). Body + CTA
    blijven gelijk.
-3. **BODY (0:08–~0:40)** — probleem → herkenning → herkader ("communicatie, geen
-   gedragsprobleem") → mechanisme (force-free methode). Persoonlijk en warm.
+3. **BODY (0:08–~0:40)** — bouw op `edit_spec.message_strategy.core_reframe` als die
+   er is (anders: probleem → herkenning → herkader "communicatie, geen
+   gedragsprobleem" → mechanisme). Verwerk de objectie uit `objection_preempted`
+   expliciet. Persoonlijk en warm. Plaats een re-hook-moment op het duur-percentage
+   dat `retention_timeline` van de winnaar aangeeft, als de sectie lang genoeg is.
 4. **CTA (laatste 5–10s)** — naar de **gratis instap** die bij het product past
-   (masterclass / e-book / training), niet direct de verkooppagina.
+   (masterclass / e-book / training), niet direct de verkooppagina. Kijk naar
+   `cta_mechanics` van de winnaar voor urgentie/social-proof-gebruik, vertaal
+   bewust naar wat bij de merkstem past.
 5. **Beat-label per sectie** — elke zin(groep) krijgt zijn beat uit
    `knowledge/taxonomy.json → beat` (hook / problem / agitate / insight / proof /
    offer / cta). Dit is het skelet waarop `/create-ads` de takes straks mapt.
@@ -51,7 +94,9 @@ benoem de keuze.
    `[B-ROLL: dog_behavior=leash-pulling valence=problem — hond trekt richting raam]`
    Tags komen úit `knowledge/taxonomy.json` (dog_behavior / human_behavior /
    valence) — de match in `/create-ads` draait op deze tags tegen de footage-index,
-   dus een cue buiten het vocabulaire is onzichtbaar voor de pipeline. **Géén harde
+   dus een cue buiten het vocabulaire is onzichtbaar voor de pipeline. Waar mogelijk:
+   leen de combinatie letterlijk uit `edit_spec.moments` van de winnaar (die
+   combinatie is al bewezen samen te werken in een winnende ad). **Géén harde
    tijdcode** — de cue zegt *wat*, het transcript van de opname bepaalt later *wanneer*.
 7. **Per script ook**: timing-indicatie per sectie, tone-aanwijzingen, en
    **advertorial caption-copy** (primary text lang, headline, description).

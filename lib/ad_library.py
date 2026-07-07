@@ -18,8 +18,22 @@ CLI (skills roepen deze aan):
   # Vision-analyse (de tekstbeschrijving) opslaan + taggen → nooit opnieuw
   python lib/ad_library.py vision --ad-id 123 --analysis "9:16, karaoke-captions, cut-heavy, end-card"
 
+  # volledige geautomatiseerde analyse in één keer opslaan (analyze_ad_video.py --save
+  # roept dit aan): JSON op stdin met {"analysis": "<proza>", "edit_spec": {...}}.
+  # Schrijft de zware data naar knowledge/ad-library/<ad_id>.json (zie DETAIL_DIR);
+  # ad-library.json zelf blijft een lichte index + edit_spec_summary.
+  python lib/ad_library.py save-analysis --ad-id 123 < payload.json
+
+  # volledige detail van één ad opvragen (index + detail-file samengevoegd)
+  python lib/ad_library.py show --ad-id 123
+
   # afgeleide template/script koppelen
   python lib/ad_library.py link --ad-id 123 --template knowledge/video-templates/x.json
+
+Waarom een index + detail-files, niet alles inline: een volledig geanalyseerde ad
+(moments + retention_timeline) is 5-12KB; bij tientallen ads wordt dat een monoliet
+die je niet meer selectief kunt lezen. Zelfde patroon als
+`footage-index.json → transcript_ref` (Whisper-transcripts staan ook apart).
 """
 import argparse
 import json
@@ -29,6 +43,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "knowledge" / "ad-library.json"
+DETAIL_DIR = ROOT / "knowledge" / "ad-library"
 
 
 def load():
@@ -39,6 +54,31 @@ def load():
 
 def save(db):
     DB.write_text(json.dumps(db, ensure_ascii=False, indent=2) + "\n")
+
+
+def detail_path(aid: str) -> Path:
+    return DETAIL_DIR / f"{aid}.json"
+
+
+def load_detail(aid: str) -> dict | None:
+    p = detail_path(aid)
+    return json.loads(p.read_text()) if p.exists() else None
+
+
+def edit_spec_summary(edit_spec: dict) -> dict:
+    """Klein, inline-houdbaar uittreksel — genoeg om te scannen zonder de detail-file
+    te openen. De volledige edit_spec (incl. moments/retention_timeline) staat alleen
+    in de detail-file."""
+    return {
+        "format": edit_spec.get("format"),
+        "aspect": edit_spec.get("aspect"),
+        "duration_s": edit_spec.get("duration_s"),
+        "hook_type": (edit_spec.get("hook") or {}).get("type"),
+        "awareness_level": (edit_spec.get("message_strategy") or {}).get("awareness_level"),
+        "tags": edit_spec.get("tags", []),
+        "n_moments": len(edit_spec.get("moments", [])),
+        "n_retention_events": len(edit_spec.get("retention_timeline", [])),
+    }
 
 
 def library_url(ad_id):
@@ -119,6 +159,60 @@ def cmd_vision(args):
     print(f"vision opgeslagen voor {aid} ({len(analysis)} tekens, nooit opnieuw nodig)", file=sys.stderr)
 
 
+def cmd_save_analysis(args):
+    """Slaat het volledige resultaat van analyze_ad_video.py (proza + edit_spec, incl.
+    moments/retention_timeline/message_strategy/cta_mechanics) op. De zware data gaat
+    naar knowledge/ad-library/<ad_id>.json; ad-library.json zelf krijgt alleen
+    edit_spec_summary + een ref — schema: docs/specs/2026-07-04-winner-analysis-v2.md."""
+    db = load()
+    aid = str(args.ad_id)
+    e = db["ads"].get(aid)
+    if e is None:
+        print(f"ad_id {aid} niet in library — draai eerst 'record'", file=sys.stderr)
+        sys.exit(1)
+    payload = json.load(sys.stdin)
+    analysis = payload.get("analysis")
+    edit_spec = payload.get("edit_spec")
+    if not analysis or not edit_spec:
+        print("payload mist 'analysis' en/of 'edit_spec'", file=sys.stderr)
+        sys.exit(1)
+
+    DETAIL_DIR.mkdir(parents=True, exist_ok=True)
+    dp = detail_path(aid)
+    dp.write_text(json.dumps(
+        {"ad_id": aid, "page_name": e.get("page_name"), "analysis": analysis, "edit_spec": edit_spec},
+        ensure_ascii=False, indent=2) + "\n")
+
+    e.pop("edit_spec", None)  # migreert oude inline-entries weg bij een her-analyse
+    e["vision"] = {"done": True, "analyzed_at": date.today().isoformat(),
+                   "ref": str(dp.relative_to(ROOT))}
+    e["edit_spec_summary"] = edit_spec_summary(edit_spec)
+    e["status"] = args.status or "geanalyseerd"
+    save(db)
+    s = e["edit_spec_summary"]
+    print(f"analyse opgeslagen voor {aid}: {s['n_moments']} moments, {s['n_retention_events']} "
+          f"retention-events → {dp.relative_to(ROOT)} (index blijft licht)", file=sys.stderr)
+
+
+def cmd_show(args):
+    """Index-entry + detail-file (indien aanwezig) samengevoegd op stdout — de manier
+    om één ad volledig te lezen zonder ad-library.json + de detail-file apart te openen."""
+    db = load()
+    aid = str(args.ad_id)
+    e = db["ads"].get(aid)
+    if e is None:
+        print(f"ad_id {aid} niet in library", file=sys.stderr)
+        sys.exit(1)
+    out = dict(e)
+    ref = (e.get("vision") or {}).get("ref")
+    if ref:
+        detail = load_detail(aid)
+        if detail:
+            out["analysis"] = detail.get("analysis")
+            out["edit_spec"] = detail.get("edit_spec")
+    json.dump(out, sys.stdout, ensure_ascii=False, indent=2)
+
+
 def cmd_link(args):
     db = load()
     aid = str(args.ad_id)
@@ -148,6 +242,11 @@ def main():
     v.add_argument("--analysis")
     v.add_argument("--analysis-file")
     v.add_argument("--status")
+    sa = sub.add_parser("save-analysis")
+    sa.add_argument("--ad-id", required=True)
+    sa.add_argument("--status")
+    sh = sub.add_parser("show")
+    sh.add_argument("--ad-id", required=True)
     lk = sub.add_parser("link")
     lk.add_argument("--ad-id", required=True)
     lk.add_argument("--template")
@@ -159,6 +258,8 @@ def main():
         "pending-vision": cmd_pending_vision,
         "record": cmd_record,
         "vision": cmd_vision,
+        "save-analysis": cmd_save_analysis,
+        "show": cmd_show,
         "link": cmd_link,
     }[args.cmd](args)
 

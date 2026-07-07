@@ -1,6 +1,6 @@
 {
-  "_comment": "Gedeeld tag-vocabulaire (gecontroleerd). DIT bestand is de bron van waarheid; docs/specs/2026-07-04-knowledge-schema-design.md is de ontwerp-rationale. Consumenten: scripts/index_footage.py (Vision kiest UIT deze lijsten), /ad-scripts (cues in deze termen), /create-ads (moment-queries). Uitbreiden = bewuste edit hier, daarna her-indexeren waar relevant; de indexer levert kandidaten aan via proposed_tags.",
-  "version": 1,
+  "_comment": "Gedeeld tag-vocabulaire (gecontroleerd). DIT bestand is de bron van waarheid; docs/specs/2026-07-04-knowledge-schema-design.md + 2026-07-04-winner-analysis-v2.md zijn de ontwerp-rationale. Consumenten: scripts/index_footage.py (Vision kiest UIT deze lijsten), .claude/skills/ad-template/analyze_ad_video.py (winner-analyse, zelfde principe), /ad-scripts (cues in deze termen), /create-ads (moment-queries). Uitbreiden = bewuste edit hier, daarna her-indexeren waar relevant; de indexer levert kandidaten aan via proposed_tags.",
+  "version": 2,
   "dog_behavior": {
     "stress_kalmeersignalen": [
       "lip-licking", "yawning", "look-away", "whale-eye", "body-shake-off",
@@ -69,5 +69,36 @@
   ],
   "beat": ["hook", "problem", "agitate", "insight", "proof", "offer", "cta"],
   "caption_anim": ["karaoke", "word-pop", "line-static", "line-pill", "none"],
-  "broll_role": ["illustrate", "prove", "rhythm", "emotional"]
+  "broll_role": ["illustrate", "prove", "rhythm", "emotional"],
+
+  "_comment_retention": "Nieuw (winner-analysis-v2): de retentie-/aandachts-laag — wélk mechaniek voorkomt scroll-away op elk moment, los van wat er inhoudelijk gebeurt (dat is beat/dog_behavior/human_behavior). Eén moment kan meerdere retention_devices dragen.",
+  "retention_device": [
+    "pattern-interrupt", "re-hook", "open-loop", "cliffhanger", "reveal",
+    "payoff", "direct-address", "location-change", "prop-change", "sound-cue",
+    "question-to-camera", "callback"
+  ],
+  "cut_type": [
+    "hard-cut", "jump-cut", "whip-pan", "match-cut", "zoom-punch",
+    "freeze-frame", "speed-ramp", "j-cut", "l-cut", "cutaway"
+  ],
+  "emphasis_technique": [
+    "text-pop", "zoom-punch", "sfx-hit", "color-flash", "icon-overlay",
+    "slow-motion", "freeze-frame", "volume-spike", "none"
+  ],
+
+  "_comment_message": "Nieuw (winner-analysis-v2): copy-strategie-laag, los van edit-craft. awareness_level-labels matchen 1-op-1 knowledge/business-context/advertising-strategy.md (koud/oplossing-bewust/product-bewust) — niet Schwartz's 5-niveaus, dat is hier bewust niet de standaard.",
+  "awareness_level": ["unaware", "solution-aware", "product-aware"],
+  "proof_type": [
+    "none", "personal-testimonial", "before-after", "expert-authority",
+    "stat-claim", "demonstration", "social-proof-numbers", "case-study"
+  ],
+  "objection_type": [
+    "none", "too-good-to-be-true", "not-my-dog", "tried-everything",
+    "too-expensive", "too-time-consuming", "skeptical-of-force-free"
+  ],
+  "urgency_type": ["none", "limited-time", "limited-spots", "price-increase", "seasonal"],
+  "social_proof_type": [
+    "none", "review-count", "testimonial-quote", "client-count",
+    "before-after-numbers", "press-mention"
+  ]
 }

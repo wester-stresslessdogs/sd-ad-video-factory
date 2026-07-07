@@ -13,14 +13,28 @@
       "status": "geanalyseerd",
       "vision": {
         "done": true,
-        "analyzed_at": "2026-07-02",
-        "analysis": "1:1, agility-demo footage buiten (vrouw traint hond op veld met pylonen/hoepel). Geen talking head, geen on-screen captions, geen cuts (één doorlopende shot). Natuurlijk daglicht, UGC-stijl."
+        "analyzed_at": "2026-07-04",
+        "ref": "knowledge/ad-library/1640247783679843.json"
       },
       "derived": {
         "templates": [],
         "scripts": []
       },
-      "notes": "Seed-voorbeeld uit de eerste test."
+      "notes": "Seed-voorbeeld uit de eerste test.",
+      "edit_spec_summary": {
+        "format": "talking_head",
+        "aspect": "1:1",
+        "duration_s": 14.1,
+        "hook_type": "pattern-interrupt",
+        "awareness_level": "solution-aware",
+        "tags": [
+          "dog training",
+          "positive reinforcement",
+          "agility"
+        ],
+        "n_moments": 7,
+        "n_retention_events": 5
+      }
     },
     "1238886857901115": {
       "ad_id": "1238886857901115",
@@ -160,8 +174,8 @@
       "status": "geanalyseerd",
       "vision": {
         "done": true,
-        "analyzed_at": "2026-07-02",
-        "analysis": "DIEPE VIDEO-ANALYSE — Barkside Stories (ad_id 2761549420912366), 57d actief\n\n## 1. Overzicht\nTalking-head UGC, 9:16, 101s, ~16 cuts (≈1 cut/6s, incl. whip-transitions). Taal NL.\nÉén creator + haar eigen hond, lav-microfoon, meerdere buitenlocaties. Bewust rauw/authentiek.\n\n## 2. Shot-breakdown (indicatief)\n@0:00 liggend in het gras naast de (ontspannen, op rug liggende) hond — overhead/POV, hook.\n@0:08 whip-cut naar staand/lopend (motion-blur transitie).\n@0:20 tuinstoel, medium talking-head, handgebaren (agitatie-opsomming).\n@0:40+ afwisseling tuin/stoel-shots met torn-paper-transitions + film-grain filter.\nLocatie- en compositiewissel bij bijna elke cut = visuele frisheid over 101s.\n\n## 3. Hook (0–3s) — waarom stopt de scroll 🧠\nVisueel: ongebruikelijke overhead-compositie, creator ligt in het gras mét de hond op z'n\nrug (kwetsbaar, intiem, pattern-interrupt — niet de standaard praatkop). 🎙️ Verbaal:\n\"Als jouw hond naar alles blaft en op bezoek springt, dan is dit voor jou.\" → directe\n\"jij\"-aanspraak + probleem-callout = zelfselectie (\"dat ben ik\"). Werkt omdat de kijker\nzich meteen herkent én de onverwachte compositie de duim stopt.\n\n## 4. Structuur & pacing 🎙️\nPain-stack → agitatie → (later) herkader → oplossing → CTA. De opening stapelt pijnen in\nrap tempo: \"het geblaf, het opspringen, trekken als een gek, reageren op elke hond, elke\nfiets, elke persoon\" → \"het maakte me gek. Ik werk thuis, dus constant geblaf.\" Snelle\nopsomming + cut-per-zin houdt energie hoog; herkenning bouwt op vóór de oplossing komt.\n\n## 5. Camerawerk 👁️\nHandheld, wisselend ooghoogte / POV / één overhead. Close-medium, gezicht groot in beeld.\nLav-mic in beeld (versterkt authenticiteit + schone audio buiten). Whip-pans als transitie.\n\n## 6. Editing 👁️\nSnelle harde cuts + whip-transitions + een torn-paper-overgang + film-grain/VHS-filter op\nsommige shots. B-roll minimaal; het zijn vooral talking-head-shots op wisselende locaties —\nde locatiewissel zelf is de \"B-roll\" die ritme en frisheid geeft. Cut-per-zin = retentie.\n\n## 7. Captions 👁️\nWit, bold, sentence-case, **zwarte stroke/outline**, gecentreerd onder-midden, 1–2 regels,\nvolledige zinsdelen (geen karaoke). Hoog contrast → leesbaar met geluid uit. Sync per zin.\n\n## 8. Graphics & motion 👁️\nSpaarzaam: torn-paper-transitie, film-grain filter, af en toe een icon (alarm) elders in de\nvideo. Geen zware graphics — past bij de rauwe UGC-look.\n\n## 9. Audio 🎙️\nHeldere conversational voiceover via lav-mic, hoog tempo bij de pain-stack, natuurlijke\npauzes. Geen opdringerige muziek (spraak-gedreven). Emotie in de stem draagt de agitatie.\n\n## 10. Talent & performance 👁️🧠\nRelatable jonge vrouw + haar eigen hond, kwetsbaar/echt, direct oogcontact, informele\ndelivery. Kleding en tuin-setting bewust ongepolijst → leest als een vriendin, niet als ad.\n\n## 11. Licht & kleur 👁️\nFel natuurlijk daglicht (zon), warm, af en toe overbelicht — versterkt \"echt/spontaan\".\n\n## 12. Setting 👁️\nEigen tuin/gras, huis-context, de hond fysiek aanwezig als bewijs/onderwerp. Maximale echtheid.\n\n## 13. Waarom het werkt 🧠\n(1) Zelfselectie-hook: directe \"jij\"-aanspraak + pain-callout → juiste kijker haakt aan.\n(2) Pain-stack in rap tempo → maximale herkenning (\"dat is precies mijn hond\") vóór de pitch.\n(3) Rauwe UGC + eigen hond → leest als authentieke ervaring, niet als advertentie (hoog\nvertrouwen). (4) Cut-per-zin + locatiewissels → retentie over een lange 101s. (5) Captions\nmet stroke → werkt sound-off. De \"secret sauce\": herkenning + authenticiteit, niet productie.\n\n## 14. Replicatie-blueprint (voor Stressless Dogs)\nFilm: talking-head met Wester/Jess + eigen hond, buiten, handheld, lav-mic, meerdere\nlocaties/composities (incl. één onverwachte hoek als hook). Monteer: cut-per-zin, whip-\ntransities, evt. film-grain, minimale graphics. Caption: wit bold + zwarte stroke, sentence-\ncase, onder-midden, per zin gesynced. Structuur: zelfselectie-hook (\"Als jouw hond… dan is\ndit voor jou\") → pain-stack → **herkader (het is geen ongehoorzaamheid, het is stress/\ncommunicatie)** → force-free oplossing → CTA. VERTALING (offer-translation.md): eindig op\nonze **gratis masterclass → Liefdevol Communiceren**, niet op een product/apparaat.\n"
+        "analyzed_at": "2026-07-04",
+        "ref": "knowledge/ad-library/2761549420912366.json"
       },
       "derived": {
         "templates": [
@@ -172,148 +186,20 @@
         ]
       },
       "notes": "",
-      "edit_spec": {
+      "edit_spec_summary": {
         "format": "talking_head",
         "aspect": "9:16",
-        "duration_s": 101,
-        "language": "nl",
-        "hook": {
-          "type": "relatability",
-          "mechanism": "zelfselectie: directe 'jij'-aanspraak + pain-callout",
-          "visual": "pattern-interrupt compositie (overhead, creator ligt in gras naast hond)",
-          "verbal": "Als jouw hond naar alles blaft en op bezoek springt, dan is dit voor jou.",
-          "duration_s": 3
-        },
-        "structure": [
-          {
-            "beat": "hook",
-            "t": [
-              0,
-              3
-            ],
-            "on_screen": "talking_head"
-          },
-          {
-            "beat": "problem",
-            "t": [
-              3,
-              20
-            ],
-            "on_screen": "talking_head",
-            "notes": "pain-stack in rap tempo, cut per zin"
-          },
-          {
-            "beat": "agitate",
-            "t": [
-              20,
-              40
-            ],
-            "on_screen": "talking_head",
-            "notes": "persoonlijke impact ('het maakte me gek')"
-          },
-          {
-            "beat": "insight",
-            "t": [
-              40,
-              70
-            ],
-            "on_screen": "talking_head",
-            "notes": "herkader: geen ongehoorzaamheid maar stress/communicatie"
-          },
-          {
-            "beat": "offer",
-            "t": [
-              70,
-              90
-            ],
-            "on_screen": "talking_head"
-          },
-          {
-            "beat": "cta",
-            "t": [
-              90,
-              101
-            ],
-            "on_screen": "talking_head"
-          }
-        ],
-        "pacing": {
-          "cuts_per_10s": 1.6,
-          "avg_shot_s": 6.3,
-          "cut_rule": "cut per zin bij de pain-stack",
-          "energy_curve": "hoog begin, rustiger herkader, warm einde",
-          "transitions": [
-            "hard-cut",
-            "whip-pan",
-            "torn-paper (spaarzaam)"
-          ]
-        },
-        "framing": {
-          "distance": "selfie",
-          "camera": "handheld",
-          "movement": "locatie-/compositiewissel bij bijna elke cut = de visuele frisheid"
-        },
-        "broll": {
-          "share": 0.05,
-          "role": "rhythm",
-          "style": "fullscreen",
-          "notes": "nauwelijks klassieke B-roll; de compositie-wissel van de talking-head IS het ritme"
-        },
-        "captions": {
-          "position_pct": 62,
-          "font_class": "clean-sans",
-          "weight": 700,
-          "case": "sentence",
-          "fill": "#ffffff",
-          "stroke_or_shadow": "zwarte stroke",
-          "background": "none",
-          "animation": "line-static",
-          "emphasis": "none",
-          "max_chars": 34
-        },
-        "audio": {
-          "music": false,
-          "vo_tone": "conversational; hoog tempo bij pain-stack, natuurlijke pauzes"
-        },
-        "endcard": {
-          "style": "bron heeft geen kaart (CTA verbaal); bij ons: navy CTA-balk laatste 5s, aanbod VERTAALD naar gratis masterclass"
-        },
+        "duration_s": 101.0,
+        "hook_type": "relatability",
+        "awareness_level": "solution-aware",
         "tags": [
-          "relatability",
-          "selfie",
-          "handheld",
-          "pain-stack",
-          "reframe",
-          "barking",
-          "jumping-up",
-          "garden"
+          "hondentraining",
+          "gedragsproblemen",
+          "natuurlijke oplossing"
         ],
-        "replication_requirements": [
-          {
-            "need": "shot_distance selfie/close, handheld, meerdere composities",
-            "for": "hele video",
-            "hard": false,
-            "substitute": "punch-in-wissels + B-roll-bridges simuleren compositiewissel op statisch wijd shot"
-          },
-          {
-            "need": "dog_behavior barking/jumping-up/leash-pulling met valence problem",
-            "for": "beat problem",
-            "hard": false,
-            "substitute": "pain-stack verbaal op haar gezicht; alleen echte problem-momenten uit de index gebruiken (nooit misleidend)"
-          },
-          {
-            "need": "zelfselectie-hook-zin in de opname ('Als jouw hond X... dan is dit voor jou')",
-            "for": "beat hook",
-            "hard": true,
-            "substitute": null
-          },
-          {
-            "need": "herkader-zin (stress/communicatie i.p.v. ongehoorzaamheid) in de opname",
-            "for": "beat insight",
-            "hard": true,
-            "substitute": null
-          }
-        ]
+        "n_moments": 38,
+        "n_retention_events": 14
+
       }
     },
     "27035047326134575": {

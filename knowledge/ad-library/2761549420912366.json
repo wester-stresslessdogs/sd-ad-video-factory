@@ -1,0 +1,726 @@
+{
+  "ad_id": "2761549420912366",
+  "page_name": "Barkside Stories",
+  "analysis": "DIEPE VIDEO-ANALYSE — Barkside Stories\n\n## Overzicht\nDe video is een 9:16-formaat van 101 seconden, gericht op hondeneigenaren met gedragsproblemen bij hun honden.\n\n## Hook — waarom stopt de scroll\nDe video begint met een directe vraag die herkenbaar is voor veel hondeneigenaren, waardoor ze zich aangesproken voelen.\n\n## Waarom het werkt\nDe video maakt gebruik van empathie en herkenning, gecombineerd met persoonlijke getuigenissen en visuele bewijzen, om vertrouwen op te bouwen en de kijker te overtuigen van de effectiviteit van de oplossing.\n\n## Replicatie-blueprint\nFilm een hond met gedragsproblemen, gebruik dynamische camerabewegingen en ondersteunende b-roll, en benadruk persoonlijke ervaringen en oplossingen in de captions.",
+  "edit_spec": {
+    "hook": {
+      "type": "relatability",
+      "mechanism": "directe vraag",
+      "visual": "vrouw met hond",
+      "verbal": "Als jouw hond naar alles blaft...",
+      "duration_s": 3.8
+    },
+    "structure": [
+      {
+        "beat": "hook",
+        "t": [
+          0.0,
+          3.8
+        ],
+        "on_screen": "Vrouw met hond",
+        "notes": "Directe aanspreking van de kijker."
+      },
+      {
+        "beat": "problem",
+        "t": [
+          3.9,
+          24.4
+        ],
+        "on_screen": "Hond en vrouw",
+        "notes": "Probleemstelling met visuele voorbeelden."
+      },
+      {
+        "beat": "agitate",
+        "t": [
+          24.5,
+          37.4
+        ],
+        "on_screen": "Vrouw en hulpmiddelen",
+        "notes": "Frustratie en mislukte pogingen."
+      },
+      {
+        "beat": "insight",
+        "t": [
+          37.5,
+          44.6
+        ],
+        "on_screen": "Vrouw",
+        "notes": "Inzicht in het echte probleem."
+      },
+      {
+        "beat": "proof",
+        "t": [
+          44.7,
+          75.1
+        ],
+        "on_screen": "Vrouw en product",
+        "notes": "Uitleg en bewijs van de oplossing."
+      },
+      {
+        "beat": "offer",
+        "t": [
+          75.2,
+          96.0
+        ],
+        "on_screen": "Vrouw en hond",
+        "notes": "Effectiviteit en voordelen van het product."
+      },
+      {
+        "beat": "cta",
+        "t": [
+          96.0,
+          100.9
+        ],
+        "on_screen": "Vrouw",
+        "notes": "Oproep tot actie."
+      }
+    ],
+    "pacing": {
+      "cuts_per_10s": 5,
+      "avg_shot_s": 2,
+      "cut_rule": "regelmatig",
+      "energy_curve": "hoog",
+      "transitions": [
+        "hard-cut",
+        "jump-cut",
+        "match-cut"
+      ]
+    },
+    "framing": {
+      "distance": "medium",
+      "camera": "handheld",
+      "movement": "dynamisch"
+    },
+    "broll": {
+      "share": 0.3,
+      "role": "illustrate",
+      "style": "realistisch",
+      "notes": "Visuele ondersteuning van het verhaal."
+    },
+    "captions": {
+      "position_pct": 80,
+      "font_class": "sans-serif",
+      "weight": "bold",
+      "case": "sentence",
+      "fill": "white",
+      "stroke_or_shadow": "black",
+      "background": "none",
+      "animation": "line-static",
+      "emphasis": "none",
+      "max_chars": 40,
+      "sound_off_resilient": true
+    },
+    "audio": {
+      "music": true,
+      "vo_tone": "empathisch"
+    },
+    "endcard": {
+      "style": "eenvoudig"
+    },
+    "tags": [
+      "hondentraining",
+      "gedragsproblemen",
+      "natuurlijke oplossing"
+    ],
+    "replication_requirements": [
+      {
+        "need": "hond met gedragsproblemen",
+        "for": "authenticiteit",
+        "hard": true,
+        "substitute": "geen"
+      }
+    ],
+    "moments": [
+      {
+        "t": [
+          0.0,
+          3.8
+        ],
+        "action": "Vrouw praat tegen de camera terwijl de hond naast haar ligt.",
+        "dog_visible": true,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          3.9,
+          6.1
+        ],
+        "action": "Hond springt op tegen bezoek.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "jumping-up"
+        ],
+        "human_behavior": [],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          6.2,
+          9.7
+        ],
+        "action": "Hond trekt aan de lijn tijdens het wandelen.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "leash-pulling"
+        ],
+        "human_behavior": [],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          9.8,
+          11.7
+        ],
+        "action": "Vrouw praat verder over problemen met de hond.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          11.8,
+          13.4
+        ],
+        "action": "Vrouw uit frustratie over het gedrag van de hond.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          13.5,
+          17.2
+        ],
+        "action": "Hond blaft naar buiten.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "barking"
+        ],
+        "human_behavior": [],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          17.2,
+          19.1
+        ],
+        "action": "Vrouw praat over de impact op haar leven.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          19.2,
+          21.0
+        ],
+        "action": "Vrouw benadrukt dat het voor niemand leuk is.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          21.0,
+          24.4
+        ],
+        "action": "Vrouw praat over de impact op de hond.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          24.5,
+          27.0
+        ],
+        "action": "Hond snuffelt aan verschillende trainingshulpmiddelen.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "sniffing-exploration"
+        ],
+        "human_behavior": [],
+        "valence": "neutral"
+      },
+      {
+        "t": [
+          27.0,
+          29.6
+        ],
+        "action": "Vrouw vertelt over verschillende trainingsmethoden die ze heeft geprobeerd.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          29.7,
+          31.8
+        ],
+        "action": "Vrouw praat over desensitisatiepogingen.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          31.9,
+          35.4
+        ],
+        "action": "Hond blijft alert bij het hek.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "hypervigilant-scanning"
+        ],
+        "human_behavior": [],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          35.5,
+          37.4
+        ],
+        "action": "Vrouw realiseert zich dat het een zenuwstelselprobleem is.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "neutral"
+      },
+      {
+        "t": [
+          37.5,
+          40.4
+        ],
+        "action": "Vrouw legt uit dat de hond constant in alarmstand staat.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          40.5,
+          44.6
+        ],
+        "action": "Vrouw vertelt dat training niet genoeg was.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "problem"
+      },
+      {
+        "t": [
+          44.7,
+          48.2
+        ],
+        "action": "Vrouw introduceert een natuurlijke oplossing.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          48.2,
+          51.1
+        ],
+        "action": "Vrouw beschrijft de werking van het product.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          51.2,
+          52.6
+        ],
+        "action": "Vrouw vertelt over de voordelen van het product.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          52.6,
+          53.7
+        ],
+        "action": "Vrouw benadrukt dat het product natuurlijk is.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          53.8,
+          55.1
+        ],
+        "action": "Vrouw legt uit hoe het product het zenuwstelsel ondersteunt.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          55.2,
+          58.0
+        ],
+        "action": "Vrouw praat over serotonine en stressregulatie.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          58.0,
+          59.8
+        ],
+        "action": "Hond ligt ontspannen in het gras.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "relaxed-lying"
+        ],
+        "human_behavior": [],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          59.9,
+          62.0
+        ],
+        "action": "Vrouw benadrukt dat de hond niet verdoofd is.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          62.1,
+          66.1
+        ],
+        "action": "Vrouw vertelt dat de hond nu ontspannen is.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          66.2,
+          67.5
+        ],
+        "action": "Vrouw geeft een snoepje aan de hond.",
+        "dog_visible": true,
+        "dog_behavior": [],
+        "human_behavior": [
+          "giving-treat"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          67.6,
+          69.3
+        ],
+        "action": "Hond geniet van het snoepje.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "eating"
+        ],
+        "human_behavior": [],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          69.4,
+          71.4
+        ],
+        "action": "Vrouw vertelt dat de hond het als een traktatie ziet.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          71.5,
+          75.1
+        ],
+        "action": "Vrouw merkt verschil na een paar weken.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          75.2,
+          77.7
+        ],
+        "action": "Hond reageert kalm op de deurbel.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "settled"
+        ],
+        "human_behavior": [],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          77.8,
+          81.3
+        ],
+        "action": "Hond begroet bezoek en komt tot rust.",
+        "dog_visible": true,
+        "dog_behavior": [
+          "greeting-person",
+          "settled"
+        ],
+        "human_behavior": [],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          81.4,
+          83.2
+        ],
+        "action": "Vrouw geniet van wandelingen met de hond.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          83.3,
+          86.3
+        ],
+        "action": "Vrouw vertelt dat training nu effect heeft.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          86.4,
+          89.4
+        ],
+        "action": "Vrouw moedigt kijkers aan om het product te proberen.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          89.5,
+          93.4
+        ],
+        "action": "Vrouw zegt dat het product voor hen werkte.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          93.5,
+          96.0
+        ],
+        "action": "Vrouw roept op om meer informatie te verkrijgen.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          96.0,
+          97.5
+        ],
+        "action": "Vrouw geeft een laatste aanbeveling.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      },
+      {
+        "t": [
+          97.6,
+          100.9
+        ],
+        "action": "Vrouw nodigt kijkers uit om te klikken voor meer info.",
+        "dog_visible": false,
+        "dog_behavior": [],
+        "human_behavior": [
+          "talking-to-camera"
+        ],
+        "valence": "positive"
+      }
+    ],
+    "retention_timeline": [
+      {
+        "t": 0.0,
+        "device": "pattern-interrupt",
+        "note": "Start met een directe vraag die de kijker aanspreekt.",
+        "cut_type": "hard-cut"
+      },
+      {
+        "t": 3.8,
+        "device": "location-change",
+        "note": "Verandering van locatie om de aandacht vast te houden.",
+        "cut_type": "jump-cut"
+      },
+      {
+        "t": 6.2,
+        "device": "sound-cue",
+        "note": "Geluid van blaffende hond benadrukt het probleem."
+      },
+      {
+        "t": 9.8,
+        "device": "direct-address",
+        "note": "Persoonlijke aanspreking om betrokkenheid te verhogen."
+      },
+      {
+        "t": 13.5,
+        "device": "reveal",
+        "note": "Overgang naar een nieuwe scène om nieuwsgierigheid te wekken.",
+        "cut_type": "match-cut"
+      },
+      {
+        "t": 19.2,
+        "device": "callback",
+        "note": "Herhaling van het probleem om empathie te creëren."
+      },
+      {
+        "t": 24.5,
+        "device": "prop-change",
+        "note": "Visuele verandering met hulpmiddelen om aandacht te trekken.",
+        "cut_type": "cutaway"
+      },
+      {
+        "t": 31.9,
+        "device": "sound-cue",
+        "note": "Geluid van een deurbel om de situatie te benadrukken."
+      },
+      {
+        "t": 37.5,
+        "device": "reveal",
+        "note": "Inzicht in het probleem om de kijker te boeien.",
+        "cut_type": "zoom-punch"
+      },
+      {
+        "t": 44.7,
+        "device": "re-hook",
+        "note": "Herhaalde belofte van een oplossing om de aandacht vast te houden."
+      },
+      {
+        "t": 52.6,
+        "device": "prop-change",
+        "note": "Introductie van het product om nieuwsgierigheid te wekken."
+      },
+      {
+        "t": 58.0,
+        "device": "payoff",
+        "note": "Visuele bevestiging van een ontspannen hond als bewijs."
+      },
+      {
+        "t": 66.2,
+        "device": "direct-address",
+        "note": "Persoonlijke ervaring om vertrouwen op te bouwen."
+      },
+      {
+        "t": 75.2,
+        "device": "reveal",
+        "note": "Toon van verandering in gedrag om de effectiviteit te bewijzen."
+      }
+    ],
+    "message_strategy": {
+      "awareness_level": "solution-aware",
+      "angle": "empathie en herkenning van het probleem",
+      "core_reframe": "Het probleem ligt in het zenuwstelsel, niet in gedrag.",
+      "objection_preempted": "tried-everything",
+      "promise": "Een natuurlijke oplossing voor een kalme en ontspannen hond.",
+      "proof_type": "personal-testimonial"
+    },
+    "cta_mechanics": {
+      "urgency": "none",
+      "social_proof": "testimonial-quote",
+      "destination_style": "meer informatie",
+      "delivery": "klik hieronder voor details"
+    },
+    "format": "talking_head",
+    "aspect": "9:16",
+    "duration_s": 101.0,
+    "language": "nl"
+  }
+}
