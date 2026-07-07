@@ -16,6 +16,16 @@ but lightly tested. It is **not yet a hands-off system**.
 2. **New recording → ad** — a creator films a script; we edit it into variants.
 3. **Scripts for creators** — generate ready-to-film scripts + shoot briefings from winning-ad ideas.
 
+### Roadmap — "multiple variants per talking head" (the current build-out)
+The north star: one talking-head runs through **every** template style and gets its own render;
+plus rich creator scripts from winners. Five pieces (decomposed 2026-07-07):
+- **A · Variant engine** — one talking-head × each template style → one render per style. *(the prize; not started)*
+- **B · Template style catalog** — write out each style: split-screen, picture-in-picture, wide-bg + inset, hook-only variants. *(not started; feeds A)*
+- **C · Rich analysis + cut detection** — segment-level richness + clean/take verdicts + `raw_cuts`. **✅ built (footage-index v3, `2026-07-07-footage-analysis-v3-segments`).**
+- **D · Clip grouping/tagging** — identifier tying a creator's clips + same-session/sequence clips together, so same-context clips edit together. *(not started; C reserves `segment.id = file_id#n` as the hook)*
+- **E · Rich creator scripts from winning ads** — reusable many ways, multiple hooks mandatory; then match delivered footage to script + edit in all templates. *(parallel Line-2 track; `ad-scripts` exists, needs the richness)*
+- *(infra, below the pieces)* split `footage-index.json` into per-clip files — see issue #15.
+
 ## 3. The 8 skills, in run order
 Read top to bottom = the order things happen.
 
@@ -59,9 +69,9 @@ Read top to bottom = the order things happen.
 
 ## 5. Known issues & doubts (open)
 1. **The index is only as good as the analysis.** Rendering reveals missing info; then the footage must be re-analyzed and re-run. Expensive.
-2. **No guessing.** It must *know* what happens and when — in captions and picture. Thin descriptions = bad placement. Richness lives in the pillars (`dog_behavior`, `human_behavior`, `shot_distance`/`camera`/`setting`, `retention_device`…).
+2. **No guessing.** It must *know* what happens and when — in captions and picture. Thin descriptions = bad placement. Richness lives in the pillars (`dog_behavior`, `human_behavior`, `shot_distance`/`camera`/`setting`, `retention_device`…). *(v3: per-segment dense sampling → 23 distinct dog-behaviours surfaced across the library, was mostly generic. See `docs/specs/2026-07-07-footage-analysis-v3-segments-design.md`.)*
 3. **Direction is layered.** Footage is too varied/raw to drop on a template blindly; the director nudges each template to fit the real footage.
-4. **Footage cleaning is partial** — we detect internal cuts, bad takes, audio spikes, framing, but not fully.
+4. **Footage cleaning is partial** — we detect internal cuts, bad takes, audio spikes, framing, but not fully. *(v3: cut-detectie op álle clips + discriminerende clean-score per segment — 28/36 clips splitsen, 28 segmenten `reject` (22 retake + 6 aside) waar v2 alles `usable` gaf. Audio-bruikbaarheid (clean/noisy, bruikbaar natuurlijk geluid) blijft open — buiten v3-scope.)*
 5. **Duct-tape risk.** Instructions/code may keep stacking instead of staying compact. Auto-compaction rewrites, but poorly.
 6. **AI over-confidence.** It plans confidently but skips things (like the rich index) you only notice after the export. There is a lot of tweaking and going back and forth with AI.
 7. **Weak visuals** — captions/motion-graphics are basic. Want a design skill/repo.
@@ -72,3 +82,4 @@ Read top to bottom = the order things happen.
 12. **Temp public host (workaround).** The renderer needs a public URL for big files; Drive won't serve them and we can't upload output to Drive (service-account has no storage quota). So we drop files on temp public hosts (`uguu → tmpfiles → catbox`) just for the render. Fragile — needs proper storage (R2/S3).
 13. **Director scope too narrow.** Today it only judges the finished render. We want it at script-time and template-time too, learning from every editing mistake. Open question: how to give it broad, reliable decision-making, fast — footage and moments are wide.
 14. **Single-channel raw audio.** Some raw clips carry audio on only one channel (one earbud). Render must **always** output both channels (duplicate mono → L+R / downmix) so no ad ships with sound in one ear. Render-side fix; unrelated to the analysis (piece C) work.
+15. **Split `footage-index.json` into per-clip files (queued next project).** The winner library already uses a light index (`ad-library.json`) + per-entity detail files (`knowledge/ad-library/<id>.json`, loaded on demand via `lib/ad_library.py`). The footage-index is still one monolithic file, and v3's segment-level richness makes each entry much heavier (~215 KB now, ~400 KB+ at 36 clips) → whole-file rewrites per re-index (noisy diffs) + full load into context. Adopt the same pattern: light index (searchable tags + summary per clip) + `knowledge/footage-index/<file_id>.json` detail (segments/moments) loaded on demand. Orthogonal to v3; touches consumers (`create-ads`, `render.py`). Do as a focused follow-up (brainstorm → plan) after the v3 branch lands.
