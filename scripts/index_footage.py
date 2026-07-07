@@ -699,7 +699,7 @@ def index_one(f: dict, tax: dict) -> tuple[dict, list]:
                 raw["delivery"] = match.get("delivery", "flat")
                 raw["complete_thought"] = bool(match.get("complete_thought"))
             seg_blobs.append({"span": span, "raw": raw})
-        blob = {"segments": seg_blobs}
+        blob = {"segments": seg_blobs, "scdet": scdet_ct}
         vcache.write_text(json.dumps(blob, ensure_ascii=False, indent=2))
 
     proposals: list = []
@@ -708,6 +708,15 @@ def index_one(f: dict, tax: dict) -> tuple[dict, list]:
         for i, sb in enumerate(blob["segments"])
     ]
     flat = flatten_segments(segments)
+
+    # Ruwe interne cuts van de BRON (creator-splices = pre-edited danger-lines, edit-grammar B6).
+    # Onafhankelijk van de semantische segmentgrenzen: op een talking-head zijn de grenzen
+    # take-herstarts, maar de bron kan al gemonteerd zijn met verborgen visuele cuts. scdet vindt
+    # ze; hier bewaren we ze zodat /create-ads geen las binnen ~0.5s van zo'n bron-cut legt (anders
+    # speelt de verborgen knip onbedekt door). Oude v3-caches misten dit veld → recompute als nodig.
+    scdet_ct = blob.get("scdet")
+    if scdet_ct is None:
+        scdet_ct = scdet_candidates(src)
 
     entry = {
         "v": SCHEMA_VERSION,
@@ -732,8 +741,11 @@ def index_one(f: dict, tax: dict) -> tuple[dict, list]:
         "people": flat["people"],
         "tags": flat["tags"],
         "moments": flat["moments"],
-        "raw_cuts": flat["raw_cuts"],
+        "raw_cuts": [{"t": round(float(t), 2)} for t in scdet_ct],
     }
+    if scdet_ct and info["duration"] > 0 and len(scdet_ct) >= 3 \
+            and len(scdet_ct) / info["duration"] > 0.03:
+        entry["pre_edited"] = True
     if transcript:
         entry["transcript_ref"] = str(TRANSCRIPTS_DIR.relative_to(ROOT) / f"{f['id']}.json")
     if flat["takes"]:
