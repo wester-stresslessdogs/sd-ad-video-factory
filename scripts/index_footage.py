@@ -35,6 +35,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -792,10 +793,19 @@ def main():
         if args.limit and done >= args.limit:
             break
         print(f"  index: {vf['name']}", file=sys.stderr)
-        try:
-            entry, proposals = index_one(vf, tax)
-        except Exception as e:  # één kapotte clip mag de run niet stoppen
-            print(f"    ⚠️  overslaan: {e}", file=sys.stderr)
+        entry = proposals = None
+        for attempt in range(3):  # transient (OpenAI Connection error) → retry met backoff
+            try:
+                entry, proposals = index_one(vf, tax)
+                break
+            except Exception as e:
+                if attempt < 2:
+                    wait = 5 * (attempt + 1)
+                    print(f"    ⏳ {e} — retry {attempt + 1}/2 over {wait}s", file=sys.stderr)
+                    time.sleep(wait)
+                else:
+                    print(f"    ⚠️  overslaan na 3 pogingen: {e}", file=sys.stderr)
+        if entry is None:  # één kapotte clip mag de run niet stoppen
             continue
         clips[fid] = entry
         for p in proposals:
