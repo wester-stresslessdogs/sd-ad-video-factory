@@ -297,6 +297,63 @@ def describe(frames: list[tuple[float, Path]], tax: dict, duration: float,
     return json.loads(resp.choices[0].message.content)
 
 
+def propose_segments(coarse_frames, transcript, scdet_ct, duration, tax) -> list[dict]:
+    """Pass 1 (grof, heel bestand): stel segmentgrenzen voor. Talking-head-grenzen
+    komen uit take-herstarts in het transcript; b-roll-grenzen uit visuele cuts
+    (met scdet-kandidaten als hint). Retourneert spans + kind + boundary_reason."""
+    from openai import OpenAI
+    seg_txt = ""
+    if transcript and transcript.get("segments"):
+        seg_txt = "\n".join(f"  [{s['start']:.1f}-{s['end']:.1f}] {s['text']}"
+                            for s in transcript["segments"][:120])
+    prompt = f"""Je segmenteert een RUWE clip ({duration:.0f}s) in aaneengesloten stukken.
+Een grens ontstaat door: (a) een VISUELE harde cut (andere hoek/scène), of (b) in een
+talking-head: de spreker HERSTART/breekt een zin af (take-herstart) — óók zonder beeldwissel.
+Dead air / pauzes zijn GÈNE grens.
+scdet-kandidaat-cuts (visueel, best-effort): {scdet_ct}
+Transcript (bron-tijden):
+{seg_txt or '  (geen spraak)'}
+
+Antwoord met ÉÉN JSON-object:
+{{"segments": [{{"t": [start, eind], "kind": "talking_head|b_roll",
+ "boundary_reason": "file-start|visual-cut|take-restart"}}]}}
+Regels: segmenten dekken samen [0, {duration:.1f}] zonder gaten; eerste segment
+boundary_reason = "file-start"; minimaal 1 segment."""
+    content = [{"type": "text", "text": prompt}]
+    for t, fp in coarse_frames:
+        content.append({"type": "text", "text": f"frame @ {t:.1f}s:"})
+        b64 = base64.b64encode(fp.read_bytes()).decode()
+        content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
+    resp = OpenAI().chat.completions.create(
+        model="gpt-4o", messages=[{"role": "user", "content": content}],
+        response_format={"type": "json_object"}, max_tokens=1200, temperature=0.1,
+    )
+    return json.loads(resp.choices[0].message.content).get("segments", [])
+
+
+def describe_segment(dense_frames, span, kind, transcript, tax, duration) -> dict:
+    """Pass 2 (dicht, per segment): rijke moments/quality/take-velden uit de
+    dichtere hoge-res frames van dit segment. Hergebruikt vision_prompt."""
+    from openai import OpenAI
+    lo, hi = span
+    seg_len = hi - lo
+    # transcript beperken tot dit venster (talking-head take-velden)
+    sub = None
+    if transcript and transcript.get("segments"):
+        sub = {"segments": [s for s in transcript["segments"] if s["end"] > lo and s["start"] < hi]}
+    content = [{"type": "text", "text": vision_prompt(tax, seg_len, sub)}]
+    content.append({"type": "text", "text": f"(Dit is één segment, bron-tijd {lo:.1f}-{hi:.1f}s; gebruik ABSOLUTE bron-tijden in t.)"})
+    for t, fp in dense_frames:
+        content.append({"type": "text", "text": f"frame @ {t:.1f}s:"})
+        b64 = base64.b64encode(fp.read_bytes()).decode()
+        content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
+    resp = OpenAI().chat.completions.create(
+        model="gpt-4o", messages=[{"role": "user", "content": content}],
+        response_format={"type": "json_object"}, max_tokens=3000, temperature=0.2,
+    )
+    return json.loads(resp.choices[0].message.content)
+
+
 # ── Validatie (code, niet het model) ─────────────────────────────────────────────
 def _clamp_t(pair, duration: float) -> list[float]:
     a, b = (list(pair) + [0, 0])[:2]
