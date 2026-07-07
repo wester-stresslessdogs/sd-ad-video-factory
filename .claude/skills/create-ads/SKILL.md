@@ -69,6 +69,10 @@ de *vorm*, `edit-grammar` bewaakt de *kwaliteit*. Ramon noemt een stijl, of je k
 er een die bij de footage + winner-stijl past (en varieert over de batch). Lees de
 gekozen `<id>.json` en pas 'm toe bij het plannen:
 - **`broll.style`** (`fullscreen`/`pip`) → de insert-stijl van élke B-roll in dit plan.
+  **Let op:** alleen `fullscreen` verbergt een las (bridge, B3); een `pip`-overlay laat
+  de knip erachter zien. Bij `overlay` (en waar `show-led` géén fullscreen-B-roll op de
+  las heeft) draagt **elke cut dus zijn eigen punch-wissel** — reken niet op B-roll om
+  een kale las te redden, anders zakt `plan-check` (glitch-fout). Ontdekt in de golf-1-demo.
 - **`broll.policy`/`density`** → hoevéél en waar: `on-intent` = alleen waar de claim
   erom vraagt (C2/C3); `dominant` = B-roll draagt het beeld (show-led).
 - **`broll.pip`** → default-geometrie voor overlays (per plaatsing bij te stellen).

@@ -13,6 +13,6 @@
   "captions": "standard",
   "transitions": "hard-cut",
   "visual_comp": "stressless-ugc_9x16.json",
-  "_note": "De inverse van cutaway/overlay: B-roll (honden) draagt het beeld, háár stem loopt door, zij verschijnt in korte vensters (hook, reveal, CTA blijven op haar gezicht — C1). 'Honden tonen > erover praten.' Voor footage-rijke verhalen. Ontspant bewust C6 (lange off-screen-strekken zijn hier de stijl, geen fout) via broll_led=true in het plan.",
+  "_note": "De inverse van cutaway/overlay: B-roll (honden) draagt het beeld, háár stem loopt door, zij verschijnt in korte vensters (hook, reveal, CTA blijven op haar gezicht — C1). 'Honden tonen > erover praten.' Voor footage-rijke verhalen. Ontspant bewust C6 (lange off-screen-strekken zijn hier de stijl, geen fout) via broll_led=true in het plan. Fullscreen-B-roll verbergt wél een las waar 'ie erop valt; kale lasses (bv. de hook vóór de eerste B-roll) dragen hun eigen punch-wissel (B3).",
   "_improve_via": "feedback"
 }
