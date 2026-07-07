@@ -298,27 +298,49 @@ def describe(frames: list[tuple[float, Path]], tax: dict, duration: float,
 
 
 def propose_segments(coarse_frames, transcript, scdet_ct, duration, tax) -> list[dict]:
-    """Pass 1 (grof, heel bestand): stel segmentgrenzen voor. Talking-head-grenzen
-    komen uit take-herstarts in het transcript; b-roll-grenzen uit visuele cuts
-    (met scdet-kandidaten als hint). Retourneert spans + kind + boundary_reason."""
+    """Pass 1 (grof, heel bestand): stel segmentgrenzen voor ÉN beoordeel per
+    talking-head-segment de take-kwaliteit. Dit is de enige pass die het HELE
+    transcript ziet — dus de enige plek waar een retake (herhaalde zin) van een
+    goede take te onderscheiden is. Pass 2 (describe_segment) doet daarna de
+    visuele richness per segment. Retourneert per segment: t, kind,
+    boundary_reason, en (talking-head) gist/delivery/complete_thought."""
     from openai import OpenAI
     seg_txt = ""
     if transcript and transcript.get("segments"):
         seg_txt = "\n".join(f"  [{s['start']:.1f}-{s['end']:.1f}] {s['text']}"
                             for s in transcript["segments"][:120])
-    prompt = f"""Je segmenteert een RUWE clip ({duration:.0f}s) in aaneengesloten stukken.
-Een grens ontstaat door: (a) een VISUELE harde cut (andere hoek/scène), of (b) in een
-talking-head: de spreker HERSTART/breekt een zin af (take-herstart) — óók zonder beeldwissel.
-Dead air / pauzes zijn GÉÉN grens.
-scdet-kandidaat-cuts (visueel, best-effort): {scdet_ct}
+    prompt = f"""Je segmenteert een RUWE clip ({duration:.0f}s) in aaneengesloten stukken
+en beoordeelt per talking-head-segment de opname-kwaliteit uit het transcript.
+
+GRENZEN:
+- talking-head: een nieuwe grens ALLEEN bij een take-herstart — de spreker begint een
+  zin/gedachte opnieuw, breekt af, of geeft een regie-aanwijzing (aside). Eén doorlopende
+  gedachte = één segment, óók als de spreker beweegt of gebaart. De scdet-kandidaten
+  hieronder zijn op een statische talking-head vrijwel altijd RUIS (beweging, geen cut) —
+  gebruik ze NIET als grens tenzij er echt een beeldwissel (andere hoek/scène) is.
+- b-roll / meerdere hoeken: een grens bij een VISUELE harde cut; dan zijn de
+  scdet-kandidaten een goede hint.
+- Dead air / pauzes zijn GÉÉN grens.
+
+PER TALKING-HEAD-SEGMENT beoordeel je uit het transcript:
+- gist: kort wat er inhoudelijk gezegd wordt
+- delivery: "good" (bruikbare take) | "flat" (vlak/twijfel) | "retake" (herhaling van een
+  zin die elders bijna identiek terugkomt) | "aside" (regie/omgevingspraat, bv. "Kenny,
+  middle" — niet voor de kijker bedoeld)
+- complete_thought: true als dit segment op zichzelf in een edit kan
+
+scdet-kandidaat-cuts (visueel, best-effort — NEGEER op statische talking-head): {scdet_ct}
 Transcript (bron-tijden):
 {seg_txt or '  (geen spraak)'}
 
 Antwoord met ÉÉN JSON-object:
 {{"segments": [{{"t": [start, eind], "kind": "talking_head|b_roll",
- "boundary_reason": "file-start|visual-cut|take-restart"}}]}}
+ "boundary_reason": "file-start|visual-cut|take-restart",
+ "gist": "<alleen talking-head>", "delivery": "good|flat|retake|aside",
+ "complete_thought": true|false}}]}}
 Regels: segmenten dekken samen [0, {duration:.1f}] zonder gaten; eerste segment
-boundary_reason = "file-start"; minimaal 1 segment."""
+boundary_reason = "file-start"; minimaal 1 segment; b-roll-segmenten mogen
+gist/delivery/complete_thought weglaten."""
     content = [{"type": "text", "text": prompt}]
     for t, fp in coarse_frames:
         content.append({"type": "text", "text": f"frame @ {t:.1f}s:"})
@@ -647,9 +669,12 @@ def index_one(f: dict, tax: dict) -> tuple[dict, list]:
             raise RuntimeError("geen frames")
         scdet_ct = scdet_candidates(src)
         proposed = propose_segments(coarse, transcript, scdet_ct, info["duration"], tax)
+        # Grenzen komen uit de vision-voorstellen; scdet is alleen een HINT aan pass-1
+        # (niet blind unen — anders verhakt scdet-ruis een statische talking-head).
         spans = merge_boundaries(
-            [s["t"][0] for s in proposed if s.get("t")] + scdet_ct, info["duration"])
-        # per span: het dichtstbijzijnde voorgestelde kind/boundary + dichte beschrijving
+            [s["t"][0] for s in proposed if s.get("t")], info["duration"])
+        # per span: het dichtstbijzijnde voorgestelde segment levert kind + boundary_reason
+        # + (talking-head) take-oordeel; de dense pass levert de visuele richness.
         seg_blobs = []
         for i, span in enumerate(spans):
             match = min(proposed, key=lambda s: abs((s.get("t") or [0])[0] - span[0])) if proposed else {}
@@ -659,6 +684,12 @@ def index_one(f: dict, tax: dict) -> tuple[dict, list]:
             raw = describe_segment(dense, span, kind, transcript, tax, info["duration"])
             raw["kind"] = kind
             raw["boundary_reason"] = reason
+            # Take-oordeel komt uit pass-1 (ziet het HELE transcript → herkent retakes/asides);
+            # describe_segment (per geïsoleerd segment) kan dat niet — vandaar de injectie hier.
+            if kind == "talking_head":
+                raw["gist"] = match.get("gist", "")
+                raw["delivery"] = match.get("delivery", "flat")
+                raw["complete_thought"] = bool(match.get("complete_thought"))
             seg_blobs.append({"span": span, "raw": raw})
         blob = {"segments": seg_blobs}
         vcache.write_text(json.dumps(blob, ensure_ascii=False, indent=2))
