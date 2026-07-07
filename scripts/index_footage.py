@@ -309,7 +309,7 @@ def propose_segments(coarse_frames, transcript, scdet_ct, duration, tax) -> list
     prompt = f"""Je segmenteert een RUWE clip ({duration:.0f}s) in aaneengesloten stukken.
 Een grens ontstaat door: (a) een VISUELE harde cut (andere hoek/scène), of (b) in een
 talking-head: de spreker HERSTART/breekt een zin af (take-herstart) — óók zonder beeldwissel.
-Dead air / pauzes zijn GÈNE grens.
+Dead air / pauzes zijn GÉÉN grens.
 scdet-kandidaat-cuts (visueel, best-effort): {scdet_ct}
 Transcript (bron-tijden):
 {seg_txt or '  (geen spraak)'}
