@@ -1,0 +1,18 @@
+{
+  "id": "cutaway",
+  "name": "Talking-head → fullscreen B-roll (op intentie)",
+  "style": "cutaway",
+  "provenance": "seed",
+  "layout": "full_frame",
+  "broll": {
+    "style": "fullscreen",
+    "policy": "on-intent",
+    "density": "moderate",
+    "broll_led": false
+  },
+  "captions": "standard",
+  "transitions": "hard-cut",
+  "visual_comp": "stressless-ugc_9x16.json",
+  "_note": "De standaard-organische stijl. Talking-head is leidend; fullscreen B-roll alleen waar de claim van de zin erom vraagt (edit-grammar C2/C3). Blijft binnen alle grammar-regels.",
+  "_improve_via": "feedback"
+}

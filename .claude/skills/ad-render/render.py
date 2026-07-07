@@ -996,6 +996,9 @@ def cmd_plan_check(args):
     words = transcript.get("words") or []
     cuts = cuts_from_plan(plan, transcript)
     _, cut_timeline, total = build_talking_head({"id": "x"}, "url", cuts)
+    # Beeld-leidende stijl (template show-led): B-roll dráágt het beeld, dus lange
+    # off-screen-strekken zijn de stijl, geen fout — C6 wordt ontspannen.
+    broll_led = bool(plan.get("broll_led"))
 
     errors, warns = [], []
 
@@ -1082,11 +1085,13 @@ def cmd_plan_check(args):
     for (a0, a1, ai, _, ao), (b0, b1, bi, _, bo) in zip(inserts, inserts[1:]):
         if b0 < a1 - 0.1:
             errors.append(f"B-roll #{ai} en #{bi} OVERLAPPEN ({a0:.1f}-{a1:.1f} vs {b0:.1f}-{b1:.1f})")
-        elif b0 - a1 < 4.0 and not ao and not bo:
-            # muur geldt alleen tussen cutaways; een overlay laat haar zichtbaar
+        elif b0 - a1 < 4.0 and not ao and not bo and not broll_led:
+            # muur geldt alleen tussen cutaways; een overlay laat haar zichtbaar, en
+            # bij een beeld-leidende stijl is dichte B-roll juist de bedoeling
             warns.append(f"B-roll-muur: #{ai} en #{bi} liggen {b0-a1:.1f}s uit elkaar "
                          f"(kijker ziet haar < 4s tussen inserts)")
-    # aaneengesloten off-screen-span — alleen cutaways (overlay = ze blijft in beeld)
+    # aaneengesloten off-screen-span — alleen cutaways (overlay = ze blijft in beeld);
+    # bij broll_led (show-led) draagt B-roll het beeld → geen fout, hooguit een notitie
     span_start, span_end = None, None
     for a0, a1, _, _, ov in inserts:
         if ov:
@@ -1095,7 +1100,7 @@ def cmd_plan_check(args):
             span_end = max(span_end, a1)
         else:
             span_start, span_end = a0, a1
-        if span_end - span_start > 6.0:
+        if span_end - span_start > 6.0 and not broll_led:
             errors.append(f"talking-head > 6s aaneengesloten uit beeld ({span_start:.1f}-{span_end:.1f})")
             break
 

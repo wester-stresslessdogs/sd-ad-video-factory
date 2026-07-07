@@ -62,6 +62,23 @@ beschrijft het *proces*; de grammar beschrijft *hoe je snijdt, plaatst en framet
 
 ## Stappenplan
 
+### 0. Kies een template (stijl)
+Elke variant draait op een **template uit `knowledge/templates/`** — een herbruikbare
+stíjl (`cutaway`, `overlay`, `show-led`, later `split`/`punchy`). De template bepaalt
+de *vorm*, `edit-grammar` bewaakt de *kwaliteit*. Ramon noemt een stijl, of je kiest
+er een die bij de footage + winner-stijl past (en varieert over de batch). Lees de
+gekozen `<id>.json` en pas 'm toe bij het plannen:
+- **`broll.style`** (`fullscreen`/`pip`) → de insert-stijl van élke B-roll in dit plan.
+- **`broll.policy`/`density`** → hoevéél en waar: `on-intent` = alleen waar de claim
+  erom vraagt (C2/C3); `dominant` = B-roll draagt het beeld (show-led).
+- **`broll.pip`** → default-geometrie voor overlays (per plaatsing bij te stellen).
+- **`broll_led: true`** (show-led) → zet óók `"broll_led": true` in het plan, zodat
+  `plan-check` de off-screen-regel (C6) ontspant: lange B-roll-strekken zijn hier de
+  stijl. Hook/reveal/CTA blijven wél op haar gezicht (C1).
+- **`visual_comp`** → de Creatomate-template (`--template`) voor de render.
+De templates verbeteren via **feedback** (niet via winners); een winner met een níeuwe
+stijl wordt een níeuwe template (`/ad-template`), geen aanpassing van een bestaande.
+
 ### 1. Voorraad inlezen
 - `knowledge/ad-library.json` → entries met `edit_spec` (+ `vision.analysis` voor de
   "waarom werkt dit"-bullets).

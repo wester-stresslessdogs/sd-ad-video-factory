@@ -8,6 +8,14 @@ review-defect (v1–v8) — de "waarom" staat erbij, zodat de intentie niet verd
 Regel-wijzigingen zijn bewuste edits **hier** (+ waar nodig in `plan-check`), nooit
 losse patches in een SKILL.md.
 
+**Stijl vs. kwaliteit.** De gekozen **template** (`knowledge/templates/`) bepaalt de
+*stíjl* — hoe B-roll wordt verwerkt (fullscreen/pip/beeld-leidend), de layout, de
+caption-behandeling. Deze grammar bewaakt de *kwaliteit* binnen élke stijl. Een paar
+regels zijn daarom **stijl-afhankelijk**: bij een beeld-leidende stijl (`show-led`,
+`broll_led`) ontspant C6 (lange off-screen-strekken zijn dan de bedoeling, geen fout),
+maar C1 (hook/reveal/CTA op haar gezicht), C3 (het beeld beantwoordt de claim) en de
+drie poorten (§E/§F) gelden **altijd**, in elke stijl.
+
 ---
 
 ## A. Creatieve grammatica — eerst intentie, dan techniek
