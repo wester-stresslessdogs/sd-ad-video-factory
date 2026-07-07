@@ -380,6 +380,31 @@ def validate_segment(seg_raw: dict, span: list[float], info: dict, tax: dict,
     return seg
 
 
+def flatten_segments(segments: list[dict]) -> dict:
+    """Platte clip-niveau view over segmenten voor back-compat (render.py leest
+    raw_cuts; markdown-skills lezen moments/takes/tags/framing/quality/kind)."""
+    rep = max(segments, key=lambda s: s["t"][1] - s["t"][0])  # representatief = langste
+    moments = sorted((m for s in segments for m in s["moments"]), key=lambda m: m["t"][0])
+    takes = [
+        {"t": s["t"], "gist": s.get("gist", ""), "delivery": s.get("delivery", "flat"),
+         "complete_thought": s.get("complete_thought", False)}
+        for s in segments if s["kind"] == "talking_head"
+    ]
+    raw_cuts = [{"t": s["t"][0]} for s in segments if s["boundary_reason"] == "visual-cut"]
+    tags = sorted({t for s in segments for t in s["tags"]})
+    return {
+        "kind": rep["kind"],
+        "framing": rep["framing"],
+        "quality": {k: rep["quality"].get(k) for k in ("exposure", "sharpness", "overall")},
+        "setting": rep["setting"],
+        "people": rep["people"],
+        "moments": moments,
+        "takes": takes,
+        "tags": tags,
+        "raw_cuts": raw_cuts,
+    }
+
+
 def validate(v: dict, info: dict, tax: dict, proposals: list) -> dict:
     """Onbekende tags → proposed_tags (nooit de index in); tijden klemmen; enums checken."""
     dur = info["duration"]
