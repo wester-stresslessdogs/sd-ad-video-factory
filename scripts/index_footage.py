@@ -51,7 +51,7 @@ CACHE = ROOT / "output" / ".cache"
 FRAMES_DIR = CACHE / "kf"
 TRANSCRIPTS_DIR = ROOT / "output" / "transcripts"
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 FRAME_EVERY_S = 5.0          # ~1 frame per 5s
 MIN_FRAMES, MAX_FRAMES = 3, 28
 UPSCALE_BUDGET = 2.2         # max acceptabele totale upscale-factor (bron → 1080x1920)
@@ -608,22 +608,72 @@ def scdet_candidates(src: Path) -> list[float]:
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────────
+def _dogs_from_segments(seg_blobs: list[dict], tax: dict) -> list[dict]:
+    """Bestand-brede honden-continuïteit: unie van dog-desc over segmenten, gededupt op id_hint."""
+    seen, dogs = set(), []
+    for sb in seg_blobs:
+        for d in sb["raw"].get("dogs", []) or []:
+            desc = (d.get("desc") or "").strip() if isinstance(d, dict) else str(d)
+            if not desc:
+                continue
+            slug = re.sub(r"[^a-z0-9]+", "-", desc.lower()).strip("-")[:24]
+            if slug not in seen:
+                seen.add(slug)
+                dogs.append({"desc": desc, "id_hint": slug})
+    return dogs
+
+
+def _summary_from_segments(seg_blobs: list[dict]) -> str:
+    """Eerste niet-lege segment-summary als bestand-samenvatting (proza-vangnet)."""
+    for sb in seg_blobs:
+        s = (sb["raw"].get("summary") or "").strip()
+        if s:
+            return s
+    return ""
+
+
 def index_one(f: dict, tax: dict) -> tuple[dict, list]:
     src = local_source(f)
     info = probe(src)
     transcript = transcribe(src, f["id"]) if info["has_audio"] else None
-    frames = sample_frames(src, f["id"], info["duration"])
-    if not frames:
-        raise RuntimeError("geen frames")
-    raw = describe(frames, tax, info["duration"], transcript)
+
+    vcache = CACHE / "vision" / f"{f['id']}.v3.json"
+    vcache.parent.mkdir(parents=True, exist_ok=True)
+    if vcache.exists():
+        blob = json.loads(vcache.read_text())
+    else:
+        coarse = sample_frames(src, f["id"], info["duration"])
+        if not coarse:
+            raise RuntimeError("geen frames")
+        scdet_ct = scdet_candidates(src)
+        proposed = propose_segments(coarse, transcript, scdet_ct, info["duration"], tax)
+        spans = merge_boundaries(
+            [s["t"][0] for s in proposed if s.get("t")] + scdet_ct, info["duration"])
+        # per span: het dichtstbijzijnde voorgestelde kind/boundary + dichte beschrijving
+        seg_blobs = []
+        for i, span in enumerate(spans):
+            match = min(proposed, key=lambda s: abs((s.get("t") or [0])[0] - span[0])) if proposed else {}
+            kind = match.get("kind", "talking_head" if transcript else "b_roll")
+            reason = "file-start" if i == 0 else match.get("boundary_reason", "visual-cut")
+            dense = sample_frames_dense(src, f["id"], span)
+            raw = describe_segment(dense, span, kind, transcript, tax, info["duration"])
+            raw["kind"] = kind
+            raw["boundary_reason"] = reason
+            seg_blobs.append({"span": span, "raw": raw})
+        blob = {"segments": seg_blobs}
+        vcache.write_text(json.dumps(blob, ensure_ascii=False, indent=2))
+
     proposals: list = []
-    v = validate(raw, info, tax, proposals)
+    segments = [
+        validate_segment(sb["raw"], sb["span"], info, tax, proposals, f"{f['id']}#{i}")
+        for i, sb in enumerate(blob["segments"])
+    ]
+    flat = flatten_segments(segments)
 
     entry = {
         "v": SCHEMA_VERSION,
         "file_id": f["id"],
         "name": f["name"],
-        "kind": v["kind"],
         "duration": info["duration"],
         "resolution": f"{info['width']}x{info['height']}",
         "orientation": "portrait" if info["height"] >= info["width"] else "landscape",
@@ -631,24 +681,24 @@ def index_one(f: dict, tax: dict) -> tuple[dict, list]:
         "has_audio": info["has_audio"],
         "audio_content": ("speech" if transcript and len((transcript.get("text") or "").strip()) > 20
                           else "ambient" if info["has_audio"] else "none"),
-        "framing": v["framing"],
-        "quality": v["quality"],
-        "setting": v["setting"],
-        "people": v["people"],
-        "dogs": v["dogs"],
-        "summary": v["summary"],
-        "tags": v["tags"],
-        "moments": v["moments"],
+        "dogs": _dogs_from_segments(blob["segments"], tax),
+        "summary": _summary_from_segments(blob["segments"]),
         "direct_url": drive.direct_url(f["id"]),
+        "segments": segments,
+        # ── back-compat (platte view) ──
+        "kind": flat["kind"],
+        "framing": flat["framing"],
+        "quality": flat["quality"],
+        "setting": flat["setting"],
+        "people": flat["people"],
+        "tags": flat["tags"],
+        "moments": flat["moments"],
+        "raw_cuts": flat["raw_cuts"],
     }
-    if v["kind"] == "talking_head" and transcript:
+    if transcript:
         entry["transcript_ref"] = str(TRANSCRIPTS_DIR.relative_to(ROOT) / f"{f['id']}.json")
-        entry["takes"] = v["takes"]
-        rc = raw_cuts(src)  # edit-grammar B6 — waar knipt de bron zélf al?
-        if rc:
-            entry["raw_cuts"] = rc
-            entry["pre_edited"] = (len(rc) >= 3 and info["duration"] > 0
-                                   and len(rc) / info["duration"] > 0.03)
+    if flat["takes"]:
+        entry["takes"] = flat["takes"]
     return entry, proposals
 
 
@@ -702,14 +752,16 @@ def main():
             all_proposals.append(p)
         done += 1
         INDEX.write_text(json.dumps(index, ensure_ascii=False, indent=2))  # incrementeel
-        print(f"    ✓ {entry['kind']} · {len(entry['moments'])} momenten"
+        print(f"    ✓ {entry['kind']} · {len(entry['segments'])} segmenten · "
+              f"{len(entry['moments'])} momenten"
               + (f" · {len(entry.get('takes', []))} takes" if entry.get("takes") else "")
               + f"  ({done} deze run)", file=sys.stderr)
 
     INDEX.write_text(json.dumps(index, ensure_ascii=False, indent=2))
     th = sum(1 for c in clips.values() if c["kind"] == "talking_head")
     nm = sum(len(c.get("moments", [])) for c in clips.values())
-    print(f"\n✅ {len(clips)} clips ({th} talking_head) · {nm} momenten → {INDEX}", file=sys.stderr)
+    ns = sum(len(c.get("segments", [])) for c in clips.values())
+    print(f"\n✅ {len(clips)} clips · {ns} segmenten · {nm} momenten → {INDEX}", file=sys.stderr)
     if all_proposals:
         print(f"\n📋 {len(all_proposals)} tag-voorstellen (vocabulaire-kandidaten, zie _proposed_tags):",
               file=sys.stderr)
