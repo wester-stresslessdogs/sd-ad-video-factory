@@ -7,3 +7,4 @@ openai                      # Whisper-transcriptie
 python-dotenv               # mcp/.env inlezen
 google-api-python-client    # Google Drive API (B-roll + output)
 google-auth                 # service-account authenticatie
+pytest                      # unit-tests voor de pure indexer-logica (dev)
