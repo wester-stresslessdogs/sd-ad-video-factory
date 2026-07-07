@@ -124,6 +124,25 @@ dat het hele bestand spant. Alles wat in v2 werkt, blijft werken.
 
 Grenzen binnen ~0.6s van elkaar smelten samen. Elke clip heeft ≥1 segment.
 
+## Welke timing overleeft (behaviour, camera-hoek)
+
+Segmenten *groeperen* momenten; ze vervangen de fijne timing niet.
+
+- **Gedrag-timing** blijft op moment-niveau in absolute bron-tijd (K3): een
+  lip-lick op `[5.0, 8.0]` houdt zijn exacte venster + `best_frame_t` +
+  lead-in/out. Door dichter te samplen per segment vangen we *méér* korte
+  gedragsvensters dan de 1-frame/5s-pass, niet minder.
+- **Camera-hoek** wordt scherper dan v2: `framing` (distance/camera/
+  subject_position) zakt van clip- naar **segment**-niveau. Een hoekwissel ís
+  een visuele cut ís een nieuwe segmentgrens → elke hoek krijgt zijn eigen
+  `framing`, en het "tijdvenster" van die hoek is simpelweg de `t` van het
+  segment. Camera-hoek-over-tijd volgt gratis uit de cuts.
+- **Grens (bewust):** camerabeweging *binnen* één doorlopend shot (whip-pan,
+  zoom-punch zonder cut) blijft één `camera`-waarde voor dat segment; de beweging
+  landt in de `action`-proza van dat moment, niet als aparte framing-record. Een
+  nieuwe hoek splitst altijd; een beweging binnen één hoek niet. Geen
+  `camera_moves[]`-laag — YAGNI tot een render dit echt nodig heeft.
+
 ## Detectie-pipeline (per bestand)
 
 1. Download (gecachet) → `ffprobe`.
