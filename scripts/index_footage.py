@@ -146,6 +146,31 @@ def sample_frames(src: Path, file_id: str, duration: float) -> list[tuple[float,
     return out
 
 
+def sample_frames_dense(src: Path, file_id: str, span: list[float],
+                        every_s: float = 2.0, px: int = 768,
+                        max_frames: int = 24) -> list[tuple[float, Path]]:
+    """Dichter (~1/2s) en hoger-res (768px) samplen BINNEN één segment, zodat
+    subtiele signalen (lip-licking, whale-eye) zichtbaar zijn. Segmenten zijn kort,
+    dus de kosten blijven begrensd. Cachet op file_id + tijd + px."""
+    FRAMES_DIR.mkdir(parents=True, exist_ok=True)
+    lo, hi = span
+    length = max(hi - lo, 0.1)
+    n = max(2, min(max_frames, int(length / every_s) + 1))
+    out = []
+    for i in range(n):
+        t = round(lo + length * (i + 0.5) / n, 2)
+        fp = FRAMES_DIR / f"{file_id}_{px}_{t:08.2f}.jpg"
+        if not fp.exists():
+            subprocess.run(
+                ["ffmpeg", "-y", "-ss", str(t), "-i", str(src), "-frames:v", "1",
+                 "-vf", f"scale={px}:-2", str(fp)],
+                capture_output=True,
+            )
+        if fp.exists() and fp.stat().st_size > 0:
+            out.append((t, fp))
+    return out
+
+
 def transcribe(src: Path, file_id: str) -> dict | None:
     """Whisper (word-level) → output/transcripts/{file_id}.json (zelfde vorm als
     render.py's transcribe, zodat /ad-render 'm direct als --captions kan gebruiken)."""
