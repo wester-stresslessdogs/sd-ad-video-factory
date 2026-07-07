@@ -278,26 +278,6 @@ Antwoord met ÉÉN JSON-object:
     return p
 
 
-def describe(frames: list[tuple[float, Path]], tax: dict, duration: float,
-             transcript: dict | None) -> dict:
-    from openai import OpenAI
-
-    content = [{"type": "text", "text": vision_prompt(tax, duration, transcript)}]
-    for t, fp in frames:
-        content.append({"type": "text", "text": f"frame @ {t:.1f}s:"})
-        b64 = base64.b64encode(fp.read_bytes()).decode()
-        content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
-    client = OpenAI()
-    resp = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": content}],
-        response_format={"type": "json_object"},
-        max_tokens=3500,
-        temperature=0.2,
-    )
-    return json.loads(resp.choices[0].message.content)
-
-
 def propose_segments(coarse_frames, transcript, scdet_ct, duration, tax) -> list[dict]:
     """Pass 1 (grof, heel bestand): stel segmentgrenzen voor ÉN beoordeel per
     talking-head-segment de take-kwaliteit. Dit is de enige pass die het HELE
@@ -519,93 +499,6 @@ def flatten_segments(segments: list[dict]) -> dict:
     }
 
 
-def validate(v: dict, info: dict, tax: dict, proposals: list) -> dict:
-    """Onbekende tags → proposed_tags (nooit de index in); tijden klemmen; enums checken."""
-    dur = info["duration"]
-
-    def keep_known(tags, vocab, where):
-        known = []
-        for t in tags or []:
-            if t in vocab:
-                known.append(t)
-            else:
-                proposals.append({"tag": t, "why": f"door Vision gebruikt buiten vocabulaire ({where})"})
-        return known
-
-    moments = []
-    for m in v.get("moments", []) or []:
-        t = _clamp_t(m.get("t", [0, dur]), dur)
-        mm = {
-            "t": t,
-            "action": (m.get("action") or "").strip(),
-            "dog_visible": bool(m.get("dog_visible", True)),
-            "dog_behavior": keep_known(m.get("dog_behavior"), tax["_dog_flat"], "moment"),
-            "human_behavior": keep_known(m.get("human_behavior"), tax["_human_flat"], "moment"),
-            "valence": m.get("valence") if m.get("valence") in tax["valence"] else "neutral",
-            "lead_in": round(min(max(float(m.get("lead_in", 0) or 0), 0.0), t[0]), 2),
-            "lead_out": round(min(max(float(m.get("lead_out", 0) or 0), 0.0), dur - t[1]), 2),
-            "best_frame_t": round(min(max(float(m.get("best_frame_t", t[0]) or t[0]), t[0]), t[1]), 2),
-        }
-        if not mm["dog_visible"]:
-            mm["dog_behavior"] = []  # geen hond in beeld → geen hondengedrag-tags mogelijk
-        if m.get("valence_note"):
-            mm["valence_note"] = str(m["valence_note"]).strip()
-        for pt in m.get("proposed_tags", []) or []:
-            if isinstance(pt, dict) and pt.get("tag"):
-                proposals.append(pt)
-        moments.append(mm)
-
-    takes = []
-    for tk in v.get("takes", []) or []:
-        takes.append({
-            "t": _clamp_t(tk.get("t", [0, dur]), dur),
-            "gist": (tk.get("gist") or "").strip(),
-            "delivery": tk.get("delivery") if tk.get("delivery") in ("good", "flat", "retake", "aside") else "flat",
-            "complete_thought": bool(tk.get("complete_thought")),
-        })
-
-    fr = v.get("framing") or {}
-    framing = {
-        "distance": fr.get("distance") if fr.get("distance") in tax["shot_distance"] else "medium",
-        "camera": fr.get("camera") if fr.get("camera") in tax["camera"] else "static",
-        "subject_position": fr.get("subject_position") if fr.get("subject_position") in ("left", "center", "right") else "center",
-        "punchin_max": punchin_max(info["height"]),
-    }
-    q = v.get("quality") or {}
-    dogs = []
-    for d in v.get("dogs", []) or []:
-        desc = (d.get("desc") or "").strip() if isinstance(d, dict) else str(d)
-        if desc:
-            slug = re.sub(r"[^a-z0-9]+", "-", desc.lower()).strip("-")[:24]
-            dogs.append({"desc": desc, "id_hint": slug})
-
-    # Zoekbare clip-tags = context + unie van moment-gedrag (alles al gevalideerd)
-    tags = {framing["distance"], framing["camera"]}
-    if v.get("setting") in tax["setting"]:
-        tags.add(v["setting"])
-    for m in moments:
-        tags.update(m["dog_behavior"])
-        tags.update(m["human_behavior"])
-
-    for pt in v.get("proposed_tags", []) or []:
-        if isinstance(pt, dict) and pt.get("tag"):
-            proposals.append(pt)
-
-    return {
-        "kind": v.get("kind") if v.get("kind") in ("talking_head", "b_roll") else "b_roll",
-        "framing": framing,
-        "quality": {"exposure": q.get("exposure", ""), "sharpness": q.get("sharpness", ""),
-                    "overall": q.get("overall") if q.get("overall") in ("usable", "marginal", "reject") else "usable"},
-        "setting": v.get("setting") if v.get("setting") in tax["setting"] else "",
-        "people": v.get("people") if v.get("people") in tax["people"] else "",
-        "dogs": dogs,
-        "summary": (v.get("summary") or "").strip(),
-        "tags": sorted(tags),
-        "moments": moments,
-        "takes": takes,
-    }
-
-
 # ── Drive-walk (ongewijzigd t.o.v. v1) ──────────────────────────────────────────
 def walk_videos(folder_id: str, exclude: set[str]) -> list[dict]:
     if folder_id in exclude:
@@ -670,7 +563,7 @@ def index_one(f: dict, tax: dict) -> tuple[dict, list]:
     info = probe(src)
     transcript = transcribe(src, f["id"]) if info["has_audio"] else None
 
-    vcache = CACHE / "vision" / f"{f['id']}.v3.json"
+    vcache = CACHE / "vision" / f"{f['id']}.v{SCHEMA_VERSION}.json"
     vcache.parent.mkdir(parents=True, exist_ok=True)
     if vcache.exists():
         blob = json.loads(vcache.read_text())
@@ -710,7 +603,7 @@ def index_one(f: dict, tax: dict) -> tuple[dict, list]:
         validate_segment(sb["raw"], sb["span"], info, tax, proposals, f"{f['id']}#{i}")
         for i, sb in enumerate(blob["segments"])
     ]
-    flat = flatten_segments(segments)
+    flat_view = flatten_segments(segments)
 
     # Ruwe interne cuts van de BRON (creator-splices = pre-edited danger-lines, edit-grammar B6).
     # Onafhankelijk van de semantische segmentgrenzen: op een talking-head zijn de grenzen
@@ -737,13 +630,13 @@ def index_one(f: dict, tax: dict) -> tuple[dict, list]:
         "direct_url": drive.direct_url(f["id"]),
         "segments": segments,
         # ── back-compat (platte view) ──
-        "kind": flat["kind"],
-        "framing": flat["framing"],
-        "quality": flat["quality"],
-        "setting": flat["setting"],
-        "people": flat["people"],
-        "tags": flat["tags"],
-        "moments": flat["moments"],
+        "kind": flat_view["kind"],
+        "framing": flat_view["framing"],
+        "quality": flat_view["quality"],
+        "setting": flat_view["setting"],
+        "people": flat_view["people"],
+        "tags": flat_view["tags"],
+        "moments": flat_view["moments"],
         "raw_cuts": [{"t": round(float(t), 2)} for t in scdet_ct],
     }
     if scdet_ct and info["duration"] > 0 and len(scdet_ct) >= 3 \
@@ -751,8 +644,8 @@ def index_one(f: dict, tax: dict) -> tuple[dict, list]:
         entry["pre_edited"] = True
     if transcript:
         entry["transcript_ref"] = str(TRANSCRIPTS_DIR.relative_to(ROOT) / f"{f['id']}.json")
-    if flat["takes"]:
-        entry["takes"] = flat["takes"]
+    if flat_view["takes"]:
+        entry["takes"] = flat_view["takes"]
     return entry, proposals
 
 
