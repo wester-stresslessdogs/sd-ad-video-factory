@@ -318,19 +318,18 @@ def validate_segment(seg_raw: dict, span: list[float], info: dict, tax: dict,
     moments = []
     for m in seg_raw.get("moments", []) or []:
         t = clamp_in_span(m.get("t", span))
+        dog_vis = bool(m.get("dog_visible", True))
         mm = {
             "t": t,
             "action": (m.get("action") or "").strip(),
-            "dog_visible": bool(m.get("dog_visible", True)),
-            "dog_behavior": keep_known(m.get("dog_behavior"), tax["_dog_flat"], "moment"),
+            "dog_visible": dog_vis,
+            "dog_behavior": keep_known(m.get("dog_behavior"), tax["_dog_flat"], "moment") if dog_vis else [],
             "human_behavior": keep_known(m.get("human_behavior"), tax["_human_flat"], "moment"),
             "valence": m.get("valence") if m.get("valence") in tax["valence"] else "neutral",
             "lead_in": round(min(max(float(m.get("lead_in", 0) or 0), 0.0), t[0] - lo), 2),
             "lead_out": round(min(max(float(m.get("lead_out", 0) or 0), 0.0), hi - t[1]), 2),
             "best_frame_t": round(min(max(float(m.get("best_frame_t", t[0]) or t[0]), t[0]), t[1]), 2),
         }
-        if not mm["dog_visible"]:
-            mm["dog_behavior"] = []
         if m.get("valence_note"):
             mm["valence_note"] = str(m["valence_note"]).strip()
         moments.append(mm)

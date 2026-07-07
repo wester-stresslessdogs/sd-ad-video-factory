@@ -117,6 +117,50 @@ def test_validate_segment_broll_drops_unknown_tag():
     assert "delivery" not in out                                  # b_roll heeft geen take-velden
 
 
+def test_validate_segment_dog_visible_false_empties_behavior():
+    """Regression test: dog_visible: False must result in empty dog_behavior,
+    even if a known tag is passed in."""
+    seg_raw = {
+        "kind": "b_roll",
+        "framing": {"distance": "medium", "camera": "static", "subject_position": "center"},
+        "quality": {"exposure": "goed", "sharpness": "scherp", "overall": "usable"},
+        "setting": "park", "people": "owner",
+        "moments": [
+            {"t": [5, 10], "action": "person walks alone", "dog_visible": False,
+             "dog_behavior": ["sniffing-exploration"], "human_behavior": [],
+             "valence": "neutral", "lead_in": 0, "lead_out": 0, "best_frame_t": 7},
+        ],
+    }
+    info = {"duration": 30.0, "height": 1080, "width": 1920}
+    proposals = []
+    out = idx.validate_segment(seg_raw, [0.0, 30.0], info, _tax(), proposals, "F#0")
+    # The critical assertion: when dog_visible is False, dog_behavior must be empty
+    assert out["moments"][0]["dog_behavior"] == []
+
+
+def test_validate_segment_dog_visible_false_no_unknown_proposals():
+    """When dog_visible: False, unknown dog tags should NOT produce proposals,
+    since they won't be used anyway."""
+    seg_raw = {
+        "kind": "b_roll",
+        "framing": {"distance": "medium", "camera": "static", "subject_position": "center"},
+        "quality": {"exposure": "goed", "sharpness": "scherp", "overall": "usable"},
+        "setting": "park", "people": "owner",
+        "moments": [
+            {"t": [5, 10], "action": "person walks alone", "dog_visible": False,
+             "dog_behavior": ["leg-weave"], "human_behavior": [],
+             "valence": "neutral", "lead_in": 0, "lead_out": 0, "best_frame_t": 7},
+        ],
+    }
+    info = {"duration": 30.0, "height": 1080, "width": 1920}
+    proposals = []
+    out = idx.validate_segment(seg_raw, [0.0, 30.0], info, _tax(), proposals, "F#0")
+    # dog_behavior should still be empty
+    assert out["moments"][0]["dog_behavior"] == []
+    # No proposal for the unknown dog tag should be created when dog_visible is False
+    assert not any(p["tag"] == "leg-weave" and "moment" in p.get("why", "") for p in proposals)
+
+
 # ── Task 4: flatten_segments ────────────────────────────────────────────────────
 def test_flatten_segments_builds_compat_view():
     segments = [
