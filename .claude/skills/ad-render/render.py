@@ -39,6 +39,15 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / "mcp" / ".env")
 
+# Split-screen layout (edit-grammar: split-stijl). TH vult de bovenhelft, B-roll de
+# onderhelft; captions op de naad. Geometrie is engine-gedreven (per cut), niet in de
+# template — zo rendert één template zowel full-frame als split.
+SPLIT_TH_GEOM = {"width": "100%", "height": "50%", "x": "50%", "y": "25%",
+                 "x_alignment": "50%", "y_alignment": "50%", "fit": "cover"}
+SPLIT_BROLL_GEOM = {"width": "100%", "height": "50%", "x": "50%", "y": "75%",
+                    "x_alignment": "50%", "y_alignment": "50%", "fit": "cover"}
+SPLIT_CAPTION_Y = "50%"  # caption-pill gecentreerd op de naad tussen de helften
+
 TEMPLATES_DIR = ROOT / "knowledge" / "video-templates"
 OUT_DIR = ROOT / "output" / "renders"
 CACHE_DIR = ROOT / "output" / ".cache"
@@ -364,7 +373,8 @@ def cuts_from_plan(plan: dict, transcript: dict | None) -> list[dict]:
     if plan.get("cuts"):
         return [{"trim_start": c["trim_start"], "trim_duration": c["trim_duration"],
                  **({"punch_in": c["punch_in"]} if c.get("punch_in") else {}),
-                 **({"caption_y": c["caption_y"]} if c.get("caption_y") else {})}
+                 **({"caption_y": c["caption_y"]} if c.get("caption_y") else {}),
+                 **({"layout": c["layout"]} if c.get("layout") else {})}
                 for c in plan["cuts"]]
     th = plan.get("talking_head", {})
     dur = th.get("trim_duration")
@@ -390,8 +400,10 @@ def build_talking_head(proto: dict, url: str, cuts: list[dict]):
         el.update(id=f"th_{i}", type="video", source=url,
                   trim_start=round(c["trim_start"], 2), trim_duration=round(dur, 2),
                   time=round(t, 2), duration=round(dur, 2))
-        pi = c.get("punch_in")
-        if pi:
+        if c.get("layout") == "split":
+            el.update(SPLIT_TH_GEOM)  # bovenhelft; split-geom wint van punch_in (v1)
+        elif c.get("punch_in"):
+            pi = c["punch_in"]
             s = max(1.0, float(pi.get("scale", 1.15)))
             fx, fy = float(pi.get("focus_x", 0.5)), float(pi.get("focus_y", 0.5))
             # Element groter dan het canvas; positioneer zó dat bronpunt (fx,fy) centreert.
