@@ -435,8 +435,11 @@ def build_captions(prototype: dict, transcript: dict, cut_timeline: list,
     out, idx = [], 0
     for ci, (tl_start, s0, s1) in enumerate(cut_timeline):
         style = dict(base_style)
-        if cuts and ci < len(cuts) and cuts[ci].get("caption_y"):
-            style["y"] = cuts[ci]["caption_y"]
+        if cuts and ci < len(cuts):
+            if cuts[ci].get("caption_y"):
+                style["y"] = cuts[ci]["caption_y"]
+            elif cuts[ci].get("layout") == "split":
+                style["y"] = SPLIT_CAPTION_Y
         win = [w for w in words if w["start"] >= s0 - 0.05 and w["start"] < s1]
         lines = chunk_words(win)
         # Gaten dichten: een regel blijft staan tot de volgende begint (korte stiltes
@@ -667,6 +670,8 @@ def build_source(template: dict, talking_head_url: str, plan: dict | None,
     if broll_tpl is not None:
         elements = [e for e in elements if e.get("id") != "broll"]
         elements += build_broll(broll_tpl, plan, cut_timeline, captions, total)
+        if plan.get("split_broll"):
+            elements += build_split_broll(broll_tpl, plan, cut_timeline, cuts, total)
 
     # 2b) photo-snaps (attention-recapture, edit-grammar A5)
     if plan.get("photo_snaps"):

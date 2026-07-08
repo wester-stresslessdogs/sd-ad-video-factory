@@ -95,3 +95,30 @@ def test_build_split_broll_no_split_section_returns_empty():
     broll_proto = {"id": "broll", "type": "video", "track": 2}
     plan = {"split_broll": [{"url": "https://x/a.mp4", "duration": 2.0}]}
     assert rnd.build_split_broll(broll_proto, plan, cut_timeline, cuts, total) == []
+
+
+def test_build_captions_split_uses_seam_y():
+    proto = {"id": "captions", "type": "text", "y": "72%"}
+    transcript = {"words": [
+        {"word": "hallo", "start": 0.2, "end": 0.6},
+        {"word": "daar", "start": 2.2, "end": 2.6},
+    ]}
+    cut_timeline = [(0.0, 0.0, 2.0), (2.0, 2.0, 4.0)]
+    cuts = [
+        {"trim_start": 0.0, "trim_duration": 2.0},
+        {"trim_start": 2.0, "trim_duration": 2.0, "layout": "split"},
+    ]
+    els = rnd.build_captions(proto, transcript, cut_timeline, cuts)
+    by_cut = {e["text"].strip().lower(): e for e in els}
+    assert by_cut["hallo"]["y"] == "72%"     # full-frame keeps prototype y
+    assert by_cut["daar"]["y"] == "50%"      # split cut → seam
+
+
+def test_build_captions_explicit_caption_y_wins_over_split():
+    proto = {"id": "captions", "type": "text", "y": "72%"}
+    transcript = {"words": [{"word": "daar", "start": 0.2, "end": 0.6}]}
+    cut_timeline = [(0.0, 0.0, 2.0)]
+    cuts = [{"trim_start": 0.0, "trim_duration": 2.0,
+             "layout": "split", "caption_y": "20%"}]
+    els = rnd.build_captions(proto, transcript, cut_timeline, cuts)
+    assert els[0]["y"] == "20%"
