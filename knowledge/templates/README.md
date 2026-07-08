@@ -21,7 +21,7 @@ basis. Winner-minting en de meer-gemonteerde stijlen komen in latere golven.
 | `cutaway` | Talking-head → fullscreen B-roll op intentie | TH leidt, fullscreen-cutaway waar de claim erom vraagt | ✅ |
 | `overlay` | Talking-head → in-picture B-roll op intentie | TH blijft in beeld, pip-overlay in de dode ruimte (C7) | ✅ |
 | `show-led` | Beeld-leidend: honden leiden, TH in vensters | B-roll draagt het beeld, haar stem loopt door | ✅ (ontspant C6) |
-| `split` | Split-screen: TH boven, B-roll onder, continu → CTA | *nieuw layout* | ⏳ golf 2 |
+| `split` | Split-screen: TH boven (hook/CTA full-frame), B-roll onder in de body | TH boven / B-roll onder, dynamisch; onderhelft continu gevuld | ✅ |
 | `punchy` | Transitions + kinetische/animated captions, sneller | *nieuw* (kinetische captions = backlog) | ⏳ golf 2 |
 
 ## Schema (`<id>.json`)
