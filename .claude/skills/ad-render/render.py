@@ -1039,6 +1039,37 @@ def _find_nonspeech(words: list[dict], levels: list[tuple[float, float]],
     return hits
 
 
+def check_split_layout(cuts: list[dict], cut_timeline: list, plan: dict):
+    """Split-stijl-poort (edit-grammar C1 + onderhelft-dekking). v1: de split-cuts
+    vormen één aaneengesloten blok; de hook (eerste cut) en CTA (laatste cut) blijven
+    full-frame. Geeft (errors, warns); leeg als er geen split-cuts zijn."""
+    errors, warns = [], []
+    split_idx = [i for i, c in enumerate(cuts) if c.get("layout") == "split"]
+    if not split_idx:
+        return errors, warns
+    if 0 in split_idx:
+        errors.append("split: eerste cut (hook) mag niet layout:split zijn — de hook "
+                      "hoort op haar gezicht (edit-grammar C1)")
+    if (len(cuts) - 1) in split_idx:
+        errors.append("split: laatste cut (CTA) mag niet layout:split zijn — het aanbod "
+                      "hoort op haar gezicht (edit-grammar C1)")
+    if split_idx != list(range(split_idx[0], split_idx[-1] + 1)):
+        errors.append(f"split: de split-cuts moeten aaneengesloten zijn (v1) — nu {split_idx}")
+        return errors, warns
+    first, last = split_idx[0], split_idx[-1]
+    sec_len = (cut_timeline[last][0] + cuts[last]["trim_duration"]) - cut_timeline[first][0]
+    seg = plan.get("split_broll") or []
+    if not seg:
+        errors.append("split: split-cuts aanwezig maar geen split_broll — de onderhelft "
+                      "blijft leeg")
+    else:
+        cover = sum(float(s.get("duration", 0)) for s in seg)
+        if cover < sec_len - 0.1:
+            errors.append(f"split: onderhelft niet volledig gedekt — split_broll dekt "
+                          f"{cover:.1f}s van {sec_len:.1f}s")
+    return errors, warns
+
+
 def cmd_plan_check(args):
     """Lint een plan tegen het transcript vóór er credits aan een render opgaan.
     Vindt precies de fouten-families uit de review van 2026-07-04: mid-zin-cuts,
@@ -1227,6 +1258,11 @@ def cmd_plan_check(args):
             warns.append(f"las {i} @ {boundary:.1f}s: bridge ÉN punch-wissel (delta {delta:.2f}) — "
                          f"dubbele wissel; houd de punch gelijk over een ge-bridgede las, of "
                          f"verantwoord de subtiele her-framing in de brief (edit-grammar B4)")
+
+    # 5. Split-layout (alleen actief bij layout:split cuts): C1 + onderhelft-dekking.
+    se, sw = check_split_layout(cuts, cut_timeline, plan)
+    errors += se
+    warns += sw
 
     # Rapport
     print(f"Tijdlijn: {total:.1f}s · {len(cuts)} cuts · {len(inserts)} inserts")

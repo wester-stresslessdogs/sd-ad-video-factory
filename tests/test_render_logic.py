@@ -122,3 +122,71 @@ def test_build_captions_explicit_caption_y_wins_over_split():
              "layout": "split", "caption_y": "20%"}]
     els = rnd.build_captions(proto, transcript, cut_timeline, cuts)
     assert els[0]["y"] == "20%"
+
+
+def _tl(cuts):
+    _, cut_timeline, _ = rnd.build_talking_head(
+        {"id": "talking_head", "type": "video"}, "url", cuts)
+    return cut_timeline
+
+
+def test_check_split_layout_happy_path_ok():
+    cuts = [
+        {"trim_start": 0.0, "trim_duration": 2.0},                    # hook full-frame
+        {"trim_start": 2.0, "trim_duration": 3.0, "layout": "split"},
+        {"trim_start": 5.0, "trim_duration": 4.0, "layout": "split"},
+        {"trim_start": 9.0, "trim_duration": 2.0},                    # CTA full-frame
+    ]  # split section = [2.0, 9.0] = 7.0s
+    plan = {"split_broll": [
+        {"file_id": "A", "duration": 4.0}, {"file_id": "B", "duration": 4.0}]}  # 8 >= 7
+    errors, warns = rnd.check_split_layout(cuts, _tl(cuts), plan)
+    assert errors == []
+
+
+def test_check_split_layout_no_split_is_inert():
+    cuts = [{"trim_start": 0.0, "trim_duration": 3.0}]
+    assert rnd.check_split_layout(cuts, _tl(cuts), {}) == ([], [])
+
+
+def test_check_split_layout_hook_split_errors():
+    cuts = [
+        {"trim_start": 0.0, "trim_duration": 2.0, "layout": "split"},  # hook split → C1
+        {"trim_start": 2.0, "trim_duration": 2.0},
+    ]
+    plan = {"split_broll": [{"file_id": "A", "duration": 2.0}]}
+    errors, _ = rnd.check_split_layout(cuts, _tl(cuts), plan)
+    assert any("hook" in e for e in errors)
+
+
+def test_check_split_layout_cta_split_errors():
+    cuts = [
+        {"trim_start": 0.0, "trim_duration": 2.0},
+        {"trim_start": 2.0, "trim_duration": 2.0, "layout": "split"},  # last = CTA → C1
+    ]
+    plan = {"split_broll": [{"file_id": "A", "duration": 2.0}]}
+    errors, _ = rnd.check_split_layout(cuts, _tl(cuts), plan)
+    assert any("CTA" in e or "aanbod" in e for e in errors)
+
+
+def test_check_split_layout_uncovered_bottom_errors():
+    cuts = [
+        {"trim_start": 0.0, "trim_duration": 2.0},
+        {"trim_start": 2.0, "trim_duration": 5.0, "layout": "split"},  # section 5s
+        {"trim_start": 7.0, "trim_duration": 2.0},
+    ]
+    plan = {"split_broll": [{"file_id": "A", "duration": 2.0}]}  # 2 < 5 → error
+    errors, _ = rnd.check_split_layout(cuts, _tl(cuts), plan)
+    assert any("gedekt" in e for e in errors)
+
+
+def test_check_split_layout_non_contiguous_errors():
+    cuts = [
+        {"trim_start": 0.0, "trim_duration": 2.0},
+        {"trim_start": 2.0, "trim_duration": 2.0, "layout": "split"},
+        {"trim_start": 4.0, "trim_duration": 2.0},                     # full-frame gap
+        {"trim_start": 6.0, "trim_duration": 2.0, "layout": "split"},
+        {"trim_start": 8.0, "trim_duration": 2.0},
+    ]
+    plan = {"split_broll": [{"file_id": "A", "duration": 10.0}]}
+    errors, _ = rnd.check_split_layout(cuts, _tl(cuts), plan)
+    assert any("aaneengesloten" in e for e in errors)
