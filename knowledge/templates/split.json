@@ -1,0 +1,18 @@
+{
+  "id": "split",
+  "name": "Split-screen: TH boven, B-roll onder (dynamisch)",
+  "style": "split",
+  "provenance": "seed",
+  "layout": "split",
+  "broll": {
+    "style": "split_bottom",
+    "policy": "continuous",
+    "density": "dominant",
+    "broll_led": false
+  },
+  "captions": "standard",
+  "transitions": "hard-cut",
+  "visual_comp": "split-ugc_9x16.json",
+  "_note": "Dynamisch split-screen: talking-head is full-frame op hook/reveal/CTA (C1) en splitst in de body naar TH boven / B-roll onder. De onderhelft loopt continu mee met wat ze zegt (gematcht) en valt terug op same-dog rustbeeld tussen matches. layout+split_broll worden op plan-niveau gezet; de engine stempelt de geometrie per cut.",
+  "_improve_via": "feedback"
+}

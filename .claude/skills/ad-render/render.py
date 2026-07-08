@@ -39,6 +39,42 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / "mcp" / ".env")
 
+# Split-screen layout (edit-grammar: split-stijl). TH vult de bovenhelft, B-roll de
+# onderhelft; captions op de naad. Geometrie is engine-gedreven (per cut), niet in de
+# template — zo rendert één template zowel full-frame als split.
+SPLIT_TH_GEOM = {"width": "100%", "height": "50%", "x": "50%", "y": "25%",
+                 "x_alignment": "50%", "y_alignment": "50%", "fit": "cover"}
+SPLIT_BROLL_GEOM = {"width": "100%", "height": "50%", "x": "50%", "y": "75%",
+                    "x_alignment": "50%", "y_alignment": "50%", "fit": "cover"}
+SPLIT_CAPTION_Y = "50%"  # caption-pill gecentreerd op de naad tussen de helften
+
+VISIBLE_PUNCH_DELTA = 0.25  # kleinste punch-verschil dat een kale las zichtbaar maakt
+
+
+def las_visible_change(prev_cut: dict, cur_cut: dict, bridged: bool) -> bool:
+    """Heeft deze las een zichtbare wissel? True = geen glitch-risico. Gedekt door: een
+    bridge (fullscreen-cutaway over de las), een split-cut aan één kant (de layout klapt
+    om full-frame↔split óf de continue onderhelft-B-roll loopt door de las), of een
+    punch-delta ≥ VISIBLE_PUNCH_DELTA (bewuste her-framing)."""
+    if bridged:
+        return True
+    if prev_cut.get("layout") == "split" or cur_cut.get("layout") == "split":
+        return True
+    s_prev = float((prev_cut.get("punch_in") or {}).get("scale", 1.0))
+    s_cur = float((cur_cut.get("punch_in") or {}).get("scale", 1.0))
+    return abs(s_cur - s_prev) >= VISIBLE_PUNCH_DELTA
+
+
+def split_section_span(cuts: list[dict], cut_timeline: list) -> tuple | None:
+    """(start, eind) op de output-tijdlijn van het aaneengesloten split-blok, of None.
+    v1: de split-cuts vormen één blok (plan-check dwingt dit af); de continue onderhelft-
+    B-roll dekt die hele span visueel."""
+    idx = [i for i, c in enumerate(cuts) if c.get("layout") == "split"]
+    if not idx:
+        return None
+    first, last = idx[0], idx[-1]
+    return (cut_timeline[first][0], cut_timeline[last][0] + cuts[last]["trim_duration"])
+
 TEMPLATES_DIR = ROOT / "knowledge" / "video-templates"
 OUT_DIR = ROOT / "output" / "renders"
 CACHE_DIR = ROOT / "output" / ".cache"
@@ -364,7 +400,8 @@ def cuts_from_plan(plan: dict, transcript: dict | None) -> list[dict]:
     if plan.get("cuts"):
         return [{"trim_start": c["trim_start"], "trim_duration": c["trim_duration"],
                  **({"punch_in": c["punch_in"]} if c.get("punch_in") else {}),
-                 **({"caption_y": c["caption_y"]} if c.get("caption_y") else {})}
+                 **({"caption_y": c["caption_y"]} if c.get("caption_y") else {}),
+                 **({"layout": c["layout"]} if c.get("layout") else {})}
                 for c in plan["cuts"]]
     th = plan.get("talking_head", {})
     dur = th.get("trim_duration")
@@ -390,8 +427,10 @@ def build_talking_head(proto: dict, url: str, cuts: list[dict]):
         el.update(id=f"th_{i}", type="video", source=url,
                   trim_start=round(c["trim_start"], 2), trim_duration=round(dur, 2),
                   time=round(t, 2), duration=round(dur, 2))
-        pi = c.get("punch_in")
-        if pi:
+        if c.get("layout") == "split":
+            el.update(SPLIT_TH_GEOM)  # bovenhelft; split-geom wint van punch_in (v1)
+        elif c.get("punch_in"):
+            pi = c["punch_in"]
             s = max(1.0, float(pi.get("scale", 1.15)))
             fx, fy = float(pi.get("focus_x", 0.5)), float(pi.get("focus_y", 0.5))
             # Element groter dan het canvas; positioneer zó dat bronpunt (fx,fy) centreert.
@@ -423,8 +462,11 @@ def build_captions(prototype: dict, transcript: dict, cut_timeline: list,
     out, idx = [], 0
     for ci, (tl_start, s0, s1) in enumerate(cut_timeline):
         style = dict(base_style)
-        if cuts and ci < len(cuts) and cuts[ci].get("caption_y"):
-            style["y"] = cuts[ci]["caption_y"]
+        if cuts and ci < len(cuts):
+            if cuts[ci].get("caption_y"):
+                style["y"] = cuts[ci]["caption_y"]
+            elif cuts[ci].get("layout") == "split":
+                style["y"] = SPLIT_CAPTION_Y
         win = [w for w in words if w["start"] >= s0 - 0.05 and w["start"] < s1]
         lines = chunk_words(win)
         # Gaten dichten: een regel blijft staan tot de volgende begint (korte stiltes
@@ -532,6 +574,41 @@ def build_broll(broll_tpl: dict, plan: dict, cut_timeline: list,
     return out
 
 
+def build_split_broll(broll_proto: dict, plan: dict, cut_timeline: list,
+                      cuts: list[dict], total: float | None) -> list[dict]:
+    """Continue onderhelft-B-roll voor de split-sectie (edit-grammar: split-stijl).
+    v1: de layout:split-cuts vormen één aaneengesloten blok (plan-check dwingt dit af).
+    De segmenten uit plan['split_broll'] worden end-to-end onder de sectie gelegd; het
+    laatste segment wordt op het sectie-einde geklemd. Audio gedempt (B-roll)."""
+    seg_plan = plan.get("split_broll") or []
+    split_idx = [i for i, c in enumerate(cuts) if c.get("layout") == "split"]
+    if not seg_plan or not split_idx:
+        return []
+    first, last = split_idx[0], split_idx[-1]
+    sec_start = cut_timeline[first][0]
+    sec_end = cut_timeline[last][0] + cuts[last]["trim_duration"]
+    base = {k: v for k, v in broll_proto.items()
+            if k not in ("broll_style", "pip", "time", "duration", "source",
+                         "trim_start", "trim_duration", "id")}
+    out, t = [], sec_start
+    for j, s in enumerate(seg_plan):
+        if t >= sec_end - 0.05:
+            break
+        dur = min(float(s.get("duration", 3.5)), sec_end - t)
+        el = dict(base)
+        el.update(SPLIT_BROLL_GEOM)
+        el["id"] = f"split_broll_{j+1}"
+        el["source"] = resolve_to_url(s.get("url") or s["file_id"])
+        el["time"] = round(t, 2)
+        el["duration"] = round(dur, 2)
+        if s.get("broll_trim_start") is not None:
+            el["trim_start"] = round(s["broll_trim_start"], 2)
+        el["volume"] = "0%"
+        out.append(el)
+        t = round(t + dur, 2)
+    return out
+
+
 SFX_SHUTTER = ROOT / "assets" / "sfx" / "camera-shutter.mp3"
 
 
@@ -620,6 +697,8 @@ def build_source(template: dict, talking_head_url: str, plan: dict | None,
     if broll_tpl is not None:
         elements = [e for e in elements if e.get("id") != "broll"]
         elements += build_broll(broll_tpl, plan, cut_timeline, captions, total)
+        if plan.get("split_broll"):
+            elements += build_split_broll(broll_tpl, plan, cut_timeline, cuts, total)
 
     # 2b) photo-snaps (attention-recapture, edit-grammar A5)
     if plan.get("photo_snaps"):
@@ -987,6 +1066,37 @@ def _find_nonspeech(words: list[dict], levels: list[tuple[float, float]],
     return hits
 
 
+def check_split_layout(cuts: list[dict], cut_timeline: list, plan: dict):
+    """Split-stijl-poort (edit-grammar C1 + onderhelft-dekking). v1: de split-cuts
+    vormen één aaneengesloten blok; de hook (eerste cut) en CTA (laatste cut) blijven
+    full-frame. Geeft (errors, warns); leeg als er geen split-cuts zijn."""
+    errors, warns = [], []
+    split_idx = [i for i, c in enumerate(cuts) if c.get("layout") == "split"]
+    if not split_idx:
+        return errors, warns
+    if 0 in split_idx:
+        errors.append("split: eerste cut (hook) mag niet layout:split zijn — de hook "
+                      "hoort op haar gezicht (edit-grammar C1)")
+    if (len(cuts) - 1) in split_idx:
+        errors.append("split: laatste cut (CTA) mag niet layout:split zijn — het aanbod "
+                      "hoort op haar gezicht (edit-grammar C1)")
+    if split_idx != list(range(split_idx[0], split_idx[-1] + 1)):
+        errors.append(f"split: de split-cuts moeten aaneengesloten zijn (v1) — nu {split_idx}")
+        return errors, warns
+    sec_start, sec_end = split_section_span(cuts, cut_timeline)
+    sec_len = sec_end - sec_start
+    seg = plan.get("split_broll") or []
+    if not seg:
+        errors.append("split: split-cuts aanwezig maar geen split_broll — de onderhelft "
+                      "blijft leeg")
+    else:
+        cover = sum(float(s.get("duration", 0)) for s in seg)
+        if cover < sec_len - 0.1:
+            errors.append(f"split: onderhelft niet volledig gedekt — split_broll dekt "
+                          f"{cover:.1f}s van {sec_len:.1f}s")
+    return errors, warns
+
+
 def cmd_plan_check(args):
     """Lint een plan tegen het transcript vóór er credits aan een render opgaan.
     Vindt precies de fouten-families uit de review van 2026-07-04: mid-zin-cuts,
@@ -1142,9 +1252,12 @@ def cmd_plan_check(args):
                      f"max ~1 per video (A5); verantwoord dit in de brief")
 
     # 3d. Lange kale strekken: te lang alleen talking-head = aandacht lekt weg.
-    # Cutaways = B-roll + photo-snaps; punch-wissels tellen niet. De staart krijgt
-    # meer ruimte (aanbod/CTA horen op haar gezicht, C1) — daar pas vanaf 20s.
-    cutaways = sorted([(a0, a1) for a0, a1, _, _, _ in inserts] + snap_spans)
+    # Cutaways = B-roll + photo-snaps; punch-wissels tellen niet. Een split-sectie telt
+    # óók als dekking — de onderhelft draait continu B-roll. De staart krijgt meer ruimte
+    # (aanbod/CTA horen op haar gezicht, C1) — daar pas vanaf 20s.
+    split_span = split_section_span(cuts, cut_timeline)
+    extra_cover = [split_span] if split_span else []
+    cutaways = sorted([(a0, a1) for a0, a1, _, _, _ in inserts] + snap_spans + extra_cover)
     edges = [0.0] + [e for span in cutaways for e in span] + [total]
     for j in range(0, len(edges) - 1, 2):
         g0, g1 = edges[j], edges[j + 1]
@@ -1159,7 +1272,6 @@ def cmd_plan_check(args):
     # Delta < VISIBLE_PUNCH_DELTA op een kale las leest als fout, niet als keuze
     # (edit-grammar B3/B4); achter een bridge hoort de punch gelijk te blijven —
     # een bewuste subtiele her-framing daar mag, maar alleen verantwoord (⚠).
-    VISIBLE_PUNCH_DELTA = 0.25
     for i in range(1, len(cuts)):
         boundary = cut_timeline[i][0]
         # alleen een fullscreen-cutaway verbergt een las; een overlay (pip) niet
@@ -1168,13 +1280,18 @@ def cmd_plan_check(args):
         s_prev = float((cuts[i-1].get("punch_in") or {}).get("scale", 1.0))
         s_cur = float((cuts[i].get("punch_in") or {}).get("scale", 1.0))
         delta = abs(s_cur - s_prev)
-        if not bridged and delta < VISIBLE_PUNCH_DELTA:
+        if not las_visible_change(cuts[i-1], cuts[i], bridged):
             errors.append(f"las {i} @ {boundary:.1f}s: geen bridge én punch-delta {delta:.2f} "
                           f"< {VISIBLE_PUNCH_DELTA} — leest als glitch ('zelfde beeld, niks verandert')")
         elif bridged and delta >= 0.1:
             warns.append(f"las {i} @ {boundary:.1f}s: bridge ÉN punch-wissel (delta {delta:.2f}) — "
                          f"dubbele wissel; houd de punch gelijk over een ge-bridgede las, of "
                          f"verantwoord de subtiele her-framing in de brief (edit-grammar B4)")
+
+    # 5. Split-layout (alleen actief bij layout:split cuts): C1 + onderhelft-dekking.
+    se, sw = check_split_layout(cuts, cut_timeline, plan)
+    errors += se
+    warns += sw
 
     # Rapport
     print(f"Tijdlijn: {total:.1f}s · {len(cuts)} cuts · {len(inserts)} inserts")
