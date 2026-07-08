@@ -544,6 +544,41 @@ def build_broll(broll_tpl: dict, plan: dict, cut_timeline: list,
     return out
 
 
+def build_split_broll(broll_proto: dict, plan: dict, cut_timeline: list,
+                      cuts: list[dict], total: float | None) -> list[dict]:
+    """Continue onderhelft-B-roll voor de split-sectie (edit-grammar: split-stijl).
+    v1: de layout:split-cuts vormen één aaneengesloten blok (plan-check dwingt dit af).
+    De segmenten uit plan['split_broll'] worden end-to-end onder de sectie gelegd; het
+    laatste segment wordt op het sectie-einde geklemd. Audio gedempt (B-roll)."""
+    seg_plan = plan.get("split_broll") or []
+    split_idx = [i for i, c in enumerate(cuts) if c.get("layout") == "split"]
+    if not seg_plan or not split_idx:
+        return []
+    first, last = split_idx[0], split_idx[-1]
+    sec_start = cut_timeline[first][0]
+    sec_end = cut_timeline[last][0] + cuts[last]["trim_duration"]
+    base = {k: v for k, v in broll_proto.items()
+            if k not in ("broll_style", "pip", "time", "duration", "source",
+                         "trim_start", "trim_duration", "id")}
+    out, t = [], sec_start
+    for j, s in enumerate(seg_plan):
+        if t >= sec_end - 0.05:
+            break
+        dur = min(float(s.get("duration", 3.5)), sec_end - t)
+        el = dict(base)
+        el.update(SPLIT_BROLL_GEOM)
+        el["id"] = f"split_broll_{j+1}"
+        el["source"] = resolve_to_url(s.get("url") or s["file_id"])
+        el["time"] = round(t, 2)
+        el["duration"] = round(dur, 2)
+        if s.get("broll_trim_start") is not None:
+            el["trim_start"] = round(s["broll_trim_start"], 2)
+        el["volume"] = "0%"
+        out.append(el)
+        t = round(t + dur, 2)
+    return out
+
+
 SFX_SHUTTER = ROOT / "assets" / "sfx" / "camera-shutter.mp3"
 
 

@@ -57,3 +57,41 @@ def test_build_talking_head_split_ignores_punch_in():
              "layout": "split", "punch_in": {"scale": 1.4}}]
     els, _, _ = rnd.build_talking_head(proto, "url", cuts)
     assert els[0]["height"] == "50%"                   # split geom wins, not 140%
+
+
+def _split_fixture():
+    # cut 1 full-frame (0-2s), cuts 2-3 split (2-9s) → split section = [2.0, 9.0]
+    proto = {"id": "talking_head", "type": "video", "fit": "cover"}
+    cuts = [
+        {"trim_start": 0.0, "trim_duration": 2.0},
+        {"trim_start": 2.0, "trim_duration": 3.0, "layout": "split"},
+        {"trim_start": 5.0, "trim_duration": 4.0, "layout": "split"},
+    ]
+    _, cut_timeline, total = rnd.build_talking_head(proto, "url", cuts)
+    return cuts, cut_timeline, total
+
+
+def test_build_split_broll_chains_and_clamps():
+    cuts, cut_timeline, total = _split_fixture()  # section 2.0-9.0 = 7.0s
+    broll_proto = {"id": "broll", "type": "video", "track": 2, "fit": "cover"}
+    plan = {"split_broll": [
+        {"url": "https://x/a.mp4", "broll_trim_start": 0.0, "duration": 3.0},
+        {"url": "https://x/b.mp4", "broll_trim_start": 0.0, "duration": 3.0},
+        {"url": "https://x/c.mp4", "broll_trim_start": 0.0, "duration": 3.0},  # overshoots → clamp
+    ]}
+    els = rnd.build_split_broll(broll_proto, plan, cut_timeline, cuts, total)
+    assert [e["time"] for e in els] == [2.0, 5.0, 8.0]
+    assert els[0]["duration"] == 3.0 and els[1]["duration"] == 3.0
+    assert els[2]["duration"] == 1.0          # 8.0 -> 9.0 section end
+    assert all(e["volume"] == "0%" for e in els)
+    assert els[0]["height"] == "50%" and els[0]["y"] == "75%"   # bottom half
+    assert els[0]["track"] == 2
+
+
+def test_build_split_broll_no_split_section_returns_empty():
+    proto = {"id": "talking_head", "type": "video", "fit": "cover"}
+    cuts = [{"trim_start": 0.0, "trim_duration": 3.0}]  # no split cut
+    _, cut_timeline, total = rnd.build_talking_head(proto, "url", cuts)
+    broll_proto = {"id": "broll", "type": "video", "track": 2}
+    plan = {"split_broll": [{"url": "https://x/a.mp4", "duration": 2.0}]}
+    assert rnd.build_split_broll(broll_proto, plan, cut_timeline, cuts, total) == []
