@@ -48,6 +48,33 @@ SPLIT_BROLL_GEOM = {"width": "100%", "height": "50%", "x": "50%", "y": "75%",
                     "x_alignment": "50%", "y_alignment": "50%", "fit": "cover"}
 SPLIT_CAPTION_Y = "50%"  # caption-pill gecentreerd op de naad tussen de helften
 
+VISIBLE_PUNCH_DELTA = 0.25  # kleinste punch-verschil dat een kale las zichtbaar maakt
+
+
+def las_visible_change(prev_cut: dict, cur_cut: dict, bridged: bool) -> bool:
+    """Heeft deze las een zichtbare wissel? True = geen glitch-risico. Gedekt door: een
+    bridge (fullscreen-cutaway over de las), een split-cut aan één kant (de layout klapt
+    om full-frame↔split óf de continue onderhelft-B-roll loopt door de las), of een
+    punch-delta ≥ VISIBLE_PUNCH_DELTA (bewuste her-framing)."""
+    if bridged:
+        return True
+    if prev_cut.get("layout") == "split" or cur_cut.get("layout") == "split":
+        return True
+    s_prev = float((prev_cut.get("punch_in") or {}).get("scale", 1.0))
+    s_cur = float((cur_cut.get("punch_in") or {}).get("scale", 1.0))
+    return abs(s_cur - s_prev) >= VISIBLE_PUNCH_DELTA
+
+
+def split_section_span(cuts: list[dict], cut_timeline: list) -> tuple | None:
+    """(start, eind) op de output-tijdlijn van het aaneengesloten split-blok, of None.
+    v1: de split-cuts vormen één blok (plan-check dwingt dit af); de continue onderhelft-
+    B-roll dekt die hele span visueel."""
+    idx = [i for i, c in enumerate(cuts) if c.get("layout") == "split"]
+    if not idx:
+        return None
+    first, last = idx[0], idx[-1]
+    return (cut_timeline[first][0], cut_timeline[last][0] + cuts[last]["trim_duration"])
+
 TEMPLATES_DIR = ROOT / "knowledge" / "video-templates"
 OUT_DIR = ROOT / "output" / "renders"
 CACHE_DIR = ROOT / "output" / ".cache"
@@ -1056,8 +1083,8 @@ def check_split_layout(cuts: list[dict], cut_timeline: list, plan: dict):
     if split_idx != list(range(split_idx[0], split_idx[-1] + 1)):
         errors.append(f"split: de split-cuts moeten aaneengesloten zijn (v1) — nu {split_idx}")
         return errors, warns
-    first, last = split_idx[0], split_idx[-1]
-    sec_len = (cut_timeline[last][0] + cuts[last]["trim_duration"]) - cut_timeline[first][0]
+    sec_start, sec_end = split_section_span(cuts, cut_timeline)
+    sec_len = sec_end - sec_start
     seg = plan.get("split_broll") or []
     if not seg:
         errors.append("split: split-cuts aanwezig maar geen split_broll — de onderhelft "
@@ -1225,9 +1252,12 @@ def cmd_plan_check(args):
                      f"max ~1 per video (A5); verantwoord dit in de brief")
 
     # 3d. Lange kale strekken: te lang alleen talking-head = aandacht lekt weg.
-    # Cutaways = B-roll + photo-snaps; punch-wissels tellen niet. De staart krijgt
-    # meer ruimte (aanbod/CTA horen op haar gezicht, C1) — daar pas vanaf 20s.
-    cutaways = sorted([(a0, a1) for a0, a1, _, _, _ in inserts] + snap_spans)
+    # Cutaways = B-roll + photo-snaps; punch-wissels tellen niet. Een split-sectie telt
+    # óók als dekking — de onderhelft draait continu B-roll. De staart krijgt meer ruimte
+    # (aanbod/CTA horen op haar gezicht, C1) — daar pas vanaf 20s.
+    split_span = split_section_span(cuts, cut_timeline)
+    extra_cover = [split_span] if split_span else []
+    cutaways = sorted([(a0, a1) for a0, a1, _, _, _ in inserts] + snap_spans + extra_cover)
     edges = [0.0] + [e for span in cutaways for e in span] + [total]
     for j in range(0, len(edges) - 1, 2):
         g0, g1 = edges[j], edges[j + 1]
@@ -1242,7 +1272,6 @@ def cmd_plan_check(args):
     # Delta < VISIBLE_PUNCH_DELTA op een kale las leest als fout, niet als keuze
     # (edit-grammar B3/B4); achter een bridge hoort de punch gelijk te blijven —
     # een bewuste subtiele her-framing daar mag, maar alleen verantwoord (⚠).
-    VISIBLE_PUNCH_DELTA = 0.25
     for i in range(1, len(cuts)):
         boundary = cut_timeline[i][0]
         # alleen een fullscreen-cutaway verbergt een las; een overlay (pip) niet
@@ -1251,7 +1280,7 @@ def cmd_plan_check(args):
         s_prev = float((cuts[i-1].get("punch_in") or {}).get("scale", 1.0))
         s_cur = float((cuts[i].get("punch_in") or {}).get("scale", 1.0))
         delta = abs(s_cur - s_prev)
-        if not bridged and delta < VISIBLE_PUNCH_DELTA:
+        if not las_visible_change(cuts[i-1], cuts[i], bridged):
             errors.append(f"las {i} @ {boundary:.1f}s: geen bridge én punch-delta {delta:.2f} "
                           f"< {VISIBLE_PUNCH_DELTA} — leest als glitch ('zelfde beeld, niks verandert')")
         elif bridged and delta >= 0.1:

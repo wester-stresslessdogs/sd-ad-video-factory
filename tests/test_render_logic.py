@@ -190,3 +190,39 @@ def test_check_split_layout_non_contiguous_errors():
     plan = {"split_broll": [{"file_id": "A", "duration": 10.0}]}
     errors, _ = rnd.check_split_layout(cuts, _tl(cuts), plan)
     assert any("aaneengesloten" in e for e in errors)
+
+
+def test_las_visible_change_split_side_exempts_glitch():
+    full = {"trim_start": 0.0, "trim_duration": 2.0}
+    split = {"trim_start": 2.0, "trim_duration": 2.0, "layout": "split"}
+    # full→split, split→full, split→split: layout/onderhelft dekt de wissel
+    assert rnd.las_visible_change(full, split, bridged=False) is True
+    assert rnd.las_visible_change(split, full, bridged=False) is True
+    assert rnd.las_visible_change(split, split, bridged=False) is True
+
+
+def test_las_visible_change_bare_full_frame_is_glitch():
+    a = {"trim_start": 0.0, "trim_duration": 2.0}
+    b = {"trim_start": 2.0, "trim_duration": 2.0}
+    # twee full-frame cuts, geen punch-verschil, geen bridge → glitch (niet gedekt)
+    assert rnd.las_visible_change(a, b, bridged=False) is False
+    # een punch-delta >= 0.25 dekt 'm wél
+    b_punch = {"trim_start": 2.0, "trim_duration": 2.0, "punch_in": {"scale": 1.3}}
+    assert rnd.las_visible_change(a, b_punch, bridged=False) is True
+    # een bridge dekt 'm ook
+    assert rnd.las_visible_change(a, b, bridged=True) is True
+
+
+def test_split_section_span():
+    cuts = [
+        {"trim_start": 0.0, "trim_duration": 2.0},
+        {"trim_start": 2.0, "trim_duration": 3.0, "layout": "split"},
+        {"trim_start": 5.0, "trim_duration": 4.0, "layout": "split"},
+        {"trim_start": 9.0, "trim_duration": 2.0},
+    ]
+    assert rnd.split_section_span(cuts, _tl(cuts)) == (2.0, 9.0)
+
+
+def test_split_section_span_none_when_no_split():
+    cuts = [{"trim_start": 0.0, "trim_duration": 2.0}]
+    assert rnd.split_section_span(cuts, _tl(cuts)) is None
