@@ -16,3 +16,13 @@ def test_split_recipe_shape():
     assert recipe["layout"] == "split"
     assert recipe["broll"]["style"] == "split_bottom"
     assert recipe["visual_comp"] == "split-ugc_9x16.json"
+
+
+def test_split_composition_shape():
+    comp = json.loads(
+        (ROOT / "knowledge" / "video-templates" / "split-ugc_9x16.json").read_text()
+    )
+    assert comp["width"] == 1080 and comp["height"] == 1920
+    ids = {e["id"]: e for e in comp["elements"]}
+    assert {"talking_head", "broll", "captions"} <= set(ids)
+    assert ids["broll"]["broll_style"] == "split_bottom"
