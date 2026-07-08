@@ -20,7 +20,7 @@ but lightly tested. It is **not yet a hands-off system**.
 The north star: one talking-head runs through **every** template style and gets its own render;
 plus rich creator scripts from winners. Five pieces (decomposed 2026-07-07):
 - **A · Variant engine** — one talking-head × each template style → one render per style. *(the prize; not started)*
-- **B · Template style catalog** — write out each style: split-screen, picture-in-picture, wide-bg + inset, hook-only variants. *(not started; feeds A)*
+- **B · Template style catalog** — write out each style: split-screen, picture-in-picture, wide-bg + inset, hook-only variants. **🟡 first style built: `split` (dynamic split-screen), end-to-end op IMG_2850 (`2026-07-08-split-screen-style`).** Rest (`wide-bg+inset`, `punchy`) hergebruikt hetzelfde nieuwe-layout-pad.
 - **C · Rich analysis + cut detection** — segment-level richness + clean/take verdicts + `raw_cuts`. **✅ built (footage-index v3, `2026-07-07-footage-analysis-v3-segments`).**
 - **D · Clip grouping/tagging** — identifier tying a creator's clips + same-session/sequence clips together, so same-context clips edit together. *(not started; C reserves `segment.id = file_id#n` as the hook)*
 - **E · Rich creator scripts from winning ads** — reusable many ways, multiple hooks mandatory; then match delivered footage to script + edit in all templates. *(parallel Line-2 track; `ad-scripts` exists, needs the richness)*
@@ -62,8 +62,9 @@ Read top to bottom = the order things happen.
   inspiration, never copied).
 - **One shared vocabulary** (~19 taxonomy words) describes both, so footage can be
   matched to a winning recipe.
-- **Templates:** 5 reusable styles (cutaway, overlay, show-led are live; split-screen
-  + punchy still to build).
+- **Templates:** 5 reusable styles (cutaway, overlay, show-led, split-screen live;
+  punchy still to build). `split` is dynamisch: full-frame op hook/reveal/CTA (C1),
+  split (TH boven / B-roll onder) in de body — layout wisselt per cut, engine-gedreven.
 - **Three gates before any video ships:** `plan-check` (mechanical rules), a frame
   check (does the picture match the intent), and the **director** (is it actually good).
 
