@@ -70,7 +70,9 @@ cp knowledge/video-templates/config.example.json knowledge/video-templates/confi
 > De warehouse (eigen ad-performance) is bewust **buiten scope voor v1**.
 
 ### 5. Footage indexeren (voor `/create-ads` en `/ad-render`)
-Bouwt `knowledge/footage-index.json` (**schema v2 — moment-niveau**) op uit **alle ruwe
+Bouwt `knowledge/footage-index.json` (**schema v3 — segment-niveau**: cut-begrensde
+`segments[]` met richness + clean/take-oordeel per take; zie
+`docs/specs/2026-07-07-footage-analysis-v3-segments-design.md`) op uit **alle ruwe
 footage** in Drive (recursief; afgewerkte ads worden overgeslagen), gekeyed op `file_id`.
 Per clip: framing (afstand/camera/`punchin_max`), kwaliteit, honden (continuïteit),
 en **momenten** — tijdvensters met `dog_behavior` × `human_behavior` × `valence` uit het

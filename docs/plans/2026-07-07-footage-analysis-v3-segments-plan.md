@@ -8,6 +8,18 @@
 
 **Tech Stack:** Python 3.12, `openai` (Whisper + gpt-4o vision), `ffmpeg`/`ffprobe` (subprocess), Google Drive (`lib/drive.py`), `pytest` (nieuw, alleen voor pure logica).
 
+> **Revisie na Task 9 Stage-A (commit `3980c72`):** de eerste echte run legde twee
+> runtime-bugs bloot die de unit-tests niet konden vangen. (1) De clean-score was dood:
+> `describe_segment` produceerde per geïsoleerd segment nooit `gist`/`delivery`/
+> `complete_thought`, dus `delivery` viel altijd terug op `flat` en `reject` vuurde nooit.
+> Fix: het take-oordeel is verplaatst naar **pass-1 `propose_segments`** — de enige pass die
+> het HELE transcript ziet en dus retakes/asides kan herkennen; `index_one` injecteert die
+> velden per segment. (2) Talking-heads werden over-gesegmenteerd doordat `index_one` de rauwe
+> `scdet`-cuts blind in de grenzen uniede (ruis op een statisch gezicht → 13 segmenten). Fix:
+> `scdet` is nu alleen een **hint** aan pass-1, niet zelf een grens. Task 7 (`propose_segments`)
+> en Task 8 (`index_one`) hieronder beschrijven de oorspronkelijke opzet; de bovenstaande revisie
+> gaat vóór.
+
 ## Global Constraints
 
 - **Schema-bump:** `SCHEMA_VERSION = 3` in `scripts/index_footage.py`; index-entries krijgen `"v": 3`.
