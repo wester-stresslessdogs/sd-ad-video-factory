@@ -88,6 +88,33 @@ def test_build_split_broll_chains_and_clamps():
     assert els[0]["track"] == 2
 
 
+def test_build_split_broll_caps_to_source_length():
+    cuts, cut_timeline, total = _split_fixture()  # section 2.0-9.0 = 7.0s
+    broll_proto = {"id": "broll", "type": "video", "track": 2, "fit": "cover"}
+    plan = {"split_broll": [
+        {"file_id": "SHORT", "url": "https://x/s.mp4", "broll_trim_start": 0.0, "duration": 8.0},  # bron 4s
+        {"file_id": "LONG", "url": "https://x/l.mp4", "broll_trim_start": 0.0, "duration": 5.0},
+    ]}
+    dur = {"SHORT": 4.0, "LONG": 20.0}.get
+    els = rnd.build_split_broll(broll_proto, plan, cut_timeline, cuts, total, dur_lookup=dur)
+    assert els[0]["duration"] == 4.0     # geklemd op bronlengte, niet 8.0 (geen leegte)
+    assert els[1]["time"] == 6.0         # volgende start ná de geklemde 4s (2.0+4.0)
+    assert els[1]["duration"] == 3.0     # geklemd op sectie-einde 9.0
+
+
+def test_build_split_broll_skips_exhausted_source():
+    cuts, cut_timeline, total = _split_fixture()  # section 2.0-9.0
+    broll_proto = {"id": "broll", "type": "video", "track": 2}
+    plan = {"split_broll": [
+        {"file_id": "SHORT", "url": "https://x/s.mp4", "broll_trim_start": 5.0, "duration": 3.0},  # trim>bron(4)→0
+        {"file_id": "LONG", "url": "https://x/l.mp4", "broll_trim_start": 0.0, "duration": 10.0},
+    ]}
+    dur = {"SHORT": 4.0, "LONG": 20.0}.get
+    els = rnd.build_split_broll(broll_proto, plan, cut_timeline, cuts, total, dur_lookup=dur)
+    assert len(els) == 1 and els[0]["time"] == 2.0   # uitgeput segment overgeslagen
+    assert els[0]["duration"] == 7.0                 # LONG vult de hele sectie
+
+
 def test_build_split_broll_no_split_section_returns_empty():
     proto = {"id": "talking_head", "type": "video", "fit": "cover"}
     cuts = [{"trim_start": 0.0, "trim_duration": 3.0}]  # no split cut
@@ -177,6 +204,18 @@ def test_check_split_layout_uncovered_bottom_errors():
     plan = {"split_broll": [{"file_id": "A", "duration": 2.0}]}  # 2 < 5 → error
     errors, _ = rnd.check_split_layout(cuts, _tl(cuts), plan)
     assert any("gedekt" in e for e in errors)
+
+
+def test_check_split_layout_effective_coverage_shortfall():
+    cuts = [
+        {"trim_start": 0.0, "trim_duration": 2.0},
+        {"trim_start": 2.0, "trim_duration": 6.0, "layout": "split"},  # section 6s
+        {"trim_start": 8.0, "trim_duration": 2.0},
+    ]
+    plan = {"split_broll": [{"file_id": "SHORT", "duration": 10.0}]}  # claimt 10, bron 4
+    dur = {"SHORT": 4.0}.get
+    errors, _ = rnd.check_split_layout(cuts, _tl(cuts), plan, dur_lookup=dur)
+    assert any("gedekt" in e for e in errors)  # effectief 4 < 6
 
 
 def test_check_split_layout_non_contiguous_errors():

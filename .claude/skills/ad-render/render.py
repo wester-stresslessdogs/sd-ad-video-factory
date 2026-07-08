@@ -574,12 +574,41 @@ def build_broll(broll_tpl: dict, plan: dict, cut_timeline: list,
     return out
 
 
+_FOOTAGE_INDEX = None
+
+
+def clip_duration(file_id: str) -> float | None:
+    """Bronlengte (s) van een clip uit de footage-index, of None (onbekend). Eénmalig
+    gecachet. Zo weet de render-engine hoe lang een B-roll-segment écht kan zijn."""
+    global _FOOTAGE_INDEX
+    if _FOOTAGE_INDEX is None:
+        p = ROOT / "knowledge" / "footage-index.json"
+        _FOOTAGE_INDEX = json.loads(p.read_text()) if p.exists() else {}
+    clips = _FOOTAGE_INDEX.get("clips", _FOOTAGE_INDEX)
+    c = clips.get(file_id)
+    return c.get("duration") if isinstance(c, dict) else None
+
+
+def _seg_source_dur(seg: dict, dur_lookup) -> float | None:
+    """Beschikbare bronlengte van een split_broll-segment ná trim, of None
+    (URL/onbekend → niet klembaar)."""
+    fid = seg.get("file_id")
+    if not fid or dur_lookup is None:
+        return None
+    d = dur_lookup(fid)
+    if d is None:
+        return None
+    return max(0.0, float(d) - float(seg.get("broll_trim_start", 0.0)))
+
+
 def build_split_broll(broll_proto: dict, plan: dict, cut_timeline: list,
-                      cuts: list[dict], total: float | None) -> list[dict]:
+                      cuts: list[dict], total: float | None,
+                      dur_lookup=clip_duration) -> list[dict]:
     """Continue onderhelft-B-roll voor de split-sectie (edit-grammar: split-stijl).
     v1: de layout:split-cuts vormen één aaneengesloten blok (plan-check dwingt dit af).
-    De segmenten uit plan['split_broll'] worden end-to-end onder de sectie gelegd; het
-    laatste segment wordt op het sectie-einde geklemd. Audio gedempt (B-roll)."""
+    De segmenten uit plan['split_broll'] worden end-to-end onder de sectie gelegd; elk
+    segment wordt geklemd op het sectie-einde ÉN op zijn eigen bronlengte (nooit langer
+    dan de clip — anders valt er leegte). Uitgeputte bron → overslaan. Audio gedempt."""
     seg_plan = plan.get("split_broll") or []
     split_idx = [i for i, c in enumerate(cuts) if c.get("layout") == "split"]
     if not seg_plan or not split_idx:
@@ -590,14 +619,20 @@ def build_split_broll(broll_proto: dict, plan: dict, cut_timeline: list,
     base = {k: v for k, v in broll_proto.items()
             if k not in ("broll_style", "pip", "time", "duration", "source",
                          "trim_start", "trim_duration", "id")}
-    out, t = [], sec_start
-    for j, s in enumerate(seg_plan):
+    out, t, n = [], sec_start, 0
+    for s in seg_plan:
         if t >= sec_end - 0.05:
             break
         dur = min(float(s.get("duration", 3.5)), sec_end - t)
+        avail = _seg_source_dur(s, dur_lookup)
+        if avail is not None:
+            dur = min(dur, avail)
+        if dur <= 0.05:            # bron uitgeput → geen leegte tonen, sla over
+            continue
+        n += 1
         el = dict(base)
         el.update(SPLIT_BROLL_GEOM)
-        el["id"] = f"split_broll_{j+1}"
+        el["id"] = f"split_broll_{n}"
         el["source"] = resolve_to_url(s.get("url") or s["file_id"])
         el["time"] = round(t, 2)
         el["duration"] = round(dur, 2)
@@ -1066,10 +1101,13 @@ def _find_nonspeech(words: list[dict], levels: list[tuple[float, float]],
     return hits
 
 
-def check_split_layout(cuts: list[dict], cut_timeline: list, plan: dict):
+def check_split_layout(cuts: list[dict], cut_timeline: list, plan: dict,
+                       dur_lookup=clip_duration):
     """Split-stijl-poort (edit-grammar C1 + onderhelft-dekking). v1: de split-cuts
     vormen één aaneengesloten blok; de hook (eerste cut) en CTA (laatste cut) blijven
-    full-frame. Geeft (errors, warns); leeg als er geen split-cuts zijn."""
+    full-frame. Dekking rekent met de effectieve (op bronlengte geklemde) B-roll-duur —
+    een segment dat langer claimt dan zijn clip telt maar voor zijn echte lengte mee.
+    Geeft (errors, warns); leeg als er geen split-cuts zijn."""
     errors, warns = [], []
     split_idx = [i for i, c in enumerate(cuts) if c.get("layout") == "split"]
     if not split_idx:
@@ -1090,10 +1128,17 @@ def check_split_layout(cuts: list[dict], cut_timeline: list, plan: dict):
         errors.append("split: split-cuts aanwezig maar geen split_broll — de onderhelft "
                       "blijft leeg")
     else:
-        cover = sum(float(s.get("duration", 0)) for s in seg)
+        cover = 0.0
+        for s in seg:
+            d = float(s.get("duration", 0))
+            avail = _seg_source_dur(s, dur_lookup)
+            if avail is not None:
+                d = min(d, avail)
+            cover += d
         if cover < sec_len - 0.1:
             errors.append(f"split: onderhelft niet volledig gedekt — split_broll dekt "
-                          f"{cover:.1f}s van {sec_len:.1f}s")
+                          f"effectief {cover:.1f}s van {sec_len:.1f}s (segment langer dan "
+                          f"zijn clip telt maar voor zijn echte lengte)")
     return errors, warns
 
 
