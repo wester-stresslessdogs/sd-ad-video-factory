@@ -1,0 +1,88 @@
+{
+  "version": 3,
+  "updated": "2026-07-09",
+  "meta": {
+    "title": "Video Ad Factory · workflow",
+    "subtitle": "How one video flows through the system. Same ground layer for every video; the template only changes the outcome."
+  },
+  "lines": [
+    { "id": "L1", "label": "Line 1", "name": "Existing footage into ads", "desc": "Recut clips we already have into new variants. Most proven path.", "status": "proven" },
+    { "id": "L2", "label": "Line 2", "name": "New recording on a script", "desc": "A creator films an /ad-scripts script; we edit it into variants.", "status": "built" },
+    { "id": "L3", "label": "Line 3", "name": "Scripts for creators", "desc": "Turn a winning idea into a ready-to-film script + shoot briefing.", "status": "built" }
+  ],
+  "pipeline": [
+    {
+      "stage": "A", "name": "Research", "when": "runs now and then; builds the 'what wins' library",
+      "skills": [
+        { "id": "ad-discover", "label": "/ad-discover", "does": "Find dog-training advertisers we do not follow yet (Meta Ad Library).", "out": "new competitors to watch", "status": "built-light" },
+        { "id": "ad-research", "label": "/ad-research", "does": "Of those, pick the longest-running ads. Long run means it is working.", "out": "a shortlist of proven ad ideas", "status": "built-light" },
+        { "id": "ad-template", "label": "/ad-template", "does": "Watch one winner, write down how it is built, turn it into a reusable recipe + Creatomate template.", "out": "winner edit_spec + template", "status": "tested-1", "reads": ["ad-library", "taxonomy"], "writes": ["ad-library", "templates"] }
+      ]
+    },
+    {
+      "stage": "B", "name": "Get footage", "when": "pick one route (the 3 lines)",
+      "skills": [
+        { "id": "ad-scripts", "label": "/ad-scripts", "does": "Ad idea into a film-ready script (3+ hooks, beat labels).", "out": "a script", "line": "L3", "status": "built" },
+        { "id": "ad-briefing", "label": "/ad-briefing", "does": "Script into a shoot sheet: what to say per shot, angle, energy, length.", "out": "a filming briefing", "line": "L3", "status": "built" },
+        { "id": "index", "label": "index_footage.py", "does": "Index raw footage into footage-index v3: segments, moments, takes, framing, raw_cuts.", "out": "footage-index v3", "status": "built", "writes": ["footage-index"] }
+      ]
+    },
+    {
+      "stage": "C", "name": "Make the ad", "when": "the editing brain + the render + the director",
+      "skills": [
+        { "id": "create-ads", "label": "/create-ads", "does": "Footage + winner recipe + chosen template into the exact edit plan.", "out": "plan.json + brief", "status": "proven", "expand": "createads", "reads": ["footage-index", "ad-library", "edit-grammar", "templates"] },
+        { "id": "ad-render", "label": "/ad-render", "does": "Run the plan through Creatomate into the finished MP4. Makes no creative choices.", "out": "the video file", "status": "proven" },
+        { "id": "ad-review", "label": "/ad-review", "does": "Watch the finished video, score it, flag what to fix.", "out": "verdict + fixes", "status": "proven" }
+      ]
+    }
+  ],
+  "createads": {
+    "note": "This is the inside of /create-ads and the gates. The GROUND LAYER is identical for every template. The TEMPLATE LAYER is the only thing that changes per style. The GATES enforce the ground rules for all of them.",
+    "ground": {
+      "title": "Ground layer",
+      "tag": "same for every video and every template",
+      "steps": [
+        { "id": "understand", "label": "1 · Understand the footage", "detail": "Read the transcript + take-map (good vs retake vs aside). Characterise tempo, energy, delivery, framing. This is the leading property, not the winner." },
+        { "id": "script", "label": "2 · Build the coherent script", "detail": "Pick a winner edit_spec for the STRUCTURE (hook mechanic + beats). Script = her real sentences, our order. The hook must be a standalone, scroll-stopping opening sentence, never a fragment that refers back to something not said yet. Drop retakes/asides." },
+        { "id": "baserules", "label": "3 · Apply the base rules", "detail": "The edit-grammar rules that hold for EVERY template. These are the ground truth; the template cannot skip them.", "rules": [
+          { "r": "Standalone scroll-stopping hook (A3)", "enforced": "planner" },
+          { "r": "Cuts land on sentence boundaries", "enforced": "plan-check" },
+          { "r": "No dead air, no bloopers/false starts", "enforced": "plan-check" },
+          { "r": "Every raw_cut covered by a zoom OR B-roll (B6)", "enforced": "gap", "note": "This is the leak you found. It is only checked AFTER render (review packet), not in plan-check. So it is not enforced on the plan, for any template." },
+          { "r": "Each seam = one visible change: punch XOR bridge", "enforced": "plan-check" },
+          { "r": "Hook / reveal / CTA on her face (C1); scale-ladder (A1)", "enforced": "partial", "note": "C1 for split is enforced (hook/CTA not split). The general 'on her face' intent is left to the planner." }
+        ] }
+      ]
+    },
+    "template": {
+      "title": "Template layer",
+      "tag": "the ONLY thing that changes per style",
+      "steps": [
+        { "id": "pick", "label": "4 · Pick a template", "detail": "Choose the visual FORM. The template decides the look, never the rules." },
+        { "id": "map", "label": "5 · Map the script to the visual", "detail": "Which cuts are full-frame vs styled; B-roll style (fullscreen / pip / split-bottom); caption placement; punch ladder. Same script, different outcome per template." }
+      ],
+      "templates": [
+        { "id": "cutaway", "label": "cutaway", "o": "TH leads, fullscreen B-roll on intent", "live": true },
+        { "id": "overlay", "label": "overlay", "o": "TH stays, pip B-roll in the dead space", "live": true },
+        { "id": "show-led", "label": "show-led", "o": "B-roll carries the picture", "live": true },
+        { "id": "split", "label": "split", "o": "TH top / B-roll bottom, dynamic", "live": true },
+        { "id": "punchy", "label": "punchy", "o": "transitions + kinetic captions", "live": false }
+      ]
+    }
+  },
+  "gates": {
+    "note": "The three gates run on the PLAN, before any render (except the director, who needs the render). plan-check is the shared ground-layer gate: every template passes through it, so a base rule that is not enforced here is not reliably enforced at all.",
+    "items": [
+      { "id": "plan-check", "label": "1 · plan-check", "kind": "mechanical, free, pre-render", "does": "Lints the plan against the transcript with the exact renderer math: sentence boundaries, dead air, bloopers, B-roll walls, seam glitches, split coverage.", "status": "has-gap", "note": "Missing: raw_cut coverage. Add it here and the base rule is enforced for ALL templates at once." },
+      { "id": "frame-check", "label": "2 · frame check", "kind": "visual, pre-render on stills", "does": "Pull frames per B-roll window: does the picture match the intent? B-roll on the right words, face free, captions readable.", "status": "ok" },
+      { "id": "director", "label": "3 · director (/ad-review)", "kind": "creative, on the render", "does": "Is it actually good? Scores rhythm, motion, emphasis, contrast, arc + finish. Green, or max 2 fixes, or back to human.", "status": "post-render" }
+    ]
+  },
+  "knowledge": [
+    { "id": "footage-index", "label": "footage-index.json", "desc": "What is inside our clips: segments, moments, takes, framing, raw_cuts (v3)." },
+    { "id": "ad-library", "label": "ad-library", "desc": "Winner edit_specs: structure + hook mechanic. Inspiration, never copied." },
+    { "id": "edit-grammar", "label": "edit-grammar.md", "desc": "The binding cut / seam / framing rules. The base layer lives here as prose." },
+    { "id": "templates", "label": "templates/*.json", "desc": "The reusable styles. The outcome layer." },
+    { "id": "taxonomy", "label": "taxonomy.json", "desc": "~19 shared words that describe both footage and winners, so they can be matched." }
+  ]
+}
