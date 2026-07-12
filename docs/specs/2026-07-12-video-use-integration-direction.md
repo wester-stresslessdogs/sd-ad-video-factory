@@ -130,17 +130,13 @@ split), #6/#13 (self-eval inside the loop, director present from plan to render)
 #7 (animation sub-agents), #12 (no more public hosts), #15 (superseded — the heavy
 index goes instead of being split).
 
-## Migration order (each its own brainstorm → plan)
+## How it gets built
 
-1. **Local render spike** — port/adapt video-use `render.py` + EDL to our packages;
-   reproduce the barkside×2850 split ad; compare against the Creatomate render.
-2. **Packed transcripts + editor sub-agent** — take selection from `takes_packed.md`
-   **with inline raw-cut markers and `pre_edited` flags** (inventory = transcribe +
-   detect-cuts + audio profile), pre-scan pass, confirm-first strategy step in
-   `create-ads`. The editor brief includes the B6 hard rules verbatim.
-3. **Self-eval loop** — timeline_view-based check on the rendered output at every cut
-   boundary; replaces/absorbs the current frame-gate; `ad-review` becomes the in-loop
-   evaluator, not only the final gate.
-4. **Slim B-roll index** — strip v3 to moment windows + framing; drop take verdicts.
-5. **Rules consolidation** — hard-rules doc + taste doc; shrink `plan-check`; rewrite
-   Stage C SKILL.md's to the new shape.
+**Not** as incremental patches onto the current structure — that would reproduce the
+duct-tape problem this direction exists to end. The engineering design (layering,
+schemas, one-home-per-rule, fixture tests, repo layout) and the phased strangler-fig
+build (Phase 0 skeleton → Phase 1 render path → Phase 2 planning path → Phase 3
+cutover) live in **`docs/specs/2026-07-12-target-architecture.md`** — every future
+plan is checked against that doc's design laws. The old pipeline keeps working until
+Phase 2's acceptance (one new ad shipped entirely on the new core); old code is a
+quarry for lessons and data, never ported wholesale.
