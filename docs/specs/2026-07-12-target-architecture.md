@@ -81,7 +81,8 @@ video-factory/
 │                               B-roll claim→beeld — guidance, never gates
 ├── tools/                   ← single-purpose CLIs, each ~100–300 lines, each testable
 │   ├── inventory.py         (transcribe + detect-cuts + audio-profile + pack)
-│   ├── edl_lint.py          (mechanical plan-check: B3/B4/B6 as code)
+│   ├── edl_lint.py          (mechanical plan-check as code: B3/B4/B6, timeline
+│   │                           coverage, breathing room, claim↔tag consistency)
 │   ├── render.py            (EDL → mp4; fades/stereo/subs-last enforced here)
 │   ├── selfcheck.py         (render+EDL → boundary packet + flags)
 │   └── timeline_view.py     (filmstrip+waveform PNG, ported from video-use)

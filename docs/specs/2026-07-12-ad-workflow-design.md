@@ -72,6 +72,16 @@ are the system's creative vocabulary — human-owned).
    (`knowledge/scripts/`), and link script ↔ talking-head clips (transcript
    similarity proposes the link, human confirms once per drop). This is what makes
    Line 2 ("filmed from a script") real instead of implied.
+4. **Creator + project grouping (new — absorbs old issue #11 / roadmap piece D):**
+   every clip gets `creator` and `project` tags in its facts. A creator has many
+   projects over time; one project groups everything from one shoot/script — e.g.
+   7 "raw" takes of the same script by the same creator, plus that session's
+   B-roll. Within a project, takes of the same script are linked as a take-group.
+   Proposed automatically (Drive folder structure + script similarity), confirmed
+   by Ramon once per drop. **Purpose: provenance and consistency, not edit
+   decisions** — the workflow can *check* against it (same-project B-roll keeps
+   look/continuity consistent; cross-project reuse of a creator is a deliberate,
+   visible choice, never an accident).
 
 ## The per-ad workflow (flow)
 
@@ -93,8 +103,10 @@ same TASTE.md, two checkpoints) · **code** (deterministic tool).
 - **Decided by:** Ramon states; editor interprets.
 
 ### 2 · Material scan
-- **Uses:** `takes_packed.md` (with raw-cut markers), script registry links,
-  `timeline_view` spot-drills at suspicious points.
+- **Uses:** the stocks — this *is* "the index": `takes_packed.md` (with raw-cut
+  markers), facts (incl. creator/project tags), script registry links, B-roll
+  index. Never raw Drive scanning. `timeline_view` spot-drills at suspicious
+  points only.
 - **Decisions:** which talking-heads can carry an ad — is there a self-contained,
   scroll-stopping opening sentence? a coherent claim chain? acceptable delivery?
   Which Drive script does this footage correspond to (if any)? Retakes/asides
@@ -141,15 +153,36 @@ same TASTE.md, two checkpoints) · **code** (deterministic tool).
   image-answer → why); captions; photo-snap (max ~1); end-card timing.
 - **Why:** style parameters set the defaults, footage facts constrain them
   (danger lines around raw cuts, no contiguous punch-ins on pre-edited clips).
-- **Decided by:** editor (as a self-contained sub-agent brief); then the
-  **director's plan pass** — cheap read of the EDL against style intent and taste
-  *before* any render is spent.
+- **Decided by:** editor (as a self-contained sub-agent brief). The EDL carries
+  its own evidence: each B-roll placement records the **claim** it answers and the
+  **moment window + tags** it chose — so the gate below can verify it.
 
-### 7 · Mechanical validation
-- **Uses:** `edl.json` + facts + schemas.
-- **Decisions:** none — pass/fail per coded rule (B3/B4/B6, schema validity,
-  duration budget). Failures return named violations to step 6; capped loops.
-- **Decided by:** `tools/edl_lint.py` (code). *(Law 1: these rules live only here.)*
+### 7 · Pre-render gate — two reviews of the EDL, no render spent yet
+**Principle (Ramon, 2026-07-12): anything visible as a mistake *in the code* is
+caught *in the code* — before render.** Two parts:
+
+**7a · Technical review** — `tools/edl_lint.py` (code, pass/fail, no judgment):
+- schema validity, duration budget;
+- **timeline coverage** — no black gaps, no overlaps, every second accounted for;
+- **B6 danger lines** — no cut within ~0.5s of a raw cut; no contiguous punch-ins
+  on `pre_edited` sources (double-cut prevention);
+- **breathing room** — minimum spacing between visible changes (no cut followed by
+  an instant zoom); B3/B4 (one change per boundary, XOR; scale deltas <0.25 are
+  not a change);
+- **claim ↔ tag consistency** — a placement claiming "your dog barks" must
+  reference a moment window whose taxonomy tags confirm barking; a B-roll cue with
+  no resolved moment = a missing B-roll, visible right here;
+- caption/end-card geometry (safe area, predictable collisions).
+
+Failures return named violations to step 6; capped loops. *(Law 1: every one of
+these rules lives only here, each with a fixture test.)*
+
+**7b · Director's plan review** — LLM, the semantic remainder code can't see:
+does the edit fit the style's intent, does the arc hold, does the hook land as an
+opener, are the B-roll choices *apt* (the tag matches; is it also the right
+moment?). Cheap — reads the EDL + facts, renders nothing.
+
+- **Decided by:** code (7a) + director (7b). Both green → render.
 
 ### 8 · Render
 - **Uses:** EDL + locally cached clips.
@@ -188,8 +221,12 @@ mechanical rule lives in their prompts (Law 1).
 
 ## Open items surfaced by this design
 
-1. **Script import from Drive** (J2.3) — new, not built; needed for real Line-2 work.
+1. **Script import + creator/project grouping** (J2.3–J2.4) — new, not built; needed
+   for real Line-2 work and B-roll provenance.
 2. **Style fit criteria seeding** — the 5 seed styles need their fit criteria written
    in the first J1 run (from the existing winner analyses + edit-grammar knowledge).
-3. **Director's plan pass depth** — how much pre-render review is worth it vs.
-   letting selfcheck catch it; tune after the first ads on the new core.
+
+*(Resolved 2026-07-12: the director's pre-render depth question. The dividing line is
+now structural — everything code-visible is 7a (mechanical, tested), semantics are 7b
+(director), and the post-render check (step 9) covers only what exists solely in the
+rendered artifact: pops, actual visual jumps, delivery feel.)*
