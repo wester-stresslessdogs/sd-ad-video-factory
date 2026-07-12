@@ -130,6 +130,16 @@ split), #6/#13 (self-eval inside the loop, director present from plan to render)
 #7 (animation sub-agents), #12 (no more public hosts), #15 (superseded — the heavy
 index goes instead of being split).
 
+## Addendum 2026-07-12 — styles, not winner replicas
+
+Sharpened after Ramon's workflow sketch: winning ads are **evidence for styles**, not
+targets to rebuild. A periodic (~monthly) style-harvest job clusters winners into
+reusable styles → `knowledge/styles/` (the style index, ~5 to start; Ramon curates
+the vocabulary). Each style carries fit criteria + flex parameters and is dynamically
+fitted to the raw footage per ad. `/ad-template`'s one-template-per-winner model is
+superseded. The full operating picture — stock jobs, the 10-step per-ad workflow, and
+who decides what at every step — lives in **`2026-07-12-ad-workflow-design.md`**.
+
 ## How it gets built
 
 **Not** as incremental patches onto the current structure — that would reproduce the

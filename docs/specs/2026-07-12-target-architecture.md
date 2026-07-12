@@ -86,9 +86,11 @@ video-factory/
 │   ├── selfcheck.py         (render+EDL → boundary packet + flags)
 │   └── timeline_view.py     (filmstrip+waveform PNG, ported from video-use)
 ├── schemas/                 ← facts.schema.json · edl.schema.json · broll-index.schema.json
-│                               (versioned; lint validates against them)
+│                               · style.schema.json (versioned; lint validates against them)
 ├── knowledge/               ← DATA, not rules: business-context, winner library,
-│                               taxonomy, slim B-roll index, shoot-list
+│                               taxonomy, slim B-roll index, shoot-list,
+│                               styles/ (the style index — filled by the periodic
+│                               style harvest, see 2026-07-12-ad-workflow-design.md)
 ├── tests/
 │   ├── fixtures/            ← generated tiny clips: planted hidden cut, mono audio,
 │   │                           retake pair, pre-edited clip (make_fixtures.py)
@@ -132,7 +134,9 @@ but every later phase lands into structure instead of onto a pile.
 **Phase 1 — render path:** `tools/render.py` (adapt video-use's) + `selfcheck.py` +
 fixture tests. **Acceptance: reproduce the barkside×2850 package from its existing
 plan.json (translated to EDL) at quality ≥ the Creatomate render.** Creatomate stays
-until this passes.
+until this passes. *(This is a technical render-parity check on a known plan — not a
+creative goal; the system's creative unit is the style, not any single winner. See
+`2026-07-12-ad-workflow-design.md`.)*
 
 **Phase 2 — planning path:** `inventory.py` (v3 steps 1–4 + packing with raw-cut
 markers), `edl_lint.py` (B3/B4/B6 as code), the single `skills/edit/SKILL.md` with
