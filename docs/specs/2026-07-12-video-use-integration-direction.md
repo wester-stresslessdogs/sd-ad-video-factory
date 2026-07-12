@@ -31,15 +31,27 @@ generated animations). Stage A and Line 3 stay ours.
 
 ## Decisions
 
-### 1. Knowledge model: hybrid *(Ramon confirmed)*
-- **Talking-head cutting** moves to video-use style: packed phrase-level transcripts
-  (`takes_packed.md` pattern, word timestamps, break on ≥0.5s silence) + on-demand
-  visual drills. No pre-computed take verdicts or richness scores — derived per edit.
+### 1. Knowledge model: hybrid *(Ramon confirmed; sharpened 2026-07-12 after review)*
+The video-use principle "derive at decision time" applies to **judgment**, not to
+**mechanical facts**. video-use itself pre-computes and caches transcripts ("immutable
+outputs of immutable inputs") — our footage just has more immutable facts than theirs,
+because our "raw" clips are often pre-edited with hidden internal cuts.
+
+- **Mechanical facts stay pre-computed (inventory, cached per source):** transcript,
+  `raw_cuts` + `pre_edited` (scdet + audio-level cross-check — hidden cuts are
+  invisible in a transcript), audio profile (channel layout, spikes), framing facts
+  (`punchin_max`). Cheap, deterministic, computed once.
+- **Judgment moves to decision time:** take choice, retake/aside detection (repeated
+  phrases are visible in the packed transcript text), clean/usable verdicts, richness
+  scoring. This is the part that caused the re-analyze treadmill (#1/#2).
+- **The packed transcript carries the facts inline:** `takes_packed.md` gets raw-cut
+  markers between phrases (`[RAW CUT @34.2]`) and a `pre_edited` flag per source, so
+  the editor sub-agent *reads* the danger lines instead of having to discover them.
 - **B-roll keeps a slim visual index** — the one thing a transcript can't see: moment
   windows (`dog_behavior` × `human_behavior` × valence, framing, lead-in/out). The
   claim→beeld reasoning (edit-grammar C3) stays and matches against this.
-- Footage-index v3's per-segment richness/clean-scoring for talking-heads goes; the
-  transcript + take-card value is replaced by the packed transcript + pre-scan pass.
+- What goes from v3: pass-2 per-segment richness/clean-scoring for talking-heads.
+  What stays from v3: the detection pipeline through segmentation (steps 1–4).
 
 ### 2. Human gate: confirm-first *(Ramon confirmed)*
 Per batch/ad the system proposes the strategy in plain language (combinations, shape,
@@ -90,6 +102,27 @@ restructure (weeks of no output rewriting parts that aren't the bottleneck).
   HyperFrames, alpha WebM overlays) — the answer to issue #7, replacing "Creatomate
   can't do it" with "generate the overlay".
 
+## Hard-won lessons carried over (weeks of tweaks — explicit landing spots)
+
+None of these are optional; each maps to a place in the new core. If a migration plan
+touches one of these areas, it must name the rule it preserves.
+
+| Lesson (where it lives today) | Lands in the new core as |
+|---|---|
+| Hidden internal cuts in "raw" clips, detectable only via audio-level change / vision (`raw_cuts`, v3 pipeline) | Inventory step: `detect-cuts` (scdet + audio cross-check) runs with transcription; markers annotated inline in `takes_packed.md` |
+| `pre_edited: true` → no segment is guaranteed continuous → **no contiguous zoom-punches** (B6) | Hard rule |
+| Double cut: never place an edit or punch-in within ~0.5s of a raw cut — land exactly on it or stay clear (B6) | Hard rule |
+| One visible change per las, XOR (B3); scale deltas <0.25 are not a change (B4) | Hard rules |
+| Cut boundaries on sentence boundaries, bloopers out by listening too (B1/B2) | Absorbed by word-boundary + padding rules; pre-scan pass covers bloopers/slips |
+| Single-channel source audio → always output both channels (issue #14) | Hard rule in the local render.py |
+| PSNR boundary check, `raw_cuts_visible`/`compound`, unexpected scene changes (`review-packet`) | Self-eval loop checks, alongside video-use's flash/pop/overlay checks |
+| Framing follows posture at that moment; `punchin_max` per clip (B5) | Framing facts in inventory; taste doc |
+| B-roll claim→beeld reasoning: extract the claim, then match (C3); moment windows with lead-in/out (C4) | Slim B-roll index + taste doc; reasoning stays mandatory in the brief |
+| Offer always translated, end-card in safe area, captions yield to the image (C1/D1/D2) | Taste doc + hard rule (safe area) |
+| Photo-snap as attention-recapture, max ~1×/video (A5) | Taste doc, becomes a PIL overlay pattern |
+| Cost caps: ≤1–2 re-renders, non-convergence → 🔴 bail to human/shoot-list (§F1) | Self-eval keeps the cap (video-use: 3 passes) and the bail-out |
+| Whisper word-level cached transcripts (`output/transcripts/`) | Kept as-is; video-use prefers Scribe for verbatim fillers — evaluate only if filler-precision becomes a real pain |
+
 ## What this closes (expected)
 
 Issues #1/#2 (index treadmill — index shrinks to B-roll facts), #5 (rules→hard/taste
@@ -101,8 +134,10 @@ index goes instead of being split).
 
 1. **Local render spike** — port/adapt video-use `render.py` + EDL to our packages;
    reproduce the barkside×2850 split ad; compare against the Creatomate render.
-2. **Packed transcripts + editor sub-agent** — take selection from `takes_packed.md`,
-   pre-scan pass, confirm-first strategy step in `create-ads`.
+2. **Packed transcripts + editor sub-agent** — take selection from `takes_packed.md`
+   **with inline raw-cut markers and `pre_edited` flags** (inventory = transcribe +
+   detect-cuts + audio profile), pre-scan pass, confirm-first strategy step in
+   `create-ads`. The editor brief includes the B6 hard rules verbatim.
 3. **Self-eval loop** — timeline_view-based check on the rendered output at every cut
    boundary; replaces/absorbs the current frame-gate; `ad-review` becomes the in-loop
    evaluator, not only the final gate.
