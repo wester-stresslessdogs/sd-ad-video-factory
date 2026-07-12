@@ -16,6 +16,15 @@ but lightly tested. It is **not yet a hands-off system**.
 2. **New recording → ad** — a creator films a script; we edit it into variants.
 3. **Scripts for creators** — generate ready-to-film scripts + shoot briefings from winning-ad ideas.
 
+### Direction shift (2026-07-12) — rebuild the editing core on the video-use model
+Decided after reviewing [browser-use/video-use](https://github.com/browser-use/video-use):
+hybrid knowledge (packed transcripts for talking-head cuts, slim index for B-roll only),
+confirm-first human gate, local ffmpeg render (Creatomate out after parity), self-eval
+loop before presenting, hard-rules/taste split. Stage A + Line 3 untouched for now.
+Full rationale + migration order: `docs/specs/2026-07-12-video-use-integration-direction.md`.
+This reframes issues #1/#2/#5/#6/#7/#12/#13/#15 below — they get closed by the migration,
+not by point fixes. The roadmap below continues *on the new core*.
+
 ### Roadmap — "multiple variants per talking head" (the current build-out)
 The north star: one talking-head runs through **every** template style and gets its own render;
 plus rich creator scripts from winners. Five pieces (decomposed 2026-07-07):
