@@ -133,11 +133,14 @@ direction doc as the checklist), `make_fixtures.py` + first tests. No ad shipped
 but every later phase lands into structure instead of onto a pile.
 
 **Phase 1 — render path:** `tools/render.py` (adapt video-use's) + `selfcheck.py` +
-fixture tests. **Acceptance: reproduce the barkside×2850 package from its existing
-plan.json (translated to EDL) at quality ≥ the Creatomate render.** Creatomate stays
-until this passes. *(This is a technical render-parity check on a known plan — not a
-creative goal; the system's creative unit is the style, not any single winner. See
-`2026-07-12-ad-workflow-design.md`.)*
+fixture tests. **Acceptance: an intrinsic quality bar, not a comparison to the old
+Creatomate render** (that render was never top quality — parity with it is the wrong
+target). The barkside×2850 package is used only as convenient real *input* (real
+footage + a known plan) to exercise the path. The bar: a clean, ship-quality render —
+no black gaps, clean cuts with 30ms fades, correct stereo, subtitles legible and
+applied last, B-roll aligned to the right words — judged good on its own merits by the
+director + Ramon. Creatomate stays until this passes. *(The system's creative unit is
+the style, not any single winner. See `2026-07-12-ad-workflow-design.md`.)*
 
 **Phase 2 — planning path:** `inventory.py` (v3 steps 1–4 + packing with raw-cut
 markers), `edl_lint.py` (B3/B4/B6 as code), the single `skills/edit/SKILL.md` with
