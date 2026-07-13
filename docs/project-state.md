@@ -16,6 +16,14 @@ but lightly tested. It is **not yet a hands-off system**.
 2. **New recording → ad** — a creator films a script; we edit it into variants.
 3. **Scripts for creators** — generate ready-to-film scripts + shoot briefings from winning-ad ideas.
 
+### Rebuild in progress (branch `rebuild/core-v2`, Phase 0 done)
+The core is being rebuilt — see `MIGRATION.md` for the old→new map and rollback
+(`git checkout pre-rebuild-v2`). New canonical homes: `RULES.md` (hard rules),
+`TASTE.md` (craft), `schemas/` (contracts), `tools/` (small deterministic CLIs),
+`skills/edit/` (the one editing skill). Replaced Stage-C files are frozen in `legacy/`.
+Phases: 0 skeleton ✅ · 1 render path · 2 planning path · 3 cutover (delete legacy,
+drop Creatomate).
+
 ### Direction shift (2026-07-12) — rebuild the editing core on the video-use model
 Decided after reviewing [browser-use/video-use](https://github.com/browser-use/video-use):
 hybrid knowledge (packed transcripts for talking-head cuts, slim index for B-roll only),

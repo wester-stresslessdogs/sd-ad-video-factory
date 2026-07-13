@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sd-ad-video-factory/schemas/edl.schema.json",
+  "title": "EDL — the per-ad edit plan (v1)",
+  "description": "The single artifact the planner (editor LLM) and the renderer (code) share. The planner never knows how render.py works; render.py never knows why the plan is what it is. Validated by tools/edl_lint.py before any render.",
+  "type": "object",
+  "required": ["version", "style", "sources", "ranges", "total_duration_s"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "style": {
+      "type": "string",
+      "description": "Which style from knowledge/styles/ this edit fits (e.g. 'split', 'cutaway'). The style's flex params shaped the defaults."
+    },
+    "sources": {
+      "type": "object",
+      "description": "clip_id → absolute local path of the cached source clip.",
+      "additionalProperties": { "type": "string" }
+    },
+    "ranges": {
+      "type": "array",
+      "description": "The talking-head spine, in output order. Each range is a word-boundary-snapped, padded cut.",
+      "items": {
+        "type": "object",
+        "required": ["source", "start", "end", "beat"],
+        "additionalProperties": false,
+        "properties": {
+          "source": { "type": "string" },
+          "start": { "type": "number", "minimum": 0 },
+          "end": { "type": "number", "minimum": 0 },
+          "beat": { "type": "string", "description": "HOOK / PROBLEM / REFRAME / CTA / ..." },
+          "quote": { "type": "string" },
+          "reason": { "type": "string" },
+          "punch_in": {
+            "type": "number",
+            "description": "Scale factor within the source's punchin_max. 1.0 = none.",
+            "minimum": 1.0
+          }
+        }
+      }
+    },
+    "broll": {
+      "type": "array",
+      "description": "B-roll placements. Each carries its own evidence so edl_lint (B8) can verify claim↔tag.",
+      "items": {
+        "type": "object",
+        "required": ["source", "start_in_output", "duration", "claim", "moment_tags"],
+        "additionalProperties": false,
+        "properties": {
+          "source": { "type": "string" },
+          "moment_start": { "type": "number", "description": "In-point in the B-roll source clip." },
+          "start_in_output": { "type": "number", "minimum": 0 },
+          "duration": { "type": "number", "exclusiveMinimum": 0 },
+          "style": { "type": "string", "enum": ["fullscreen", "pip"] },
+          "claim": { "type": "string", "description": "The spoken claim this B-roll answers, e.g. 'your dog barks at the door'." },
+          "moment_tags": {
+            "type": "array",
+            "description": "Taxonomy tags of the chosen moment window. B8 checks these confirm the claim.",
+            "items": { "type": "string" }
+          },
+          "reason": { "type": "string", "description": "claim → image-answer → why (RULES D7)." }
+        }
+      }
+    },
+    "overlays": {
+      "type": "array",
+      "description": "Rendered animation clips (from parallel animation sub-agents).",
+      "items": {
+        "type": "object",
+        "required": ["file", "start_in_output", "duration"],
+        "additionalProperties": false,
+        "properties": {
+          "file": { "type": "string" },
+          "start_in_output": { "type": "number", "minimum": 0 },
+          "duration": { "type": "number", "exclusiveMinimum": 0 }
+        }
+      }
+    },
+    "captions": {
+      "type": "object",
+      "description": "Caption styling; text + timings come from the cached transcript at render time.",
+      "additionalProperties": false,
+      "properties": {
+        "style": { "type": "string" },
+        "transcript_ref": { "type": "string" }
+      }
+    },
+    "end_card": {
+      "type": "object",
+      "description": "Our-offer CTA (RULES D4). Geometry inside the safe area (B9).",
+      "additionalProperties": true
+    },
+    "total_duration_s": { "type": "number", "exclusiveMinimum": 0 }
+  }
+}
