@@ -10,9 +10,13 @@ stays light.
 
 | Test target | Rule under test | Status |
 |---|---|---|
-| stereo output on mono input | A6 | ⬜ Phase 1 |
-| 30 ms fades at boundaries | A3 | ⬜ Phase 1 |
-| subtitles applied last | A1 | ⬜ Phase 1 |
+| stereo output on mono input | A6 | ✅ `test_render.py` |
+| one-ear stereo duplicated | A6 / #14 | ✅ `test_render.py` |
+| 30 ms fades at boundaries | A3 | ✅ `test_render.py` |
+| captions applied last | A1 | ✅ `test_render.py` |
+| reframe to output aspect | — | ✅ `test_render.py` |
+| self-eval packet shape + duration | step 9 | ✅ `test_selfcheck.py` |
+| static/no-change cut flagged | step 9 | ✅ `test_selfcheck.py` |
 | timeline coverage / no gaps | B6 | ⬜ Phase 2 |
 | raw-cut danger lines | B5 | ⬜ Phase 2 |
 | claim ↔ tag consistency | B8 | ⬜ Phase 2 |

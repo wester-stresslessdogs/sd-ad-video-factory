@@ -10,5 +10,6 @@ python-dotenv               # mcp/.env inlezen
 google-api-python-client    # Google Drive API (B-roll + output)
 google-auth                 # service-account authenticatie
 Pillow                      # tools/render.py: caption-PNG's + (later) animatie-slots
+numpy                       # tools/selfcheck.py + timeline_view.py: PSNR/waveform-analyse
 jsonschema                  # valideer EDL/facts tegen schemas/ (edl_lint, tests)
 pytest                      # fixture-tests voor de render-hardregels (tools/tests)

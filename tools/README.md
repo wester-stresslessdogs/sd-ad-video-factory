@@ -10,8 +10,8 @@ re-derives what these produce. This replaces the old 1,560-line `render.py` mono
 | `inventory.py` | transcribe + detect cuts + audio profile + framing + pack | media → `facts/<clip>.json` + `takes_packed.md` | ⬜ Phase 2 |
 | `edl_lint.py` | mechanical plan-check (RULES §B) | `edl.json` + facts → pass/fail + named violations | ⬜ Phase 2 |
 | `render.py` | EDL → mp4, local ffmpeg (enforces RULES §A) | `edl.json` + cached clips → `ad.mp4` | ✅ Phase 1 (ranges, reframe, punch-in, A6 stereo, PIL captions, B-roll, loudnorm) |
-| `selfcheck.py` | boundary frames/waveforms + flags | `ad.mp4` + `edl.json` → `selfcheck/` packet | ⬜ Phase 1 (next) |
-| `timeline_view.py` | filmstrip + waveform PNG at a point | clip + range → PNG | ⬜ Phase 1 (next — port from video-use) |
+| `selfcheck.py` | boundary PSNR + audio-pop + black-frame + duration + filmstrips | `ad.mp4` + `edl.json` → `selfcheck/packet.json` | ✅ Phase 1 |
+| `timeline_view.py` | filmstrip + waveform PNG at a point | clip + range → PNG | ✅ Phase 1 (ported from video-use, `word`-key adapted) |
 
 **render.py notes:** captions are PIL PNG overlays composited last (A1), *not* libass —
 this machine's ffmpeg has no libass, and PNGs give design control (issue #7). Proven
