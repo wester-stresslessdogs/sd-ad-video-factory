@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sd-ad-video-factory/schemas/script.schema.json",
+  "title": "Script registry entry (v1) — one Drive folder = one project",
+  "description": "Produced by tools/import_scripts.py from a creator's Drive folder (a Google Doc script + clips). The editor reads this for Line-2 (filmed-from-a-script) mapping. Folder = project; A{n} H{n} = Ad-concept × Hook.",
+  "type": "object",
+  "required": ["version", "project", "folder_id", "ads", "clips"],
+  "additionalProperties": true,
+  "properties": {
+    "version": { "const": 1 },
+    "project": { "type": "string", "description": "Drive folder name = the project." },
+    "folder_id": { "type": "string" },
+    "creator": { "type": ["string", "null"] },
+    "doc": {
+      "type": "object",
+      "properties": { "id": { "type": "string" }, "name": { "type": "string" } }
+    },
+    "ads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["n", "name", "hooks"],
+        "properties": {
+          "n": { "type": "integer" },
+          "name": { "type": "string" },
+          "hooks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["n", "text"],
+              "properties": { "n": { "type": "integer" }, "text": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "clips": {
+      "type": "array",
+      "description": "Talking-head clips in the folder. ad/hook filled from the A#/H# filename when present, else null (link later by transcript similarity).",
+      "items": {
+        "type": "object",
+        "required": ["file_id", "name"],
+        "properties": {
+          "file_id": { "type": "string" },
+          "name": { "type": "string" },
+          "ad": { "type": ["integer", "null"] },
+          "hook": { "type": ["integer", "null"] }
+        }
+      }
+    }
+  }
+}

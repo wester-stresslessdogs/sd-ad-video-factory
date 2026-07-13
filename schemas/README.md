@@ -9,6 +9,7 @@ these; each schema carries a `version`.
 | `edl.schema.json` | editor (planner) ↔ render + lint | ✅ v1 |
 | `facts.schema.json` | inventory ↔ editor | ⬜ Phase 2 |
 | `broll-index.schema.json` | inventory ↔ editor (B-roll matching) | ⬜ Phase 2 |
+| `script.schema.json` | script importer (J2.3) ↔ editor (Line-2 mapping) | ✅ v1 |
 | `style.schema.json` | style harvest (J1) ↔ editor (style match) | ⬜ Phase 1/2 |
 
 Adding a field = bump the schema version; lint then tells every consumer. Never add an

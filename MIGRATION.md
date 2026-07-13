@@ -40,5 +40,8 @@ rollback source.
   `tools/timeline_view.py` (ported). 7 fixture tests pass. The intrinsic quality-bar
   render of a *full* package (with real B-roll) rolls up into Phase 2, where the
   planner produces the EDL.
-- ⬜ **Phase 2** — planning path (`inventory.py`, `edl_lint.py`, `skills/edit` live).
+- 🟡 **Phase 2** — planning path: `tools/import_scripts.py` ✅ (script registry, proven
+  on real Drive folders; `schemas/script.schema.json`). Remaining: `inventory.py`
+  (facts + packed transcript with raw-cut markers), `edl_lint.py` (RULES §B), and
+  `skills/edit` going live with confirm-first + the judge.
 - ⬜ **Phase 3** — cutover: delete `legacy/`, cancel Creatomate, update README/FLOW.

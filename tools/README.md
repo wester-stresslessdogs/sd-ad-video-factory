@@ -7,7 +7,8 @@ re-derives what these produce. This replaces the old 1,560-line `render.py` mono
 
 | Tool | Does | Consumes → Produces | Status |
 |---|---|---|---|
-| `inventory.py` | transcribe + detect cuts + audio profile + framing + pack | media → `facts/<clip>.json` + `takes_packed.md` | ⬜ Phase 2 |
+| `import_scripts.py` | Drive folder → script registry (J2.3) | folder_id → `knowledge/scripts/<project>.json` | ✅ Phase 2 (proven on real folders) |
+| `inventory.py` | transcribe + detect cuts + audio profile + framing + pack | media → `facts/<clip>.json` + `takes_packed.md` | ⬜ Phase 2 (next) |
 | `edl_lint.py` | mechanical plan-check (RULES §B) | `edl.json` + facts → pass/fail + named violations | ⬜ Phase 2 |
 | `render.py` | EDL → mp4, local ffmpeg (enforces RULES §A) | `edl.json` + cached clips → `ad.mp4` | ✅ Phase 1 (ranges, reframe, punch-in, A6 stereo, PIL captions, B-roll, loudnorm) |
 | `selfcheck.py` | boundary PSNR + audio-pop + black-frame + duration + filmstrips | `ad.mp4` + `edl.json` → `selfcheck/packet.json` | ✅ Phase 1 |
