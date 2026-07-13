@@ -1,10 +1,14 @@
-# Python-dependencies voor de zware processing in /ad-render.
+# Python-dependencies voor de zware processing.
 # Installeer in een venv:  python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 # Systeem-dependency (niet via pip): ffmpeg  →  brew install ffmpeg
+#   LET OP: tools/render.py rendert captions als PIL-PNG-overlays juist omdat niet elke
+#   ffmpeg-build libass heeft (deze machine niet). Dus GEEN libass nodig — wel Pillow.
 
 requests                    # Creatomate + Pixabay API-calls
 openai                      # Whisper-transcriptie
 python-dotenv               # mcp/.env inlezen
 google-api-python-client    # Google Drive API (B-roll + output)
 google-auth                 # service-account authenticatie
-pytest                      # unit-tests voor de pure indexer-logica (dev)
+Pillow                      # tools/render.py: caption-PNG's + (later) animatie-slots
+jsonschema                  # valideer EDL/facts tegen schemas/ (edl_lint, tests)
+pytest                      # fixture-tests voor de render-hardregels (tools/tests)

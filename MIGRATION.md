@@ -35,6 +35,9 @@ rollback source.
 
 - ✅ **Phase 0** — skeleton: layout, `RULES.md`, `TASTE.md`, `schemas/edl.schema.json`,
   `tools/` + `tests/` + `skills/edit/` scaffolds, legacy/ quarantine.
-- ⬜ **Phase 1** — render path (`tools/render.py`, `selfcheck.py`, first fixtures).
+- 🟡 **Phase 1** — render path: `tools/render.py` ✅ (enforces RULES §A, proven
+  end-to-end on real footage; A1/A3/A6 + reframe fixture-tested). Remaining:
+  `tools/selfcheck.py` + `timeline_view.py` (port from video-use), then the intrinsic
+  quality-bar render of a full package.
 - ⬜ **Phase 2** — planning path (`inventory.py`, `edl_lint.py`, `skills/edit` live).
 - ⬜ **Phase 3** — cutover: delete `legacy/`, cancel Creatomate, update README/FLOW.

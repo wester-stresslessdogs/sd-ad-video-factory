@@ -28,3 +28,6 @@ output/*
 
 # OS
 .DS_Store
+
+# Gegenereerde test-fixtures (regenereer met tests/make_fixtures.py)
+tests/fixtures/*.mp4

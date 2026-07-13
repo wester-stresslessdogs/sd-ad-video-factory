@@ -12,6 +12,16 @@
       "type": "string",
       "description": "Which style from knowledge/styles/ this edit fits (e.g. 'split', 'cutaway'). The style's flex params shaped the defaults."
     },
+    "output": {
+      "type": "object",
+      "description": "Delivery format. Default 1080×1920@30 (vertical social). render.py reframes any source to this aspect.",
+      "additionalProperties": false,
+      "properties": {
+        "width": { "type": "integer" },
+        "height": { "type": "integer" },
+        "fps": { "type": "integer" }
+      }
+    },
     "sources": {
       "type": "object",
       "description": "clip_id → absolute local path of the cached source clip.",
@@ -35,7 +45,9 @@
             "type": "number",
             "description": "Scale factor within the source's punchin_max. 1.0 = none.",
             "minimum": 1.0
-          }
+          },
+          "focus_x": { "type": "number", "minimum": 0, "maximum": 1, "description": "Horizontal crop focus when reframing (0=left,1=right,0.5=center)." },
+          "focus_y": { "type": "number", "minimum": 0, "maximum": 1 }
         }
       }
     },
