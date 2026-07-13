@@ -67,11 +67,21 @@ are the system's creative vocabulary — human-owned).
    `takes_packed.md` with inline raw-cut markers. *(Deterministic, cached — Law 3.)*
 2. Slim **B-roll index** update: moment windows (dog×human behavior × valence,
    lead-in/out, framing) per B-roll clip. *(Vision, but bounded and cached.)*
-3. **Script import (new, not yet built):** scripts live in Drive next to the
-   footage and are not imported today. Import them into a script registry
-   (`knowledge/scripts/`), and link script ↔ talking-head clips (transcript
-   similarity proposes the link, human confirms once per drop). This is what makes
-   Line 2 ("filmed from a script") real instead of implied.
+3. **Script import (new, not yet built — mechanism confirmed 2026-07-13):** the
+   script lives in Drive **in the same folder as the talking-head clips**, as a
+   **Google Doc**. Verified on two real folders via the read-only service account
+   (`lib/drive.py` → `list_folder` + `files().export(mimeType='text/plain')`):
+   - *Example A* (`1jUKR77…`): Doc "Haakjes FB Ads Augustus" + 7 clips named by
+     convention **`A{n} H{n}`** = **Ad-concept × Hook**. The Doc is structured
+     `Ad N: <name>` → `Haakje 1/2/3` → full hook→body→**our-masterclass-CTA** text.
+     So `A2 H3.MP4` is Ad 2 / Haakje 3; the script text for it is right there.
+   - *Example B* (folder "June", where **IMG_2850** — the clip we edited — lives):
+     Doc "Jess – Recording Guide – Webinar Ad Scripts" + `IMG_28xx.MOV` clips (raw
+     camera names, **no** A/H convention).
+   Importer (Phase 2): export the Doc → parse `Ad N` / `Haakje N` sections →
+   `knowledge/scripts/`. Link script↔clip by the `A#/H#` convention **when present**,
+   else by transcript↔script-text similarity; human confirms once per drop. The
+   CTA in these scripts is already our offer — good (RULES D4 holds at the source).
 4. **Creator + project grouping (new — absorbs old issue #11 / roadmap piece D):**
    every clip gets `creator` and `project` tags in its facts. A creator has many
    projects over time; one project groups everything from one shoot/script — e.g.
@@ -81,7 +91,11 @@ are the system's creative vocabulary — human-owned).
    by Ramon once per drop. **Purpose: provenance and consistency, not edit
    decisions** — the workflow can *check* against it (same-project B-roll keeps
    look/continuity consistent; cross-project reuse of a creator is a deliberate,
-   visible choice, never an accident).
+   visible choice, never an accident). *Grounding (2026-07-13):* the Drive **folder
+   is the project** (one folder = one shoot's clips + its script Doc), and the
+   `A{n} H{n}` filename convention, where present, gives the take-group for free
+   (`A1 H1/H2/H3` = same ad concept, three hook takes). Creator is inferred from the
+   folder/Doc (e.g. "Jess" for the June folder — the EN creator per FLOW.md).
 
 ## The per-ad workflow (flow)
 
