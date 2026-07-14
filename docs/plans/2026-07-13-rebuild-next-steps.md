@@ -33,12 +33,27 @@ pre-rebuild-v2`.*
    `README.md`/`FLOW.md`/`project-state.md` to the new architecture, drop the
    `pre-rebuild-v2` dependency note. Only after step 3 ships.
 
+## Blocking polish for a LAUNCH-ready ad (surfaced building the first real ad, 2026-07-13)
+The first real 3-beat ad (`output/ads/_real-ad-calming-signals/`, Line-1 from the
+"calming signals" talking head + 2 matched B-roll) proved the *content* pipeline works,
+and exposed the real gaps between "a good ad" and "launch-ready":
+1. **Caption compositing perf** — NOW the bottleneck (a 24s ad ≈ 41 cues timed out at 2m;
+   only rendered with an extended timeout). Batch N caption PNGs into ONE alpha overlay
+   track (or a PNG sequence) so it's O(1) overlays. **Do first.**
+2. **CTA end-card** — implement `end_card` in `render.py` (a real ad needs a visible
+   link/button screen, not just the spoken CTA). Safe-area (B9), our offer (D4).
+3. **HDR B-roll on this machine** — ffmpeg here lacks BOTH `libass` (→ PIL captions) and
+   `zscale` (→ HDR tone-map fails; render.py now falls back without crashing but colours
+   are approximate). Decide: **install a full ffmpeg** (fixes captions *and* HDR cleanly)
+   vs. keep the fallbacks + prefer SDR B-roll. Recommend a full ffmpeg.
+4. **Music bed** — no background track (Pixabay has no music API). Add a Jamendo/licensed
+   source; keep it optional.
+
 ## Deferred follow-ups (do when they bite)
-- **Caption compositing perf** — batch N caption PNGs into one overlay track (today it's
-  O(n) ffmpeg inputs; ~26 cues ≈ 79s render).
-- **raw_cut over-flagging** — audio-jump detector is conservative (some speech-dynamics
-  false positives). Refine (e.g. require visual OR sustained level shift) if it blocks
-  good edits. Best-effort by design; director + human are the backstop.
+- **raw_cut detection** — resolved for now: VISUAL scdet is the danger-line source;
+  audio-level is informational (`audio_shifts`), because on speech a level threshold
+  can't separate splices from dynamics. Revisit with spectral/room-tone fingerprinting
+  if the audio-only hidden-splice case matters.
 - **Whisper for new clips** — `inventory` is cache-first; add the guarded Whisper call
   for clips with no cached transcript (needs `OPENAI_API_KEY`).
 - **Stage-A / Line-3 migration** into the new layout (not the bottleneck).

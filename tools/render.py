@@ -60,6 +60,21 @@ def _probe(source: Path, entries: str, stream="v:0") -> str:
     return out.stdout.strip()
 
 
+_HAS_ZSCALE = None
+
+
+def _has_zscale() -> bool:
+    """zscale (libzimg) is needed for correct HDR→SDR tone mapping. Some ffmpeg builds
+    lack it — detect once so we can fall back instead of crashing."""
+    global _HAS_ZSCALE
+    if _HAS_ZSCALE is None:
+        out = subprocess.run(["ffmpeg", "-hide_banner", "-filters"],
+                             capture_output=True, text=True).stdout
+        _HAS_ZSCALE = any(line.split()[1:2] == ["zscale"] for line in out.splitlines()
+                          if len(line.split()) > 1)
+    return _HAS_ZSCALE
+
+
 def is_hdr(source: Path) -> bool:
     return _probe(source, "stream=color_transfer") in HDR_TRANSFERS
 
@@ -119,7 +134,15 @@ def build_vf(source: Path, w: int, h: int, punch: float,
     output aspect from any source and applies the punch-in zoom. HDR tonemap first."""
     parts: list[str] = []
     if is_hdr(source):
-        parts.append(TONEMAP_CHAIN)
+        if _has_zscale():
+            parts.append(TONEMAP_CHAIN)
+        else:
+            # No zscale on this build → can't tone-map properly. Best-effort SDR:
+            # downconvert bit depth so the clip renders (colours may be slightly off).
+            # Prefer an SDR source for HDR-sensitive B-roll, or install a full ffmpeg.
+            print(f"  warning: {source.name} is HDR but ffmpeg lacks zscale — "
+                  f"rendering without tone-map (colours approximate)")
+            parts.append("format=yuv420p")
     cw, chh = int(round(w * punch)), int(round(h * punch))
     parts.append(f"scale=w={cw}:h={chh}:force_original_aspect_ratio=increase")
     parts.append(f"crop={w}:{h}:(iw-{w})*{fx:.4f}:(ih-{h})*{fy:.4f}")

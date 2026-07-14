@@ -36,7 +36,8 @@ import render  # reuse _probe / _channel_rms / audio_channels / is_hdr  # noqa: 
 FACTS_DIR = ROOT / "facts"
 PACKED = ROOT / "facts" / "takes_packed.md"
 SCDET_THRESHOLD = 10.0     # scene score ≥ → visual cut candidate
-AUDIO_JUMP_DB = 12.0       # level jump between adjacent windows → audio cut candidate
+AUDIO_JUMP_DB = 14.0       # sustained level shift → audio cut candidate
+AUDIO_QUIET_DB = -35.0     # …and one side must be this quiet (a pause-splice, not speech)
 MERGE_WINDOW = 0.40        # dedup cuts within this many seconds
 PRE_EDITED_MIN = 3         # ≥ this many raw cuts → treat as pre-edited
 PHRASE_GAP = 0.5           # silence ≥ this → new packed phrase
@@ -90,9 +91,13 @@ def visual_cuts(video: Path) -> list[float]:
             re.finditer(r"lavfi\.scd\.time:\s*(\d+\.?\d*)", proc.stderr)]
 
 
-def audio_cuts(video: Path, win: float = 0.25) -> list[float]:
-    """Times where the audio level jumps sharply between adjacent windows — a splice
-    that changes room tone/level even when the picture barely moves (hidden cut)."""
+def audio_cuts(video: Path, win: float = 0.20, sustain: int = 3) -> list[float]:
+    """Times where the audio level shifts SUSTAINEDLY — a splice that changes room
+    tone/level even when the picture barely moves (hidden cut). Compares the median
+    level of the ~0.6s BEFORE vs AFTER a boundary, so momentary inter-word dips and
+    natural pauses (the "No. No." "Okay." case) don't register — only a level that
+    stays shifted counts. This keeps raw_cuts to real splices (conservative but not
+    trigger-happy); the director + human remain the backstop."""
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         wav = Path(f.name)
     try:
@@ -108,14 +113,19 @@ def audio_cuts(video: Path, win: float = 0.25) -> list[float]:
             return []
         step = max(1, int(win * sr))
         n = pcm.size // step
-        if n < 3:
+        if n < 2 * sustain + 1:
             return []
         rms = np.sqrt(np.mean(pcm[:n * step].reshape(n, step) ** 2, axis=1) + 1e-9)
         db = 20 * np.log10(rms + 1e-9)
         cuts = []
-        for i in range(1, n):
-            if abs(db[i] - db[i - 1]) >= AUDIO_JUMP_DB and max(db[i], db[i - 1]) > -50:
-                cuts.append(round(i * win, 2))    # boundary time
+        for i in range(sustain, n - sustain):
+            before = float(np.median(db[i - sustain:i]))
+            after = float(np.median(db[i:i + sustain]))
+            # A real talking-head splice happens at a PAUSE: a large, sustained level
+            # shift where one side is genuinely quiet (room tone exposed). Requiring the
+            # quiet side rejects ordinary speech dynamics (which stay loud on both sides).
+            if abs(after - before) >= AUDIO_JUMP_DB and min(before, after) < AUDIO_QUIET_DB:
+                cuts.append(round(i * win, 2))
         return cuts
     finally:
         wav.unlink(missing_ok=True)
@@ -187,7 +197,13 @@ def inventory(video: Path, file_id: str, transcript: Path | None,
     vf = video_facts(video)
     af = audio_facts(video)
     fr = framing_facts(vf, out_w, out_h)
-    raw_cuts = merge_cuts(visual_cuts(video), audio_cuts(video))
+    # Visual scdet is the RELIABLE danger-line source. Audio-level shifts are recorded
+    # separately as best-effort/informational — on continuous speech a level threshold
+    # can't cleanly separate a real splice from speech dynamics, so audio shifts must NOT
+    # hard-block editing (edl_lint uses raw_cuts only). The director + human are the
+    # backstop for the rare audio-only hidden splice.
+    raw_cuts = merge_cuts(visual_cuts(video))
+    audio_shifts = merge_cuts(audio_cuts(video))
     pre_edited = len(raw_cuts) >= PRE_EDITED_MIN
 
     tr = resolve_transcript(video, file_id, transcript)
@@ -196,7 +212,7 @@ def inventory(video: Path, file_id: str, transcript: Path | None,
         "duration": round(float(render._probe(video, "format=duration").split("\n")[0] or 0)
                           if render._probe(video, "format=duration") else 0.0, 2),
         "video": vf, "audio": af, "framing": fr,
-        "raw_cuts": raw_cuts, "pre_edited": pre_edited,
+        "raw_cuts": raw_cuts, "audio_shifts": audio_shifts, "pre_edited": pre_edited,
         "transcript_ref": str(tr) if tr else None,
     }
     FACTS_DIR.mkdir(parents=True, exist_ok=True)

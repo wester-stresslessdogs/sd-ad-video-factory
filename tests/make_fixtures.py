@@ -43,12 +43,14 @@ def color_clip(path: Path, color: str, freq: int, layout: str, silent_right=Fals
 
 
 def spliced_clip(path: Path):
-    """A hidden audio cut: 1s full-level tone, then 1s at -20 dB — a splice that only
-    shows as an audio-level jump at t≈1.0 (inventory.audio_cuts must catch it)."""
+    """A realistic hidden splice-at-a-pause: full tone, a near-silent gap at t≈1.0
+    (room tone exposed), then tone resumes — the signature inventory.audio_cuts targets
+    (a large SUSTAINED shift with one side genuinely quiet)."""
     cmd = ["ffmpeg", "-y",
-           "-f", "lavfi", "-i", "color=c=0x222222:s=1080x1920:d=2:r=30",
-           "-f", "lavfi", "-i", "sine=frequency=300:sample_rate=48000:duration=2",
-           "-filter_complex", "[1:a]volume='if(lt(t,1),1.0,0.1)':eval=frame[a]",
+           "-f", "lavfi", "-i", "color=c=0x222222:s=1080x1920:d=2.4:r=30",
+           "-f", "lavfi", "-i", "sine=frequency=300:sample_rate=48000:duration=2.4",
+           "-filter_complex",
+           "[1:a]volume='if(lt(t,1),1.0,if(lt(t,1.5),0.005,0.9))':eval=frame[a]",
            "-map", "0:v", "-map", "[a]", "-ac", "2",
            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
            "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "48000", "-shortest", str(path)]

@@ -42,7 +42,12 @@
     },
     "raw_cuts": {
       "type": "array",
-      "description": "Hidden internal cut times (visual scdet + audio-level jumps, merged). Best-effort DANGER LINES (RULES B5): never edit within ~0.5s of one. Conservative by design — over-flagging is safer; the director + human are the backstop.",
+      "description": "Hidden internal cut times from VISUAL scene detection (scdet) — the reliable danger-line source. DANGER LINES (RULES B5): never edit within ~0.5s of one. edl_lint uses these.",
+      "items": { "type": "number" }
+    },
+    "audio_shifts": {
+      "type": "array",
+      "description": "Best-effort audio-level shift times (informational, NOT a hard gate). On continuous speech a level threshold can't cleanly separate a real splice from speech dynamics, so these don't block editing; the director + human are the backstop for the rare audio-only hidden splice.",
       "items": { "type": "number" }
     },
     "pre_edited": { "type": "boolean", "description": "≥3 raw cuts → the source is not continuous; no contiguous punch-ins (RULES B5)." },
