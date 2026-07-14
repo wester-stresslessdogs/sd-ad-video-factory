@@ -5,9 +5,12 @@ description: The one editing skill — plans and ships ad variants from indexed 
 
 # /edit — plan and ship ad variants
 
-> **SKELETON (Phase 0).** The process below is the contract; the tools it calls are
-> built in Phase 1 (`render`, `selfcheck`) and Phase 2 (`inventory`, `edl_lint`). Until
-> then this skill is the spec, not yet runnable. Full workflow with decision ownership:
+> **Status (Phase 2).** All the mechanical tools this skill calls now exist and are
+> tested: `import_scripts`, `inventory`, `edl_lint`, `render`, `selfcheck`,
+> `timeline_view`. A **Line-2** run (script + talking-head → EDL → lint → render →
+> selfcheck) is runnable end-to-end today. **Still pending for full Line-1:** the slim
+> **B-roll index** and the **style index** (J1) — until those land, B-roll matching and
+> style-fit are done by hand from `TASTE.md`. Full workflow with decision ownership:
 > `docs/specs/2026-07-12-ad-workflow-design.md`.
 
 This skill describes the **process**. Hard rules live in `RULES.md`; craft lives in
