@@ -7,7 +7,7 @@ these; each schema carries a `version`.
 | Schema | The contract between | Status |
 |---|---|---|
 | `edl.schema.json` | editor (planner) ↔ render + lint | ✅ v1 |
-| `facts.schema.json` | inventory ↔ editor | ⬜ Phase 2 |
+| `facts.schema.json` | inventory ↔ editor | ✅ v1 |
 | `broll-index.schema.json` | inventory ↔ editor (B-roll matching) | ⬜ Phase 2 |
 | `script.schema.json` | script importer (J2.3) ↔ editor (Line-2 mapping) | ✅ v1 |
 | `style.schema.json` | style harvest (J1) ↔ editor (style match) | ⬜ Phase 1/2 |

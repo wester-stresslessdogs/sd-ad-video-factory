@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sd-ad-video-factory/schemas/facts.schema.json",
+  "title": "Clip facts (v1) — the mechanical, cached-per-source truth",
+  "description": "Produced by tools/inventory.py. ONLY immutable facts; judgment (take choice, clean verdicts, richness) stays at decision time. The editor reads this + takes_packed.md; it never re-derives these (Law 3).",
+  "type": "object",
+  "required": ["version", "file_id", "duration", "video", "audio", "framing", "raw_cuts", "pre_edited"],
+  "additionalProperties": true,
+  "properties": {
+    "version": { "const": 1 },
+    "file_id": { "type": "string" },
+    "source": { "type": "string" },
+    "duration": { "type": "number" },
+    "video": {
+      "type": "object",
+      "required": ["width", "height", "fps", "hdr"],
+      "properties": {
+        "width": { "type": "integer" },
+        "height": { "type": "integer" },
+        "fps": { "type": "number" },
+        "hdr": { "type": "boolean" }
+      }
+    },
+    "audio": {
+      "type": "object",
+      "required": ["channels", "needs_stereo_fix"],
+      "description": "needs_stereo_fix / one_ear drive RULES A6 at render time.",
+      "properties": {
+        "channels": { "type": "integer" },
+        "layout": { "type": "string" },
+        "needs_stereo_fix": { "type": "boolean" },
+        "one_ear": { "type": "boolean" }
+      }
+    },
+    "framing": {
+      "type": "object",
+      "required": ["punchin_max"],
+      "properties": {
+        "punchin_max": { "type": "number", "description": "Max punch scale before quality drops, from source vs output resolution." },
+        "upscaled_at_1x": { "type": ["boolean", "null"], "description": "True = the reframe already upsamples (e.g. landscape→vertical)." }
+      }
+    },
+    "raw_cuts": {
+      "type": "array",
+      "description": "Hidden internal cut times (visual scdet + audio-level jumps, merged). Best-effort DANGER LINES (RULES B5): never edit within ~0.5s of one. Conservative by design — over-flagging is safer; the director + human are the backstop.",
+      "items": { "type": "number" }
+    },
+    "pre_edited": { "type": "boolean", "description": "≥3 raw cuts → the source is not continuous; no contiguous punch-ins (RULES B5)." },
+    "transcript_ref": { "type": ["string", "null"] }
+  }
+}

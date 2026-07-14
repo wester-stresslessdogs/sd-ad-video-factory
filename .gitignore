@@ -31,3 +31,7 @@ output/*
 
 # Gegenereerde test-fixtures (regenereer met tests/make_fixtures.py)
 tests/fixtures/*.mp4
+
+# Gegenereerde facts-cache (regenereer met tools/inventory.py)
+facts/*.json
+facts/takes_packed.md
